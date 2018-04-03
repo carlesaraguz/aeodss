@@ -39,7 +39,8 @@ Satellite::Satellite(unsigned int id, double r, double r1, double r2)
               << "Satellite created: " << m_sat_id << " "
               << "[r " << r << "] "
               << "[r1 " << r1 << "] "
-              << "[r2 " << r2 << "]";
+              << "[r2 " << r2 << "] "
+              << "[T " << (int)(m_orbit.period / 60) << " min. ]";
     std::cout << std::defaultfloat << std::endl;
     #endif
 }
