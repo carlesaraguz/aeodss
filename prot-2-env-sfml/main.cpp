@@ -10,10 +10,13 @@
 #include "prot.hpp"
 
 #include "Agent.hpp"
+#include "Channel.hpp"
 #include "WorldView.hpp"
 #include "Init.hpp"
 
 void handleEvents(sf::RenderWindow& w);
+
+bool play = true;
 
 int main(int /* argc */, char** /* argv */)
 {
@@ -36,6 +39,10 @@ int main(int /* argc */, char** /* argv */)
         agents.push_back(aptr);
     }
 
+    /* Create a common channel: ----------------------------------------------------------------- */
+    Channel channel(agents);
+    channel.configAgents();
+
     /* Create world views: ---------------------------------------------------------------------- */
     WorldView wv1(WorldViewType::SINGLE_AGENT, std::vector<std::shared_ptr<Agent> >({ agents[0] }));
     WorldView wv2(WorldViewType::SINGLE_AGENT, std::vector<std::shared_ptr<Agent> >({ agents[1] }));
@@ -51,10 +58,17 @@ int main(int /* argc */, char** /* argv */)
         handleEvents(window);
 
         /* Update loop: ------------------------------------------------------------------------- */
-        for(auto& a : agents) {
-            a->step();
+        if(play) {
+            /* Update agents: */
+            for(auto& a : agents) {
+                a->step();
+            }
+
+            /* Trigger communications: */
+            channel.handleLinks();
         }
 
+        /* Pre-draw loop: ----------------------------------------------------------------------- */
         wv1.drawWorld();
         wv2.drawWorld();
         wv3.drawWorld();
@@ -81,6 +95,15 @@ void handleEvents(sf::RenderWindow& w)
             if(event.key.code == sf::Keyboard::Escape) {
                 std::cout << "The escape key was pressed. Exiting." << std::endl;
                 w.close();
+            }
+            if(event.key.code == sf::Keyboard::Space) {
+                if(play) {
+                    std::cout << "Stopping world.\n";
+                    play = false;
+                } else {
+                    std::cout << "Resuming world.\n";
+                    play = true;
+                }
             }
         }
     }

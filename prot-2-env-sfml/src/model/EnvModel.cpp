@@ -16,6 +16,8 @@ EnvModel::EnvModel(unsigned int mw, unsigned int mh, unsigned int ww, unsigned i
     , m_model_w(mw)
     , m_model_h(mh)
     , m_num_layers(n_layers)
+    , m_view(mw, mh, ww, wh)
+    , m_view_layer(-1)
 {
     if(m_model_w == 0 || m_model_h == 0) {
         std::cerr << "Environment model can't have 0 dimensions (" << m_model_w << ", " << m_model_h << ").\n";
@@ -34,28 +36,70 @@ EnvModel::EnvModel(unsigned int mw, unsigned int mh, unsigned int ww, unsigned i
         m_ratio_h = (float)m_world_h / (float)m_model_h;
     }
     for(unsigned int i = 0; i < m_num_layers; i++) {
-        m_model_cells[i] = new EMCell*[m_model_w];
+        std::vector<std::vector<Cell> > css;
+        css.reserve(m_model_w);
         for(unsigned int j = 0; j < m_model_w; j++) {
-            m_model_cells[i][j] = new EMCell[m_model_h];
+            std::vector<Cell> cs;
+            cs.reserve(m_model_h);
             for(unsigned int k = 0; k < m_model_h; k++) {
-                m_model_cells[i][j][k].value = Random::getUf(0.f, 127.f);
-                m_model_cells[i][j][k].update_time = -1.f;
+                Cell c = {
+                    -1.f,   /* Initial .value       */
+                    -1.f    /* Initial .update_time */
+                };
+                cs.push_back(c);
+            }
+            css.push_back(cs);
+        }
+        m_model_cells[i] = css;
+        m_layer_funcs[i] = [](Cell&) { };   /* Function that does nothing. */
+    }
+}
+
+void EnvModel::updateAll(void)
+{
+    for(auto& l : m_model_cells) {
+        updatelLayer(l.first);
+    }
+}
+
+void EnvModel::displayInView(unsigned int l)
+{
+    if(l >= m_num_layers) {
+        std::cerr << "Environment model error. Trying to display wrong layer " << l << ".\n";
+        return;
+    }
+    m_view_layer = l;
+    m_view.display(*this, m_view_layer);
+}
+
+void EnvModel::updatelLayer(unsigned int l)
+{
+    if(l >= m_num_layers) {
+        std::cerr << "Environment model error. Trying to update a wrong layer " << l << ".\n";
+        return;
+    }
+    for(std::size_t x = 0; x < m_model_cells[l].size(); x++) {
+        for(std::size_t y = 0; y < m_model_cells[l][x].size(); y++) {
+            if(m_model_cells[l][x][y].time != -1.f) {
+                m_layer_funcs[l](m_model_cells[l][x][y]);
             }
         }
     }
-}
-
-EnvModel::~EnvModel(void)
-{
-    for(auto& l : m_model_cells) {
-        for(unsigned int i = 0; i < m_model_w; i++) {
-            delete[] l.second[i];
-        }
-        delete[] l.second;
+    if(m_view_layer == (int)l) {
+        m_view.display(*this, m_view_layer);
     }
 }
 
-void EnvModel::setValue(float x, float y, float v, float r, unsigned int layer)
+void EnvModel::setLayerFunction(unsigned int l, std::function<void(Cell&)> f)
+{
+    if(l >= m_num_layers) {
+        std::cerr << "Environment model error. Setting a function layer in wrong layer " << l << ".\n";
+    } else {
+        m_layer_funcs[l] = f;
+    }
+}
+
+void EnvModel::setValueByWorldCoord(float t, float x, float y, float v, float r, unsigned int layer)
 {
     if(x > m_world_w || y > m_world_h) {
         std::cerr << "Environment model error. Setting a value out of world boundaries.\n";
@@ -65,10 +109,11 @@ void EnvModel::setValue(float x, float y, float v, float r, unsigned int layer)
         std::cerr << "Environment model error. Setting a value in wrong layer " << layer << ".\n";
         return;
     }
-    int ox = std::ceil(x / m_ratio_w);
-    int oy = std::ceil(y / m_ratio_h);
+    int ox = std::round((x - (m_ratio_w / 2.f)) / m_ratio_w);
+    int oy = std::round((y - (m_ratio_h / 2.f)) / m_ratio_h);
 
     m_model_cells[layer][ox][oy].value = v;
+    m_model_cells[layer][ox][oy].time  = t;
     if(r > 0.f) {
         /*  Find other cells that are at a distance of `r` from (ox, oy):
          *    - ox, oy : Spiral origin/offset.
@@ -78,14 +123,16 @@ void EnvModel::setValue(float x, float y, float v, float r, unsigned int layer)
         int xx, yy, dx, dy;
         xx = yy = dx = 0.f;
         dy = -1;
-        int t = 2 * std::max(m_model_w, m_model_h);
-        int max_iter = t * t;
+        int b = 2 * std::max(r / m_ratio_w, r / m_ratio_h);
+        int max_iter = b * b;
         bool at_r = false;
         int corner_count = 0;
         for(int i = 0; i < max_iter; i++) {
-            if((xx + ox < m_model_w) && (xx + ox >= 0) && (yy + oy < m_model_h) && (yy + oy >= 0)) {
-                if(std::abs(std::complex<float>(xx - ox, yy - oy)) <= r) {
+            if((xx + ox < (int)m_model_w) && (xx + ox >= 0) && (yy + oy < (int)m_model_h) && (yy + oy >= 0)) {
+                float dist = getDistance(ox, oy, ox + xx, oy + yy);
+                if(dist <= r) {
                     m_model_cells[layer][xx + ox][yy + oy].value = v;
+                    m_model_cells[layer][xx + ox][yy + oy].time  = t;
                     at_r = true;
                 }
                 if(corner_count >= 5 && !at_r) {
@@ -93,19 +140,25 @@ void EnvModel::setValue(float x, float y, float v, float r, unsigned int layer)
                 }
             }
             if((xx == yy) || ((xx < 0) && (xx == -yy)) || ((xx > 0) && (xx == 1 - yy))) {
-                t  = dx;
+                b  = dx;
                 dx = -dy;
-                dy = t;
+                dy = b;
                 corner_count++;
             }
             xx += dx;
             yy += dy;
         }
     }
-
 }
 
-float EnvModel::getValue(float x, float y, unsigned int layer) const
+float EnvModel::getDistance(int x1, int y1, int x2, int y2) const
+{
+    float x = (x1 - x2) * m_ratio_w;
+    float y = (y1 - y2) * m_ratio_h;
+    return std::sqrt(x * x + y * y);
+}
+
+float EnvModel::getValueByWorldCoord(float x, float y, unsigned int layer) const
 {
     if(x > m_world_w || y > m_world_h) {
         std::cerr << "Environment model error. Requesting a value out of world boundaries.\n";
@@ -117,16 +170,28 @@ float EnvModel::getValue(float x, float y, unsigned int layer) const
     }
     int ox = std::ceil(x / m_ratio_w);
     int oy = std::ceil(y / m_ratio_h);
-    float v = m_model_cells.at(layer)[ox][oy].value;
     return m_model_cells.at(layer)[ox][oy].value;
 }
 
-void EnvModel::addLayers(unsigned int nl)
+float EnvModel::getValueByModelCoord(unsigned int x, unsigned int y, unsigned int layer) const
+{
+    if(x > m_model_w || y > m_model_h) {
+        std::cerr << "Environment model error. Requesting a value out of world boundaries.\n";
+        return 0.f;
+    }
+    if(layer >= m_num_layers) {
+        std::cerr << "Environment model error. Requesting a value in wrong layer " << layer << ".\n";
+        return 0.f;
+    }
+    return m_model_cells.at(layer)[x][y].value;
+}
+
+void EnvModel::addLayers(unsigned int /* nl */)
 {
     /* TODO */
 }
 
-void EnvModel::removeLayer(unsigned int l_id)
+void EnvModel::removeLayer(unsigned int /* l_id */)
 {
     /* TODO */
 }

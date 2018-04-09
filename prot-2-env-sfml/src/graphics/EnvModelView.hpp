@@ -12,29 +12,46 @@
 #define ENV_MODEL_VIEW_HPP
 
 #include "prot.hpp"
-#include "EnvModel.hpp"
+#include "ColorGradient.hpp"
+
+class EnvModel;
 
 class EnvModelView : public sf::Drawable
 {
 public:
-    EnvModelView(int w, int h, sf::Color init_color = sf::Color::Black);
-    EnvModelView(const EnvModel& e);
-    EnvModelView(const EnvModel& e, sf::Color init_color);
+    EnvModelView(int modelw, int modelh, int worldw, int worldh, sf::Color init_color = sf::Color::Black);
+    EnvModelView(const EnvModel& e, sf::Color init_color = sf::Color::Black);
 
     void display(const EnvModel& e, unsigned int layer = 0);
-    int getHeight(void) const { return m_height; }
-    int getWidth(void) const { return m_width; }
+    void setColorGradient(const ColorGradient& cg) { m_color_gradient = cg; }
 
 private:
-    sf::Sprite m_sprite;
-    sf::Texture m_texture;
-    int m_width;
-    int m_height;
+    struct EMCellView {
+        /*  Indices to the corners (i.e. vertices in m_grid) of a cell.
+         *  Corners are numbered clockwise starting at top-left.
+         *  Letter A or B (caX and cbX) correspond to the triangle (top-left:A, bottom-right:B)
+         **/
+        int ca0;
+        int ca1;
+        int cb1;
+        int cb2;
+        int ca3;
+        int cb3;
+    };
+
+    int m_model_w;
+    int m_model_h;
+    int m_world_w;
+    int m_world_h;
     sf::VertexArray m_grid;
+    std::vector<std::vector<EMCellView> > m_grid_idxs;
+    ColorGradient m_color_gradient;
 
     void setColor(int x, int y, sf::Color c);
     void setColor(std::vector<std::tuple<int,int> > units, sf::Color c);
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 };
+
+#include "EnvModel.hpp"
 
 #endif /* ENV_MODEL_VIEW_HPP */

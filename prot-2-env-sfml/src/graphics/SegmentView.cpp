@@ -10,15 +10,16 @@
 
 #include "SegmentView.hpp"
 
-SegmentView::SegmentView(const Intent& in, float swath)
-    : SegmentView(in.pstart, in.pend, swath, in.getAgentId() + ":" + std::to_string(in.id))
+SegmentView::SegmentView(const Intent& in)
+    : SegmentView(in.pstart, in.pend, in.getAgentSwath(), in.getAgentId() + ":" + std::to_string(in.id))
 { }
 
 SegmentView::SegmentView(sf::Vector2f p1, sf::Vector2f p2, float swath, std::string str)
     : m_p1(p1)
     , m_p2(p2)
     , m_active(false)
-    , m_owned(false)
+    , m_owned(true)
+    , m_done(false)
 {
     /* Find a unitary vector perpendicular to p12: */
     sf::Vector2f p12 = p2 - p1;
@@ -56,60 +57,60 @@ SegmentView::SegmentView(sf::Vector2f p1, sf::Vector2f p2, float swath, std::str
     m_txt.setPosition(p1 - (p12 * 30.f));
 }
 
+void SegmentView::decorate(void)
+{
+    sf::Color c;
+
+    /* Color: */
+    if(m_owned) {
+        c = sf::Color::White;
+    } else {
+        c = Config::color_orange;
+    }
+
+    /* Alpha: */
+    if(m_active) {
+        c.a = 255 * 1.f;
+    } else if(m_done) {
+        c.a = 255 * 0.25f;
+    } else {
+        c.a = 255 * 0.5f;
+    }
+
+    m_line0.setColor(c);
+    m_line1.setColor(c);
+    m_line2.setColor(c);
+    m_txt.setColor(c);
+}
+
 void SegmentView::setOwnership(bool mine)
 {
     m_owned = mine;
-    sf::Color c;
-    if(m_owned && m_active) {
-        m_line0.setColor(Config::color_orange);
-        m_line1.setColor(Config::color_orange);
-        m_line2.setColor(Config::color_orange);
-    } else if(m_owned && !m_active) {
-        c = Config::color_orange;
-        c.a = 180;
-        m_line0.setColor(c);
-        m_line1.setColor(c);
-        m_line2.setColor(c);
-    } else if(!m_owned && m_active) {
-        m_line0.setColor(sf::Color::White);
-        m_line1.setColor(sf::Color::White);
-        m_line2.setColor(sf::Color::White);
-    } else if(!m_owned && !m_active) {
-        c = sf::Color::White;
-        c.a = 180;
-        m_line0.setColor(c);
-        m_line1.setColor(c);
-        m_line2.setColor(c);
-    }
+    decorate();
 }
 
 void SegmentView::setActive(bool active)
 {
     m_active = active;
-    sf::Color c;
+    m_done = false;
     if(m_active) {
-        c = m_line0.getColor();
-        c.a = 255;
-        m_line0.setColor(c);
         m_line0.setThickness(3.f);
-        c = m_line1.getColor();
-        c.a = 255;
-        m_line1.setColor(c);
         m_line1.setThickness(3.f);
-        c = m_line2.getColor();
-        c.a = 255;
-        m_line2.setColor(c);
         m_line2.setThickness(3.f);
     } else {
-        c = m_line0.getColor();
-        c.a = 180;
-        m_line0.setColor(c);
-        c = m_line1.getColor();
-        c.a = 180;
-        m_line1.setColor(c);
-        c = m_line2.getColor();
-        c.a = 180;
-        m_line2.setColor(c);
+        m_line0.setThickness(2.f);
+        m_line1.setThickness(2.f);
+        m_line2.setThickness(2.f);
+    }
+    decorate();
+}
+
+void SegmentView::setDone(bool done)
+{
+    if(!m_done && done) {
+        setActive(false);
+        m_done = true;
+        decorate();
     }
 }
 

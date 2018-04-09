@@ -43,8 +43,10 @@ void WorldView::drawWorld(void)
                 m_target_texture.draw(m_agents[0]->getEnvView());
                 m_target_texture.draw(m_agents[0]->getAgentView());
                 auto segments = m_agents[0]->getSegmentViews();
-                for(const auto& seg : segments) {
-                    m_target_texture.draw(seg.second);
+                for(const auto& segs : segments) {
+                    for(const auto& seg : segs.second) {
+                        m_target_texture.draw(seg.second);
+                    }
                 }
             }
             break;
@@ -54,7 +56,7 @@ void WorldView::drawWorld(void)
             for(const auto& a : m_agents) {
                 m_target_texture.draw(a->getAgentView());
                 auto segments = a->getSegmentViews();
-                for(const auto& seg : segments) {
+                for(const auto& seg : segments[a->getId()]) {
                     m_target_texture.draw(seg.second);
                 }
             }

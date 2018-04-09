@@ -1,24 +1,28 @@
 /***********************************************************************************************//**
- *  Program initialization and setup class.
- *  @class      Init
+ *  Converts a finite range of values to color.
+ *  @class      ColorGradient
  *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
- *  @date       2018-feb-20
+ *  @date       2018-abr-05
  *  @version    0.1
  *  @copyright  This file is part of a project developed by Nano-Satellite and Payload Laboratory
  *              (NanoSat Lab) at Technical University of Catalonia - UPC BarcelonaTech.
  **************************************************************************************************/
 
-#ifndef INIT_HPP
-#define INIT_HPP
+#ifndef COLOR_GRADIENT_HPP
+#define COLOR_GRADIENT_HPP
 
 #include "prot.hpp"
-#include "Random.hpp"
-#include "ColorGradient.hpp"
 
-class Init
+class ColorGradient
 {
 public:
-    static void doInit(void);
+    ColorGradient(void);
+    ColorGradient(std::map<float, sf::Color> colors);
+    sf::Color getColorAt(float v);
+    void setGradient(std::map<float, sf::Color> cg) { m_color_steps = cg; }
+
+private:
+    std::map<float, sf::Color> m_color_steps;
 };
 
-#endif /* INIT_HPP */
+#endif /* COLOR_GRADIENT_HPP */

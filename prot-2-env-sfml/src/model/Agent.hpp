@@ -13,25 +13,44 @@
 
 #include "prot.hpp"
 #include "Intent.hpp"
+#include "IntentHandler.hpp"
 #include "AgentView.hpp"
 #include "EnvModel.hpp"
-#include "EnvModelView.hpp"
-#include "SegmentView.hpp"
 #include "Random.hpp"
 
 class Agent
 {
+    typedef std::map<bool, std::map<std::string, std::shared_ptr<Agent> > > LinkTable;
+
 public:
     Agent(std::string id,
         unsigned int wwidht = Config::world_width,
         unsigned int wheight = Config::world_height);
     Agent(std::string id, unsigned int wwidht, unsigned int wheight, sf::Vector2f ipos);
 
+    /* Public member functions: */
     sf::Vector2f step(void);
-    AgentView& getAgentView(void) { return m_self_v; }
-    std::map<unsigned int, SegmentView>& getSegmentViews(void) { return m_segments; }
-    EnvModelView& getEnvView(void);
+    void addAgentLink(std::shared_ptr<Agent> a, bool in_view = false);
+    void addAgentLink(std::map<bool, std::vector<std::shared_ptr<Agent> > > als);
+    void toggleAgentLink(std::string aid);
+    bool isVisible(std::shared_ptr<Agent> a) const;
+    bool connect(std::string agent_requester);
+    IntentHandler::IntentTable exchangeIntents(IntentHandler::IntentTable pkt);
+    void doCommunicate(void);
+
+    /* Getters and setters: */
+    sf::Vector2f getPosition(void) const { return m_current_state.position; }
     sf::Vector2f getWorldSize(void) const { return sf::Vector2f(m_world_w, m_world_h); }
+    const AgentView& getAgentView(void) const { return m_self_v; }
+    const IntentHandler::SegmentTable& getSegmentViews(void) const { return m_intent_handler.getViews(); }
+    const EnvModelView& getEnvView(void) const { return m_environment.getView(); }
+    std::string getId(void) const { return m_id; }
+    LinkTable& getLinks(void) { return m_link_table; }
+    float getRange(void) const { return m_range; }
+
+    /* Overloaded operators: */
+    bool operator==(const Agent& ra);
+    bool operator!=(const Agent& ra);
 
 private:
     struct AgentState {
@@ -44,6 +63,9 @@ private:
     std::map<float, AgentState> m_states;
     AgentState m_current_state;
     float m_current_time;
+    LinkTable m_link_table;
+    std::map<std::string, bool> m_has_communicated;
+    IntentHandler m_intent_handler;
 
     /* Self model: */
     float m_speed;
@@ -58,13 +80,10 @@ private:
     unsigned int m_world_h;
     unsigned int m_world_model_w;
     unsigned int m_world_model_h;
-    std::map<std::string, std::map<unsigned int, Intent> > m_intents;
     EnvModel m_environment;
 
     /* Graphical representations: */
-    EnvModelView m_env_v;
     AgentView m_self_v;
-    std::map<unsigned int, SegmentView> m_segments;
 
     void propagateState(void);
     void move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f& p, sf::Vector2f& v);

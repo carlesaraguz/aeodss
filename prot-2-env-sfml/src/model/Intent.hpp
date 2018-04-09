@@ -22,15 +22,18 @@ public:
     sf::Vector2f pend;
     unsigned int id;
 
-    Intent(unsigned int iid, float t1, float t2, sf::Vector2f p1 = {0.f, 0.f}, sf::Vector2f p2 = {0.f, 0.f});
-    Intent(unsigned int iid, sf::Vector2f p1 = {0.f, 0.f}, sf::Vector2f p2 = {0.f, 0.f});
+    Intent(unsigned int iid, float s, float t1, float t2, sf::Vector2f p1 = {0.f, 0.f}, sf::Vector2f p2 = {0.f, 0.f});
+    Intent(unsigned int iid, float s, sf::Vector2f p1 = {0.f, 0.f}, sf::Vector2f p2 = {0.f, 0.f});
+    Intent(float swath);
     Intent(void);
 
     void setAgentId(std::string id) { m_agent_id = id; }
     std::string getAgentId(void) const { return m_agent_id; }
+    float getAgentSwath(void) const { return m_agent_swath; }
 
 private:
     std::string m_agent_id;
+    float m_agent_swath;
 };
 
 #endif /* INTENT_HPP */

@@ -19,16 +19,18 @@
 class SegmentView : public sf::Drawable
 {
 public:
-    SegmentView(const Intent& in, float swath);
+    SegmentView(const Intent& in);
     SegmentView(sf::Vector2f p1, sf::Vector2f p2, float swath, std::string str = "");
 
     void setOwnership(bool mine);
     void setActive(bool active);
+    void setDone(bool done);
 
 private:
     float m_swath;
     sf::Vector2f m_p1;
     sf::Vector2f m_p2;
+    bool m_done;
     bool m_active;
     bool m_owned;
     ThickLine m_line0;
@@ -36,6 +38,7 @@ private:
     ThickLine m_line2;
     sf::Text m_txt;
 
+    void decorate(void);
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 };
 

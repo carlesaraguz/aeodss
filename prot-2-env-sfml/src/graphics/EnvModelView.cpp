@@ -10,64 +10,57 @@
 
 #include "EnvModelView.hpp"
 
-EnvModelView::EnvModelView(int w, int h, sf::Color init_color)
-    : m_width(w)
-    , m_height(h)
+EnvModelView::EnvModelView(int modelw, int modelh, int worldw, int worldh, sf::Color init_color)
+    : m_model_w(modelw)
+    , m_model_h(modelh)
+    , m_world_w(worldw)
+    , m_world_h(worldh)
+    , m_grid(sf::Triangles, modelw * modelh * 6)
+    , m_color_gradient(Config::color_gradient_rgb)
 {
-    sf::Image image;
-    image.create(m_width, m_height, init_color);
-    m_texture.loadFromImage(image);
-    m_texture.setSmooth(false);
-    m_sprite.setTexture(m_texture);
-    m_sprite.setScale(
-        (float)Config::world_width / (float)m_width,
-        (float)Config::world_height / (float)m_height
-    );
-}
+    float cell_w = (float)m_world_w / (float)m_model_w;
+    float cell_h = (float)m_world_h / (float)m_model_h;
+    int v = 0;
+    m_grid_idxs.reserve(m_model_w);
+    for(int x = 0; x < m_model_w; x++) {
+        std::vector<EMCellView> col;
+        col.reserve(m_model_h);
+        for(int y = 0; y < m_model_h; y++) {
+            EMCellView cell_idx;
+            /* Triangle 1: */
+            m_grid[v + 0] = sf::Vertex(sf::Vector2f(cell_w * (x + 0), cell_h * (y + 0)), init_color);
+            m_grid[v + 1] = sf::Vertex(sf::Vector2f(cell_w * (x + 1), cell_h * (y + 0)), init_color);
+            m_grid[v + 2] = sf::Vertex(sf::Vector2f(cell_w * (x + 0), cell_h * (y + 1)), init_color);
+            cell_idx.ca0 = v + 0;
+            cell_idx.ca1 = v + 1;
+            cell_idx.ca3 = v + 2;
+            /* Triangle 2: */
+            m_grid[v + 3] = sf::Vertex(sf::Vector2f(cell_w * (x + 1), cell_h * (y + 0)), init_color);
+            m_grid[v + 4] = sf::Vertex(sf::Vector2f(cell_w * (x + 1), cell_h * (y + 1)), init_color);
+            m_grid[v + 5] = sf::Vertex(sf::Vector2f(cell_w * (x + 0), cell_h * (y + 1)), init_color);
+            cell_idx.cb1 = v + 3;
+            cell_idx.cb2 = v + 4;
+            cell_idx.cb3 = v + 5;
 
-EnvModelView::EnvModelView(const EnvModel& e)
-    : m_width(e.getModelWidth())
-    , m_height(e.getModelHeight())
-    , m_grid(sf::LinesStrip, 3)
-{
-    sf::Image image;
-    image.create(m_width, m_height, sf::Color::Black);
-    sf::Color c(0, 0, 0, 255);
-    for(int y = 0; y < m_height; y++) {
-        for(int x = 0; x < m_width; x++) {
-            c.r = e.getValue(x, y);
-            c.g = e.getValue(x, y);
-            c.b = e.getValue(x, y);
-            image.setPixel(x, y, c);
+            col.push_back(cell_idx);
+            v += 6;
         }
+        m_grid_idxs.push_back(col);
     }
-    m_texture.loadFromImage(image);
-    m_texture.setSmooth(false);
-    m_sprite.setTexture(m_texture);
-    m_sprite.setScale(
-        (float)Config::world_width / (float)m_width,
-        (float)Config::world_height / (float)m_height
-    );
-
-    m_grid[0] = sf::Vertex(sf::Vector2f(0.f, 0.f), sf::Color::White);
-    m_grid[1] = sf::Vertex(sf::Vector2f(Config::world_width, 0.f), sf::Color::White);
-    m_grid[2] = sf::Vertex(sf::Vector2f(0.f, Config::world_height), sf::Color::White);
 }
 
 EnvModelView::EnvModelView(const EnvModel& e, sf::Color init_color)
-    : EnvModelView(e.getModelWidth(), e.getModelHeight(), init_color)
+    : EnvModelView(e.getModelWidth(), e.getModelHeight(), e.getWorldWidth(), e.getWorldHeight(), init_color)
 { }
 
 void EnvModelView::setColor(int x, int y, sf::Color c)
 {
-    sf::Uint8* pixels = new sf::Uint8[4];
-    pixels[0] = c.r;
-    pixels[1] = c.g;
-    pixels[2] = c.b;
-    pixels[3] = c.a;
-    m_texture.update(pixels, 1, 1, x, y);
-    m_sprite.setTexture(m_texture);
-    delete[] pixels;
+    m_grid[m_grid_idxs[x][y].ca0 + 0].color = c;
+    m_grid[m_grid_idxs[x][y].ca0 + 1].color = c;
+    m_grid[m_grid_idxs[x][y].ca0 + 2].color = c;
+    m_grid[m_grid_idxs[x][y].ca0 + 3].color = c;
+    m_grid[m_grid_idxs[x][y].ca0 + 4].color = c;
+    m_grid[m_grid_idxs[x][y].ca0 + 5].color = c;
 }
 
 void EnvModelView::setColor(std::vector<std::tuple<int,int> > units, sf::Color c)
@@ -79,22 +72,22 @@ void EnvModelView::setColor(std::vector<std::tuple<int,int> > units, sf::Color c
 
 void EnvModelView::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    // target.draw(m_sprite, states);
     target.draw(m_grid, states);
 }
 
 void EnvModelView::display(const EnvModel& e, unsigned int layer)
 {
-    sf::Image image;
-    image.create(m_width, m_height, sf::Color::Black);
-    sf::Color c(0, 0, 0, 255);
-    for(int y = 0; y < m_height; y++) {
-        for(int x = 0; x < m_width; x++) {
-            c.r = e.getValue(x, y, layer);
-            c.g = e.getValue(x, y, layer);
-            c.b = e.getValue(x, y, layer);
-            image.setPixel(x, y, c);
+    float val;
+    for(int x = 0; x < m_model_w; x++) {
+        for(int y = 0; y < m_model_h; y++) {
+            val = e.getValueByModelCoord(x, y, layer);
+            // c.r = sf::Color::Blue.r * val + sf::Color::Black.r * (1.f - val);
+            // c.g = sf::Color::Blue.g * val + sf::Color::Black.g * (1.f - val);
+            // c.b = sf::Color::Blue.b * val + sf::Color::Black.b * (1.f - val);
+            // c.r = val * 255.f;
+            // c.g = val * 255.f;
+            // c.b = val * 255.f;
+            setColor(x, y, m_color_gradient.getColorAt(val));
         }
     }
-    m_texture.update(image);
 }

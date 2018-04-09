@@ -9,9 +9,11 @@
  **************************************************************************************************/
 
 #include "Config.hpp"
+#include "ColorGradient.hpp"
 
 sf::Font Config::fnt_monospace;
 sf::Font Config::fnt_normal;
 sf::Font Config::fnt_awesome;
 sf::Color Config::color_orange;
 sf::Color Config::color_dark_green;
+ColorGradient Config::color_gradient_rgb;

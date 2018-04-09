@@ -21,14 +21,13 @@ Agent::Agent(std::string id, unsigned int wwidht, unsigned int wheight, sf::Vect
     , m_speed(Config::agent_speed)
     , m_id(id)
     , m_self_v(id)
-    , m_env_v(wwidht / Config::model_unity_size, wheight / Config::model_unity_size, sf::Color::Black)
     , m_world_w(wwidht)
     , m_world_h(wheight)
     , m_current_time(0.f)
     , m_predict_size(Random::getUf(1, Config::agent_propagation_size))
     , m_intent_id(0)
     , m_environment(wwidht / Config::model_unity_size, wheight / Config::model_unity_size, wwidht, wheight)
-
+    , m_intent_handler(id)
 {
     std::cout << "Agent: " << m_id << ". Predict size: " << m_predict_size << "\n";
 
@@ -47,6 +46,23 @@ Agent::Agent(std::string id, unsigned int wwidht, unsigned int wheight, sf::Vect
 
     setViewText();
     setViewDirection();
+
+    m_environment.displayInView(0);
+    m_environment.setLayerFunction(0, [this](EnvModel::Cell& c) {
+        if(c.time == -1.f) {
+            return;
+        }
+        float dt = m_current_time - c.time;
+        if(dt <= 0.f) {
+            c.value = 1.f;
+        } else if(dt > Config::max_revisit_time) {
+            c.value = 0.f;
+        } else {
+            c.value = 1.f - (dt / Config::max_revisit_time);
+        }
+    });
+
+    propagateState();
 }
 
 void Agent::propagateState(void)
@@ -85,13 +101,15 @@ sf::Vector2f Agent::step(void)
     m_self_v.setPosition(m_current_state.position);
     setViewDirection();
 
+
     plan();
     execute();
+    m_environment.updateAll();
 
     setViewText();
 
-    propagateState();
     m_states.erase(m_states.begin());
+    propagateState();
     return m_current_state.position;
 }
 
@@ -197,20 +215,23 @@ void Agent::move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f
 
 void Agent::plan(void)
 {
-    if(m_intents[m_id].size() >= 3) {
+    if(m_intent_handler.getIntentCount(m_id, m_current_time) >= 3) {
         return;
     }
     /* The agent is allowed to generate more intents: */
-    float last_intent_time = 0.f;
-    if(m_intents[m_id].size() > 0) {
-        last_intent_time = m_intents[m_id].rbegin()->second.tend;
-    }
+    float last_intent_time = m_intent_handler.getLastIntentTime(m_id);
+
     /* Unoptimized search: */
     bool creating_intent = false, i_continue = false;
-    Intent i;
+    Intent i(m_swath);
     float i_duration;
-    for(auto s = m_states.begin(); s != m_states.end(); s++) {
-        if(m_intents[m_id].size() >= 3) {
+    auto s = m_states.find(last_intent_time);
+    if(s == m_states.end()) {
+        s = m_states.begin();
+    }
+    float start_resource = 0.f;
+    for(; s != m_states.end(); s++) {
+        if(m_intent_handler.getIntentCount(m_id, m_current_time) >= 3) {
             break;
         }
         if(s->first <= last_intent_time) {
@@ -224,17 +245,16 @@ void Agent::plan(void)
                 /* Start the creation of a new intent: */
                 creating_intent = true;
                 i_continue = true;
+                start_resource = s->second.resource;
                 i.tstart = s->first;
                 i.pstart = s->second.position;
             }
         } else {
             i_duration = s->first - i.tstart;
             /* Check resource state: */
-            i_continue &= (s->second.resource - i_duration * Config::capacity_consume > Config::max_capacity * 0.1f);
+            i_continue &= (start_resource - i_duration * (Config::capacity_consume - Config::capacity_restore) > Config::max_capacity * 0.1f);
             /* Check proximity to borders: */
             i_continue &= !isCloseToBounds(s->second.position);
-            /* Check duration: */
-            i_continue &= (i_duration < 150.f);
             /* Check prediction extent: */
             i_continue &= (s != std::prev(m_states.end()));
 
@@ -245,14 +265,7 @@ void Agent::plan(void)
                     i.id   = m_intent_id++;
                     i.setAgentId(m_id);
                     last_intent_time = i.tend;
-                    m_intents[m_id].emplace(std::make_pair(i.id, i));
-                    SegmentView segment(i, m_swath);
-                    m_segments.emplace(std::make_pair(i.id, segment));
-                    // std::cout << "[Agent " << m_id << "] Creating intent " << i.id <<
-                    //     " -> T[ " << i.tstart << "···" << i.tend << " ](" << (i.tend - i.tstart) << ")";
-                    // std::cout << " - R0=" << m_states.find(i.tstart)->second.resource << ", C(-)=" <<
-                    //     i_duration * Config::capacity_consume << " C(+)=" << i_duration * Config::capacity_restore <<
-                    //     " ===> " << i_duration * (Config::capacity_restore - Config::capacity_consume) + m_states.find(i.tstart)->second.resource << "\n";
+                    m_intent_handler.createIntent(i);
                     recomputeResource();
                 }
                 creating_intent = false;
@@ -263,54 +276,42 @@ void Agent::plan(void)
 
 void Agent::execute(void)
 {
-    bool capture = false;
-    std::vector<unsigned int> old_intents;
-    for(auto& i : m_intents[m_id]) {
-        if(m_current_time >= i.second.tstart && m_current_time <= i.second.tend) {
-            m_segments.at(i.second.id).setActive(true);
-            capture = true;
-        } else if(m_current_time > i.second.tend) {
-            old_intents.push_back(i.second.id);
-        }
+    if(m_intent_handler.isActiveAt(m_current_time)) {
+        m_environment.setValueByWorldCoord(
+            m_current_time,
+            m_current_state.position.x,
+            m_current_state.position.y,
+            255.f,
+            m_swath / 2.f
+        );
     }
-    for(auto& i : old_intents) {
-        m_intents[m_id].erase(m_intents[m_id].find(i));
-        m_segments.erase(m_segments.find(i));
-    }
-    if(capture) {
-        if(m_id == "A0") {
-            m_environment.setValue(m_current_state.position.x, m_current_state.position.y, 255.f);
-        }
-    }
-}
-
-EnvModelView& Agent::getEnvView(void)
-{
-    m_env_v.display(m_environment); /* Updates the view. */
-    return m_env_v;
 }
 
 void Agent::recomputeResource(void)
 {
     float r = m_states[m_current_time].resource;
     int count = 0;
-    for(auto s = m_states.find(m_current_time); s != m_states.end(); s++) {
-        int active_intents = 0;
-        for(auto& i : m_intents[m_id]) {
-            if(s->first >= i.second.tstart && s->first <= i.second.tend) {
-                active_intents++;
-            }
-        }
+    auto s = m_states.find(m_current_time);
+    if(s == m_states.end()) {
+        std::cerr << "[Agent " << m_id << "] Something went wrong: current state was not found in predictions.\n";
+        std::exit(-1);
+    }
+    for(; s != m_states.end(); s++) {
+        auto active_intents = m_intent_handler.getActiveIntentsAt(s->first, m_id);
+        if(active_intents) count++;
+        // std::cout << "[Agent " << m_id << "] (" << std::setw(5) << count << ")" << std::fixed << std::setprecision(4)
+        //     << " T = " << s->first << ","
+        //     << " R = " << r << " + " << Config::capacity_restore << " - " << active_intents * Config::capacity_consume
+        //     << " = " << r + Config::capacity_restore - (active_intents * Config::capacity_consume) << "\n";
         r += Config::capacity_restore - active_intents * Config::capacity_consume;
         s->second.resource = r;
         if(s->second.resource < 0.f) {
             std::cerr << "[Agent " << m_id << "] Something went wrong, negative resource capacity (" <<
                 std::fixed << std::setprecision(3) << s->second.resource << ") at t=" << s->first;
-            std::cerr << "(t0 = " << m_current_time << ") [" << count << "]";
+            std::cerr << " (" << count << " steps since t0 = " << m_current_time << "). Active intents: " << active_intents;
             std::cerr << std::endl;
             std::exit(-1);
         }
-        count++;
     }
 }
 
@@ -361,4 +362,103 @@ unsigned int Agent::quadrant(sf::Vector2f v) const
     } else {
         return 0;
     }
+}
+
+void Agent::addAgentLink(std::shared_ptr<Agent> a, bool in_view)
+{
+    if(a->getId() != m_id) {
+        m_link_table[in_view][a->getId()] = a;
+        m_has_communicated[a->getId()] = false;
+    }
+}
+
+void Agent::addAgentLink(std::map<bool, std::vector<std::shared_ptr<Agent> > > als)
+{
+    for(auto& a : als[true]) {
+        if(a->getId() != m_id) {
+            m_link_table[true][a->getId()] = a;
+            m_has_communicated[a->getId()] = false;
+        }
+    }
+    for(auto& a : als[false]) {
+        if(a->getId() != m_id) {
+            m_link_table[false][a->getId()] = a;
+            m_has_communicated[a->getId()] = false;
+        }
+    }
+}
+
+void Agent::toggleAgentLink(std::string aid)
+{
+    auto foundt = m_link_table[true].find(aid);
+    auto foundf = m_link_table[false].find(aid);
+
+    if(foundt != m_link_table[true].end()) {
+        auto aptrt = m_link_table[true][aid];
+        m_link_table[true].erase(foundt);
+        m_link_table[false][aptrt->getId()] = aptrt;
+        std::cout << "Agent [" << m_id << "] disconnected from [" << aid << "]\n";
+
+    } else if(foundf != m_link_table[false].end()) {
+        auto aptrf = m_link_table[false][aid];
+        m_link_table[false].erase(foundf);
+        m_link_table[true][aptrf->getId()] = aptrf;
+        m_has_communicated[aptrf->getId()] = false;
+        std::cout << "Agent [" << m_id << "] connected to [" << aid << "]\n";
+
+    } else {
+        std::cerr << "[" << m_id << "] Toggling an agent link state for an unknown agent \'" << aid << "\'.\n";
+    }
+}
+
+bool Agent::connect(std::string agent_requester)
+{
+    m_has_communicated[agent_requester] = true;
+    return true;
+}
+
+IntentHandler::IntentTable Agent::exchangeIntents(IntentHandler::IntentTable pkt)
+{
+    m_intent_handler.processRcvIntents(pkt);
+    auto pkt_to_send = m_intent_handler.getIntents(IntentHandler::select_all, &pkt);
+    return pkt_to_send;
+}
+
+void Agent::doCommunicate(void)
+{
+    for(auto& a : m_link_table[true]) {
+        if(!m_has_communicated[a.first]) {
+            /* Does communicate with a: */
+            if(a.second->connect(m_id)) {
+                IntentHandler::Opts ihopts;
+                ihopts.filter = IntentSelection::ALL;
+                auto pkt_received = a.second->exchangeIntents(m_intent_handler.getIntents(ihopts));
+                m_intent_handler.processRcvIntents(pkt_received);
+            }
+        }
+    }
+}
+
+/** TODO
+ *  - If I create a new intent, then I probably have to set the m_new_intents to true.
+ *  - Clean intents that are not mine/have not been executed.
+ */
+
+
+bool Agent::isVisible(std::shared_ptr<Agent> a) const
+{
+    sf::Vector2f v = a->getPosition();
+    v -= m_current_state.position;
+    float dist = std::sqrt(v.x * v.x + v.y * v.y);
+    return dist <= std::min(m_range, a->getRange());
+}
+
+bool Agent::operator==(const Agent& ra)
+{
+    return (ra.getId() == getId());
+}
+
+bool Agent::operator!=(const Agent& ra)
+{
+    return !(*this == ra);
 }

@@ -18,5 +18,11 @@ void Init::doInit(void)
     Config::color_orange = sf::Color(255, 153, 102);
     Config::color_dark_green = sf::Color(35, 94, 92);
 
+    std::map<float, sf::Color> gradient;
+    gradient[0.f]  = sf::Color(173,   0,   0, 255);     /* sf::Color::Red;    */
+    gradient[0.5f] = sf::Color(255, 165,   0, 255);     /* sf::Color::Green;  */
+    gradient[1.f]  = sf::Color(  0, 123, 255, 255);     /* sf::Color::Blue;   */
+    Config::color_gradient_rgb.setGradient(gradient);
+
     Random::doInit();
 }

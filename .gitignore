@@ -1,3 +1,12 @@
+# Data files
+*.csv
+*.mat
+*.txt
+
+# Packages
+*.tar.gz
+*.tar.bz2
+
 # Object files
 *.o
 *.ko
@@ -13,14 +22,19 @@
 *.a
 *.la
 *.lo
+prot-1-circular-orbits/data/m_map/*
 
-# Shared objects (inc. Windows DLLs)
+# Shared objects and build files:
+prot-1-circular-orbits/build/*
+prot-2-env-sfml/build/*
 *.dll
 *.so
 *.so.*
 *.dylib
 
 # Executables
+prot-1-circular-orbits/bin/*
+prot-2-env-sfml/bin/*
 *.exe
 *.out
 *.app
@@ -30,3 +44,6 @@
 
 # Debug files
 *.dSYM/
+
+# Old folders
+.old/*
