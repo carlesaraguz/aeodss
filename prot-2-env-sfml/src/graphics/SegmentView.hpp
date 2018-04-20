@@ -15,12 +15,13 @@
 
 #include "ThickLine.hpp"
 #include "Intent.hpp"
+#include "HideGraphics.hpp"
 
-class SegmentView : public sf::Drawable
+class SegmentView : public HideGraphics, public sf::Drawable
 {
 public:
     SegmentView(const Intent& in);
-    SegmentView(sf::Vector2f p1, sf::Vector2f p2, float swath, std::string str = "");
+    SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string str = "");
 
     void setOwnership(bool mine);
     void setActive(bool active);
@@ -28,14 +29,13 @@ public:
 
 private:
     float m_swath;
-    sf::Vector2f m_p1;
-    sf::Vector2f m_p2;
+    std::vector<sf::Vector2f> m_positions;
     bool m_done;
     bool m_active;
     bool m_owned;
-    ThickLine m_line0;
-    ThickLine m_line1;
-    ThickLine m_line2;
+    std::vector<ThickLine> m_lines;
+    ThickLine m_line_start;
+    ThickLine m_line_end;
     sf::Text m_txt;
 
     void decorate(void);

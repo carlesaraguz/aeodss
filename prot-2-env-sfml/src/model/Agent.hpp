@@ -17,6 +17,13 @@
 #include "AgentView.hpp"
 #include "EnvModel.hpp"
 #include "Random.hpp"
+#include "GAScheduler.hpp"
+
+struct AgentState {
+    sf::Vector2f position;
+    sf::Vector2f velocity;
+    float resource;
+};
 
 class Agent
 {
@@ -43,7 +50,7 @@ public:
     sf::Vector2f getWorldSize(void) const { return sf::Vector2f(m_world_w, m_world_h); }
     const AgentView& getAgentView(void) const { return m_self_v; }
     const IntentHandler::SegmentTable& getSegmentViews(void) const { return m_intent_handler.getViews(); }
-    const EnvModelView& getEnvView(void) const { return m_environment.getView(); }
+    EnvModelView& getEnvView(void) { return m_environment.getView(); }
     std::string getId(void) const { return m_id; }
     LinkTable& getLinks(void) { return m_link_table; }
     float getRange(void) const { return m_range; }
@@ -53,12 +60,6 @@ public:
     bool operator!=(const Agent& ra);
 
 private:
-    struct AgentState {
-        sf::Vector2f position;
-        sf::Vector2f velocity;
-        float resource;
-    };
-
     /* State: */
     std::map<float, AgentState> m_states;
     AgentState m_current_state;
@@ -66,6 +67,8 @@ private:
     LinkTable m_link_table;
     std::map<std::string, bool> m_has_communicated;
     IntentHandler m_intent_handler;
+    unsigned int m_intent_id;
+    bool m_new_insights;
 
     /* Self model: */
     float m_speed;
@@ -73,7 +76,7 @@ private:
     float m_range;
     std::string m_id;
     unsigned int m_predict_size;
-    unsigned int m_intent_id;
+    GAScheduler m_sched;
 
     /* World model: */
     unsigned int m_world_w;
@@ -88,6 +91,7 @@ private:
     void propagateState(void);
     void move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f& p, sf::Vector2f& v);
     void plan(void);
+    float computeRewardAt(EnvModel& e, float t, const AgentState& s) const;
     void execute(void);
     void recomputeResource(void);
     bool isCloseToBounds(const sf::Vector2f& p) const;

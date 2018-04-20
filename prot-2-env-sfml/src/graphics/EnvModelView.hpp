@@ -13,10 +13,11 @@
 
 #include "prot.hpp"
 #include "ColorGradient.hpp"
+#include "HideGraphics.hpp"
 
 class EnvModel;
 
-class EnvModelView : public sf::Drawable
+class EnvModelView : public HideGraphics, public sf::Drawable
 {
 public:
     EnvModelView(int modelw, int modelh, int worldw, int worldh, sf::Color init_color = sf::Color::Black);

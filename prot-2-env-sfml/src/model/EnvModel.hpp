@@ -21,6 +21,12 @@ public:
     struct Cell {
         float value;
         float time;
+        int cid;
+    };
+    enum class Aggregate {
+        MAX_VALUE,
+        MIN_VALUE,
+        MEAN_VALUE,
     };
 
     EnvModel(unsigned int mw, unsigned int mh, unsigned int ww, unsigned int wh, unsigned int n_layers = 1);
@@ -30,11 +36,14 @@ public:
     void setLayerFunction(unsigned int l, std::function<void(Cell&)> f);
     void displayInView(unsigned int l);
 
-    void setValueByWorldCoord(float t, float x, float y, float v, float r = 0.f, unsigned int layer = 0);
-    float getValueByWorldCoord(float x, float y, unsigned int layer) const;
+    void setValueByWorldCoord(float t, float x, float y, float v, float r = 0.f, unsigned int layer = 0, bool update_after = false);
+    float getValueByWorldCoord(float x, float y, float r = 0.f, unsigned int layer = 0, Aggregate fn = Aggregate::MAX_VALUE) const;
     float getValueByModelCoord(unsigned int x, unsigned int y, unsigned int layer) const;
     void addLayers(unsigned int nl);
     void removeLayer(unsigned int l_id);
+
+    // void defineFootprint(std::vector<sf::Vector2f> ps, float r);
+    // float setValueToFootprint
 
     /* Getters: */
     unsigned int getModelWidth(void) const { return m_model_w; }
@@ -42,7 +51,7 @@ public:
     unsigned int getWorldWidth(void) const { return m_world_w; }
     unsigned int getWorldHeight(void) const { return m_world_h; }
     unsigned int getLayerCount(void) const { return m_num_layers; }
-    const EnvModelView& getView(void) const { return m_view; }
+    EnvModelView& getView(void);
 
 protected:
     unsigned int m_model_w;

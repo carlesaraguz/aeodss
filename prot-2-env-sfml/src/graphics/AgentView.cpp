@@ -101,15 +101,17 @@ void AgentView::setText(std::string str)
 
 void AgentView::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    states.transform *= getTransform();
-    if(m_display_swath) {
-        target.draw(m_footprint, states);
+    if(m_show) {
+        states.transform *= getTransform();
+        if(m_display_swath) {
+            target.draw(m_footprint, states);
+        }
+        if(m_display_id) {
+            target.draw(m_txt, states);
+        }
+        if(m_display_range) {
+            target.draw(m_range, states);
+        }
+        target.draw(m_triangle, states);
     }
-    if(m_display_id) {
-        target.draw(m_txt, states);
-    }
-    if(m_display_range) {
-        target.draw(m_range, states);
-    }
-    target.draw(m_triangle, states);
 }

@@ -42,19 +42,21 @@ public:
 
     IntentTable getIntents(void) const;
     IntentTable getIntents(Opts opt, const IntentTable* exclude = nullptr) const;
-    // IntentTable exchangeIntents(const IntentTable& intents, std::string agent_dst);
-    void processRcvIntents(const IntentTable& isas);
+    bool processRcvIntents(const IntentTable& isas);
     void createIntent(Intent i);
     void addNewIntent(Intent i, std::string aid);
-    void updateIntent(Intent i, std::string aid);
+    bool updateIntent(Intent i, std::string aid);
     int getTotalIntentCount(void) const;
     int getIntentCount(std::string aid, float now) const;
     int getActiveIntentsAt(float t, std::string aid) const;
+    std::vector<std::tuple<sf::Vector2f, float> > getActivePositions(float t = -1.f) const;
+    void disposeIntents(float t);
     bool isActiveAt(float t);
     float getLastIntentTime(std::string aid) const;
 
     /* Getters and setters: */
     const SegmentTable& getViews(void) const { return m_segments; }
+    void setTime(float t) { m_time = t; }
 
 private:
     typedef typename IntentTable::mapped_type::const_iterator IntentTableElemIt;
@@ -62,6 +64,7 @@ private:
     std::string m_agent_id;
     IntentTable m_intents;
     SegmentTable m_segments;
+    float m_time;
 
     void addNewIntent(IntentTableElemIt ib, IntentTableElemIt ie, std::string aid);
 };

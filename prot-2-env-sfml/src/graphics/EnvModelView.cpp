@@ -16,7 +16,7 @@ EnvModelView::EnvModelView(int modelw, int modelh, int worldw, int worldh, sf::C
     , m_world_w(worldw)
     , m_world_h(worldh)
     , m_grid(sf::Triangles, modelw * modelh * 6)
-    , m_color_gradient(Config::color_gradient_rgb)
+    , m_color_gradient(Config::color_gradient_blue)
 {
     float cell_w = (float)m_world_w / (float)m_model_w;
     float cell_h = (float)m_world_h / (float)m_model_h;
@@ -72,22 +72,20 @@ void EnvModelView::setColor(std::vector<std::tuple<int,int> > units, sf::Color c
 
 void EnvModelView::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    target.draw(m_grid, states);
+    if(m_show) {
+        target.draw(m_grid, states);
+    }
 }
 
 void EnvModelView::display(const EnvModel& e, unsigned int layer)
 {
-    float val;
-    for(int x = 0; x < m_model_w; x++) {
-        for(int y = 0; y < m_model_h; y++) {
-            val = e.getValueByModelCoord(x, y, layer);
-            // c.r = sf::Color::Blue.r * val + sf::Color::Black.r * (1.f - val);
-            // c.g = sf::Color::Blue.g * val + sf::Color::Black.g * (1.f - val);
-            // c.b = sf::Color::Blue.b * val + sf::Color::Black.b * (1.f - val);
-            // c.r = val * 255.f;
-            // c.g = val * 255.f;
-            // c.b = val * 255.f;
-            setColor(x, y, m_color_gradient.getColorAt(val));
+    if(m_show) {
+        float val;
+        for(int x = 0; x < m_model_w; x++) {
+            for(int y = 0; y < m_model_h; y++) {
+                val = e.getValueByModelCoord(x, y, layer);
+                setColor(x, y, m_color_gradient.getColorAt(val));
+            }
         }
     }
 }

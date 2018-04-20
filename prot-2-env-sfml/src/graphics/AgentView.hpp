@@ -12,8 +12,9 @@
 #define AGENT_VIEW_HPP
 
 #include "prot.hpp"
+#include "HideGraphics.hpp"
 
-class AgentView : public sf::Drawable, public sf::Transformable
+class AgentView : public HideGraphics, public sf::Drawable, public sf::Transformable
 {
 public:
     AgentView(std::string id, float swath = 0.f, float comms_range = 0.f);

@@ -19,6 +19,7 @@ const IntentHandler::Opts IntentHandler::select_all = {
 
 IntentHandler::IntentHandler(std::string aid)
     : m_agent_id(aid)
+    , m_time(0.f)
 { }
 
 IntentHandler::IntentTable IntentHandler::getIntents(void) const
@@ -70,7 +71,7 @@ IntentHandler::IntentTable IntentHandler::getIntents(Opts opt, const IntentTable
             }
         }
     } else if(single_agent && !has_agent_id) {
-        std::cerr << "IntentHandler error: intents from agent \'" << opt.aid << "\' are not available.\n";
+        // std::cerr << "IntentHandler error: intents from agent \'" << opt.aid << "\' are not available.\n";
     } else {
         for(auto& ina : m_intents) {
             for(auto& is : ina.second) {
@@ -95,23 +96,27 @@ IntentHandler::IntentTable IntentHandler::getIntents(Opts opt, const IntentTable
     return retval;
 }
 
-void IntentHandler::processRcvIntents(const IntentTable& isas)
+bool IntentHandler::processRcvIntents(const IntentTable& isas)
 {
+    bool retval = false;
     for(auto& is : isas) {
         if(m_intents.find(is.first) == m_intents.end()) {
             /* New agent: no intents from this Agent were registered. Insert all of them at once. */
+            retval = true;
             addNewIntent(is.second.begin(), is.second.end(), is.first);
         } else {
             /* Known agent: insert non-available intents. */
             for(auto j = is.second.begin(); j != is.second.end(); j++) {
                 if(m_intents[is.first].find(j->first) == m_intents[is.first].end()) {
                     addNewIntent(j->second, is.first);
+                    retval = true;
                 } else {
-                    updateIntent(j->second, is.first);
+                    retval |= updateIntent(j->second, is.first);
                 }
             }
         }
     }
+    return retval;
 }
 
 void IntentHandler::createIntent(Intent i)
@@ -140,9 +145,10 @@ void IntentHandler::addNewIntent(Intent i, std::string aid)
     m_segments[aid].emplace(std::make_pair(i.id, segment));
 }
 
-void IntentHandler::updateIntent(Intent /* i */, std::string /* aid */)
+bool IntentHandler::updateIntent(Intent /* i */, std::string /* aid */)
 {
     /* Do nothing. */
+    return false;
 }
 
 int IntentHandler::getIntentCount(std::string aid, float now) const
@@ -180,10 +186,49 @@ int IntentHandler::getActiveIntentsAt(float t, std::string aid) const
         }
         return acc;
     } else {
-        std::cerr << "Intent handler error: the requested agent ID is not registered.\n";
         return 0;
     }
 }
+
+std::vector<std::tuple<sf::Vector2f, float> > IntentHandler::getActivePositions(float t) const
+{
+    if(t <= -1.f) {
+        t = m_time;
+    }
+    std::vector<std::tuple<sf::Vector2f, float> > retvec;
+    for(auto& agis : m_intents) {
+        for(auto& i : agis.second) {
+            if(i.second.tstart <= t && i.second.tend > t) {
+                /* This intent is the active one for this agent: */
+                retvec.push_back(std::make_tuple(
+                    i.second.getPositionAt(t),
+                    i.second.getAgentSwath()
+                ));
+                break;
+            }
+        }
+    }
+    return retvec;
+}
+
+void IntentHandler::disposeIntents(float t)
+{
+    std::vector<unsigned int> intent_ids;
+    for(auto& agis : m_intents) {
+        for(auto& i : agis.second) {
+            if(i.second.tend <= t) {
+                intent_ids.push_back(i.first);
+            }
+        }
+        for(unsigned int j = 0; j < intent_ids.size(); j++) {
+            /* Dispose the old intent: */
+            agis.second.erase(agis.second.find(intent_ids[j]));
+            m_segments[agis.first].erase(m_segments[agis.first].find(intent_ids[j]));
+        }
+        intent_ids.clear();
+    }
+}
+
 
 bool IntentHandler::isActiveAt(float t)
 {

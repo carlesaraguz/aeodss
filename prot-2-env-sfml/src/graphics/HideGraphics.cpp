@@ -1,22 +1,18 @@
 /***********************************************************************************************//**
- *  Program configuration values.
- *  @class      Config
+ *  Graphics that can be hidden.
+ *  @class      HideGraphics
  *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
- *  @date       2018-feb-20
+ *  @date       2018-apr-16
  *  @version    0.1
  *  @copyright  This file is part of a project developed by Nano-Satellite and Payload Laboratory
  *              (NanoSat Lab) at Technical University of Catalonia - UPC BarcelonaTech.
  **************************************************************************************************/
 
-#include "Config.hpp"
-#include "ColorGradient.hpp"
+#include "HideGraphics.hpp"
 
-sf::Font Config::fnt_monospace;
-sf::Font Config::fnt_normal;
-sf::Font Config::fnt_awesome;
-sf::Color Config::color_orange;
-sf::Color Config::color_dark_green;
-ColorGradient Config::color_gradient_rgb;
-ColorGradient Config::color_gradient_1;
-ColorGradient Config::color_gradient_blue;
-unsigned int Config::ga_crossover_points = 5;
+HideGraphics::HideGraphics(void)
+    : m_show(true)
+{ }
+
+HideGraphics::~HideGraphics(void)
+{ }
