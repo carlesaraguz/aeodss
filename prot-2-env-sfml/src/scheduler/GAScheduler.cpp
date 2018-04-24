@@ -119,7 +119,7 @@ std::vector<Intent> GAScheduler::schedule(void)
             std::cout << "Fitness: "
                 << std::fixed << std::setprecision(3) << std::setw(10) << fit_max << " / " << std::setw(10) << fit_min << ":: "
                 << "(" << best.getActiveSlotCount() << ") Progress: ";
-            std::cout << std::fixed << std::setprecision(1) << 50.f * (float)generation_count / Config::ga_generations << "%\r";
+            std::cout << std::fixed << std::setprecision(1) << 50.f * (float)generation_count / Config::ga_generations << "%\r" << std::flush;
         }
     }
     std::cout << std::endl;
@@ -156,17 +156,17 @@ void GAScheduler::computeFitness(GASChromosome& ind, float rnorm_factor)
     float acc = 0.f, acc_resources = 0.f;
     for(unsigned int task = 0; task < ind.getTaskCount(); task++) {
         if(ind.isEnabled(task)) {
-            std::cout << "/* message */1" << '\n';
             auto it0 = std::upper_bound(m_rewards.begin(), m_rewards.end(), GASReward(ind.getStart(task), 0.f));
             auto it1 = std::upper_bound(m_rewards.begin(), m_rewards.end(), GASReward(ind.getStart(task) + ind.getDuration(task), 0.f));
-            if(it0 != m_rewards.end() && it1 != m_rewards.end()) {
+            if(it0 != m_rewards.end() && it1 != m_rewards.end() && it1 > it0) {
+                // std::cout << "/* message */1 DISTANCE " << std::distance(it0, it1) << '\n';
                 for(auto r = it0; r != it1; r++) {
                     if(r->value != 0) {
                         acc += r->value;
                     }
                 }
+                // std::cout << "/* message */2" << '\n';
             }
-            std::cout << "/* message */2" << '\n';
             acc_resources += ind.getDuration(task) * Config::capacity_consume;
         }
     }

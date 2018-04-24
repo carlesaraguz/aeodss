@@ -29,7 +29,7 @@ public:
     static const unsigned int world_height =  850;          /**< Default window height.         */
     static const unsigned int model_unity_size = 5;         /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents = 10;                /**< Total number of agents.        */
+    static const unsigned int n_agents =  2;                /**< Total number of agents.        */
     static constexpr const float agent_swath_min = 50.f;    /**< Minimum swath for agents.      */
     static constexpr const float agent_swath_max = 100.f;   /**< Maximum swath for agents.      */
     static constexpr const float agent_range_min = 50.f;    /**< Minimum range for agents.      */
@@ -58,7 +58,7 @@ public:
     static constexpr const float max_task_duration = 1e6f;
 
     /* Genetic Algorithm configuration: */
-    static const unsigned int ga_generations = 50000;
+    static const unsigned int ga_generations = 10000;
     static const unsigned int ga_population_size = 100;
     static unsigned int ga_crossover_points;
     static const unsigned int ga_tournament_k = 2;

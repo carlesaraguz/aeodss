@@ -36,6 +36,7 @@ target_link_libraries(prot-2
     model
     graphics
     common
+    scheduler
 )
 
 set_target_properties(prot-2
