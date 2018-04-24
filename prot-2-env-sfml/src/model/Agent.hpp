@@ -91,7 +91,7 @@ private:
     void propagateState(void);
     void move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f& p, sf::Vector2f& v);
     void plan(void);
-    float computeRewardAt(EnvModel& e, float t, const AgentState& s) const;
+    std::vector<std::tuple<unsigned int, float> > computeRewardAt(EnvModel& e, float t, const AgentState& s) const;
     void execute(void);
     void recomputeResource(void);
     bool isCloseToBounds(const sf::Vector2f& p) const;

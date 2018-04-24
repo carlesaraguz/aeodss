@@ -11,34 +11,33 @@
 #include "GAScheduler.hpp"
 
 GAScheduler::GAScheduler(void)
-    : m_sched_win_start(0.f)
-    , m_sched_win_end(0.f)
+    : m_sched_win_span(0)
     , m_init_resource(0.f)
 {
     m_population.reserve(Config::ga_population_size);
 }
 
-void GAScheduler::setRewards(std::vector<float> rewards)
+void GAScheduler::setRewards(std::vector<std::vector<std::tuple<unsigned int, float> > > rewards)
 {
-    float t = m_sched_win_start;
-    float dt = Config::time_step;
     m_rewards.clear();
-    m_rewards.reserve(rewards.size());
-    for(const auto& r : rewards) {
-        m_rewards.push_back(GASReward(t, r));
-        t += dt;
+    m_cells_lut.clear();
+    int idx = 0;
+    for(auto rt : rewards) {
+        std::map<unsigned int, float> rvalues;
+        for(auto rs : rt) {
+            rvalues[std::get<0>(rs)] = std::get<1>(rs);
+            m_cells_lut[std::get<0>(rs)] = true;
+        }
+        GASReward reward(idx++);
+        reward.setValues(rvalues);
+        m_rewards.push_back(reward);
     }
 }
 
-void GAScheduler::setSchedulingWindow(float t0, float t1)
+void GAScheduler::setSchedulingWindow(unsigned int span, const std::vector<float>& ts)
 {
-    if(t0 <= t1) {
-        m_sched_win_start = t0;
-        m_sched_win_end   = t1;
-    } else {
-        m_sched_win_start = t1;
-        m_sched_win_end   = t0;
-    }
+    m_time_lut = ts;
+    m_sched_win_span = span;
 }
 
 void GAScheduler::initPopulation(std::vector<Intent> prev_res)
@@ -46,16 +45,16 @@ void GAScheduler::initPopulation(std::vector<Intent> prev_res)
     m_population.clear();
     if(prev_res.size() == 0 || prev_res.size() > Config::max_tasks) {
         for(unsigned int i = 0; i < Config::ga_population_size; i++) {
-            m_population.push_back(GASChromosome(m_sched_win_start, m_sched_win_end, Config::max_task_duration));
+            m_population.push_back(GASChromosome(m_sched_win_span, m_sched_win_span));
         }
     } else {
         for(unsigned int i = 0; i < Config::ga_population_size; i++) {
-            m_population.push_back(GASChromosome(m_sched_win_start, m_sched_win_end, Config::max_task_duration, prev_res));
+            m_population.push_back(GASChromosome(m_sched_win_span, m_sched_win_span, prev_res));
         }
     }
 }
 
-bool GAScheduler::stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax, float /* fitmin */) const
+bool GAScheduler::stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax) const
 {
     if(gencount < Config::ga_generations) {
         return false;
@@ -70,30 +69,24 @@ bool GAScheduler::stopGeneration(unsigned int gencount, float prev_fitmax, float
         } else {
             return false;
         }
-        // float d = (fitmax - fitmin) / fitmax;
-        // if(d > 0.01f) {
-        //     return false;
-        // } else {
-        //     return true;
-        // }
     }
 }
 
 std::vector<Intent> GAScheduler::schedule(void)
 {
     GASChromosome best;
-    float prev_fit_max = 0.f, fit_max = 0.f, fit_min = 0.f;
+    float prev_fit_max = 0.f, fit_max = 0.f;
     float rmax = 0.f;
 
     unsigned int generation_count = 0;
-    while(!stopGeneration(generation_count++, prev_fit_max, fit_max, fit_min)) {
+    while(!stopGeneration(generation_count++, prev_fit_max, fit_max)) {
         std::vector<GASChromosome> children;
         std::vector<GASChromosome> parents = m_population;  /* Copy. */
         while(children.size() < m_population.size()) {
             GASChromosome parent1 = selectParent(parents);
             GASChromosome parent2 = selectParent(parents);
-            GASChromosome child1(0.f, 0.f, 0.f);
-            GASChromosome child2(0.f, 0.f, 0.f);
+            GASChromosome child1;
+            GASChromosome child2;
             GASChromosome::crossover(parent1, parent2, child1, child2);
             child1.mutate();
             child2.mutate();
@@ -110,16 +103,15 @@ std::vector<Intent> GAScheduler::schedule(void)
         best = combine(m_population, children);    /* Updates m_population. */
         prev_fit_max = fit_max;
         fit_max = best.getFitness();
-        fit_min = m_population[m_population.size() - 1].getFitness();
 
-        // std::cout << generation_count << "," << best.getFitness() << "," << m_population[m_population.size() - 1].getFitness() << "\n";
-        if( (generation_count %   5 == 0 && generation_count < 1000 ) ||
-            (generation_count %  50 == 0 && generation_count < 10000) ||
+        if( (generation_count %   5 == 0 && generation_count < Config::ga_generations / 100) ||
+            (generation_count %  50 == 0 && generation_count < Config::ga_generations / 10 ) ||
             (generation_count % 100 == 0)) {
-            std::cout << "Fitness: "
-                << std::fixed << std::setprecision(3) << std::setw(10) << fit_max << " / " << std::setw(10) << fit_min << ":: "
+            std::cout << "Genetic Algorithm Scheduler running... Fitness: "
+                << std::fixed << std::setprecision(3) << std::setw(10) << fit_max << ":: "
                 << "(" << best.getActiveSlotCount() << ") Progress: ";
-            std::cout << std::fixed << std::setprecision(1) << 50.f * (float)generation_count / Config::ga_generations << "%\r";
+            std::cout << std::fixed << std::setprecision(1) << 50.f * (float)generation_count / Config::ga_generations
+                << "%\r" << std::flush;
         }
     }
     std::cout << std::endl;
@@ -152,47 +144,66 @@ float GAScheduler::computeConsumption(const GASChromosome& ind) const
 
 void GAScheduler::computeFitness(GASChromosome& ind, float rnorm_factor)
 {
+    resetCellLUT();
+
     float modifier;
-    float acc = 0.f, acc_resources = 0.f;
+    float fitness = 0.f;
+    float acc_resources = 0.f;
+
+    /*  Get a sorted list of enabled tasks as an ordered map of task durations with its key being
+     *  the task start time:
+     **/
+    std::map<unsigned int, unsigned int> tasks;     /* pair: start time, duration. */
     for(unsigned int task = 0; task < ind.getTaskCount(); task++) {
         if(ind.isEnabled(task)) {
-            std::cout << "/* message */1" << '\n';
-            auto it0 = std::upper_bound(m_rewards.begin(), m_rewards.end(), GASReward(ind.getStart(task), 0.f));
-            auto it1 = std::upper_bound(m_rewards.begin(), m_rewards.end(), GASReward(ind.getStart(task) + ind.getDuration(task), 0.f));
-            if(it0 != m_rewards.end() && it1 != m_rewards.end()) {
-                for(auto r = it0; r != it1; r++) {
-                    if(r->value != 0) {
-                        acc += r->value;
-                    }
-                }
-            }
-            std::cout << "/* message */2" << '\n';
+            tasks[ind.getStart(task)] = ind.getDuration(task);
             acc_resources += ind.getDuration(task) * Config::capacity_consume;
         }
     }
     acc_resources = 1.f - (acc_resources / rnorm_factor);
+
+    /*  Compute fitness for each task (discarding visited cells as fitness is computed.)
+     *  Note that this process expects/assumes that tasks are not overlapping and are sorted early
+     *  to later.
+     **/
+    for(const auto t : tasks) {
+        for(unsigned int i = t.first; i < t.first + t.second; i++) {
+            if(i >= m_sched_win_span) {
+                std::cout << "\nError during iteration " << i << ": infinite loop --> " << t.first << " + " << t.second << " = " << t.first + t.second << "\n";
+                std::cout << "Chromosome: " << ind;
+                std::exit(-1);
+            } else {
+                fitness += m_rewards[i].getReward(m_cells_lut);
+
+            }
+        }
+    }
+
+    /*  Check resource constrint satisfaction and set the fitness modifier value accordingly: */
     if(satisfiesConstraints(ind)) {
         modifier = 1.f;
     } else {
         modifier = 1e-5f;
     }
-    ind.setFitness(acc * acc_resources * modifier);
+    ind.setFitness(fitness * acc_resources * modifier);
 }
 
-bool GAScheduler::satisfiesConstraints(GASChromosome ind, float* /* exceeded_res */) const
+bool GAScheduler::satisfiesConstraints(GASChromosome ind) const
 {
+    return true;
     std::vector<float> t0s;
     std::vector<float> t1s;
     for(unsigned int i = 0; i < ind.getTaskCount(); i++) {
         if(ind.isEnabled(i)) {
-            t0s.push_back(ind.getStart(i));
-            t1s.push_back(ind.getStart(i) + ind.getDuration(i));
+            t0s.push_back(m_time_lut[ind.getStart(i)]);
+            t1s.push_back(m_time_lut[ind.getStart(i) + ind.getDuration(i)]);
         }
     }
+
     bool retval = true;
     float dr;
     float r = m_init_resource;
-    float t = m_sched_win_start;
+    float t = m_time_lut[0];
     for(std::size_t i = 0; i < t0s.size(); i++) {
         dr = Config::capacity_restore;
         if(r + dr * (t0s[i] - t) >= Config::max_capacity) {
@@ -212,7 +223,7 @@ bool GAScheduler::satisfiesConstraints(GASChromosome ind, float* /* exceeded_res
 
 GASChromosome GAScheduler::selectParent(std::vector<GASChromosome>& mating_pool) const
 {
-    GASChromosome retval(0.f, 0.f, 0.f); /* Initialises at random and with all fields = 0. */
+    GASChromosome retval; /* Initialises at random and with all fields = 0. */
 
     switch(Config::ga_parentsel_op) {
         case GASSelectionOp::TOURNAMENT:
@@ -270,4 +281,11 @@ GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vect
             break;
     }
     return best_individual;
+}
+
+void GAScheduler::resetCellLUT(void)
+{
+    for(auto elem = m_cells_lut.begin(); elem != m_cells_lut.end(); elem++) {
+        elem->second = true;
+    }
 }

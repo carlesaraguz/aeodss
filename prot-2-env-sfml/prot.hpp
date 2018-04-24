@@ -19,6 +19,7 @@
 #include <random>
 #include <cmath>
 #include <complex>
+#include <set>
 
 /* -- Standard C libraries: */
 /* #include <unistd.h>      */

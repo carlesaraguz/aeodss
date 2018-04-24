@@ -230,6 +230,61 @@ float EnvModel::getValueByWorldCoord(float x, float y, float r, unsigned int lay
     return retval;
 }
 
+std::vector<std::tuple<unsigned int, float> > EnvModel::getValuesByWorldCoord(float x, float y, float r, unsigned int layer) const
+{
+    if(x > m_world_w || y > m_world_h) {
+        std::cerr << "Environment model error. Requesting a value out of world boundaries (x = " << x << ", y = " << y << ").\n";
+        return std::vector<std::tuple<unsigned int, float> >();
+    }
+    if(layer >= m_num_layers) {
+        std::cerr << "Environment model error. Requesting a value in wrong layer " << layer << ".\n";
+        return std::vector<std::tuple<unsigned int, float> >();
+    }
+    int ox = std::round((x - (m_ratio_w / 2.f)) / m_ratio_w);
+    int oy = std::round((y - (m_ratio_h / 2.f)) / m_ratio_h);
+
+    std::vector<std::tuple<unsigned int, float> > retval;
+    retval.push_back(std::make_tuple(m_model_cells.at(layer)[ox][oy].cid, m_model_cells.at(layer)[ox][oy].value));
+    if(r > 0.f) {
+        /*  Find other cells that are at a distance of `r` from (ox, oy):
+         *    - ox, oy : Spiral origin/offset.
+         *    - xx, yy : Spiral iterators (origin = 0,0).
+         *    - dx, dy : Iterator steps.
+         */
+        int xx, yy, dx, dy;
+        xx = yy = dx = 0.f;
+        dy = -1;
+        int b = 2 * std::max(r / m_ratio_w, r / m_ratio_h);
+        int max_iter = b * b;
+        bool at_r = false;
+        int corner_count = 0;
+        for(int i = 0; i < max_iter; i++) {
+            if((xx + ox < (int)m_model_w) && (xx + ox >= 0) && (yy + oy < (int)m_model_h) && (yy + oy >= 0)) {
+                float dist = getDistance(ox, oy, ox + xx, oy + yy);
+                if(dist <= r) {
+                    retval.push_back(std::make_tuple(
+                        m_model_cells.at(layer)[xx + ox][yy + oy].cid,
+                        m_model_cells.at(layer)[xx + ox][yy + oy].value
+                    ));
+                    at_r = true;
+                }
+                if(corner_count >= 5 && !at_r) {
+                    break;
+                }
+            }
+            if((xx == yy) || ((xx < 0) && (xx == -yy)) || ((xx > 0) && (xx == 1 - yy))) {
+                b  = dx;
+                dx = -dy;
+                dy = b;
+                corner_count++;
+            }
+            xx += dx;
+            yy += dy;
+        }
+    }
+    return retval;
+}
+
 float EnvModel::getValueByModelCoord(unsigned int x, unsigned int y, unsigned int layer) const
 {
     if(x > m_model_w || y > m_model_h) {

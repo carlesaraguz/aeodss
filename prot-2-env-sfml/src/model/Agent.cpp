@@ -215,12 +215,8 @@ void Agent::move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f
     }
 }
 
-float Agent::computeRewardAt(EnvModel& e, float t, const AgentState& s) const
+std::vector<std::tuple<unsigned int, float> > Agent::computeRewardAt(EnvModel& e, float t, const AgentState& s) const
 {
-    /*  TODO:
-     *  This function now checks positions individually. A more adequate solution could consider
-     *  trajectory lines and their distance to active positions.
-     **/
     for(auto& tuple : m_intent_handler.getActivePositions(t)) {
         /*  Find whether some Agents are affecting my area of interest (i.e. parts of my trajectory)
          *  at time t. If they are, the future environment model `e` will be updated.
@@ -248,15 +244,13 @@ float Agent::computeRewardAt(EnvModel& e, float t, const AgentState& s) const
      *      reached the maximum allowed revisit time.
      **/
     e.updateAll();
-    float cell_value = e.getValueByWorldCoord(
+    auto cell_values = e.getValuesByWorldCoord(
         s.position.x,                       /* Position of agent at T=t. */
         s.position.y,                       /* Position of agent at T=t. */
         m_swath / 2.f,                      /* Cover distance. */
-        0,                                  /* Layer 0. */
-        EnvModel::Aggregate::MEAN_VALUE     /* Get mean value. */
+        0                                   /* Layer 0. */
     );
-    // std::cout << cell_value << ", ";
-    return cell_value;
+    return cell_values;
 }
 
 void Agent::plan(void)
@@ -295,15 +289,17 @@ void Agent::plan(void)
                 c.value = (dt / Config::max_revisit_time);
             }
         });
-        std::vector<float> rewards;
+        std::vector<std::vector<std::tuple<unsigned int, float> > > rewards;
+        std::vector<float> times;
+        times.reserve(m_states.size());
         for(const auto& s : m_states) {
             s_time = s.first;
-            float rew = computeRewardAt(env_cpy, s.first, s.second);
-            rewards.push_back(rew);
+            rewards.push_back(computeRewardAt(env_cpy, s.first, s.second));
+            times.push_back(s.first);
         }
         std::cout << "done\n";
 
-        m_sched.setSchedulingWindow(m_states.cbegin()->first, m_states.crbegin()->first);
+        m_sched.setSchedulingWindow(m_states.size(), times);
         m_sched.setRewards(rewards);
         m_sched.initPopulation();
         auto intents = m_sched.schedule();

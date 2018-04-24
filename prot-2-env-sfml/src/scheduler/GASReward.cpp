@@ -10,50 +10,16 @@
 
 #include "GASReward.hpp"
 
-GASReward::GASReward(float t, float v)
-    : time(t)
-    , value(v)
+GASReward::GASReward(int tidx)
+    : time_idx(tidx)
 { }
 
-GASReward GASReward::operator+(const GASReward& rval)
+float GASReward::getReward(std::map<unsigned int, bool>& cells) const
 {
-    GASReward retval = *this;
-    retval.value += rval.value;
-    return retval;
-}
-
-GASReward& GASReward::operator+=(const GASReward& rval)
-{
-    value += rval.value;
-    return *this;
-}
-
-bool GASReward::operator>(const GASReward& rhs) const
-{
-    return time > rhs.time;
-}
-
-bool GASReward::operator<(const GASReward& rhs) const
-{
-    return time < rhs.time;
-}
-
-bool GASReward::operator>=(const GASReward& rhs) const
-{
-    return time  >=rhs.time;
-}
-
-bool GASReward::operator<=(const GASReward& rhs) const
-{
-    return time  <=rhs.time;
-}
-
-bool GASReward::operator==(const GASReward& rhs) const
-{
-    return time  ==rhs.time;
-}
-
-bool GASReward::operator!=(const GASReward& rhs) const
-{
-    return time  !=rhs.time;
+    float acc = 0.f;
+    for(auto& v : m_values) {
+        acc = std::max(cells[v.first] * v.second, acc);
+        cells[v.first] = false;     /* Disable this reward. */
+    }
+    return acc;
 }

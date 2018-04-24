@@ -27,9 +27,9 @@ public:
     static const unsigned int win_height =  850;            /**< Default window height.         */
     static const unsigned int world_width  = 1250;          /**< Default window width.          */
     static const unsigned int world_height =  850;          /**< Default window height.         */
-    static const unsigned int model_unity_size = 5;         /**< Size of the model unity.       */
+    static const unsigned int model_unity_size = 50;        /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents = 10;                /**< Total number of agents.        */
+    static const unsigned int n_agents =  2;                /**< Total number of agents.        */
     static constexpr const float agent_swath_min = 50.f;    /**< Minimum swath for agents.      */
     static constexpr const float agent_swath_max = 100.f;   /**< Maximum swath for agents.      */
     static constexpr const float agent_range_min = 50.f;    /**< Minimum range for agents.      */
@@ -55,7 +55,7 @@ public:
 
     /* Scheduling hard constraints: */
     static const unsigned int max_tasks = 15;
-    static constexpr const float max_task_duration = 1e6f;
+    // static constexpr const float max_task_duration = 1e6f;
 
     /* Genetic Algorithm configuration: */
     static const unsigned int ga_generations = 50000;
@@ -64,9 +64,9 @@ public:
     static const unsigned int ga_tournament_k = 2;
     static constexpr const float ga_mutation_rate_times = 0.4;
     static constexpr const float ga_mutation_rate_enable = 0.2;
-    static constexpr const float ga_gaussian_mutation_std = 100.f;
+    static constexpr const float ga_gaussian_mutation_std = 10.f;
     static constexpr const float ga_gaussian_mutation_k1 = 20.f;
-    static constexpr const float ga_gaussian_mutation_k2 = 5.f;
+    static constexpr const float ga_gaussian_mutation_k2 = 10.f;
     static const GASCrossoverOp ga_crossover_op = GASCrossoverOp::MULIPLE_POINT;
     static const GASSelectionOp ga_parentsel_op = GASSelectionOp::TOURNAMENT;
     static const GASSelectionOp ga_environsel_op = GASSelectionOp::TRUNCATION;

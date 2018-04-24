@@ -23,24 +23,27 @@ public:
     GAScheduler(void);
 
     void initPopulation(std::vector<Intent> prev_res = std::vector<Intent>());
-    void setRewards(std::vector<float> rewards);
-    void setInitResource(float r) { m_init_resource = r; }
-    void setSchedulingWindow(float t0, float t1);
+    void setSchedulingWindow(unsigned int span, const std::vector<float>& ts);
+    void setRewards(std::vector<std::vector<std::tuple<unsigned int, float> > > rewards);
     std::vector<Intent> schedule(void);
+
+    void setInitResource(float r) { m_init_resource = r; }
 
 private:
     std::vector<GASChromosome> m_population;
     std::vector<GASReward> m_rewards;
+    std::vector<float> m_time_lut;
+    std::map<unsigned int, bool> m_cells_lut;
     float m_init_resource;
-    float m_sched_win_start;
-    float m_sched_win_end;
+    unsigned int m_sched_win_span;
 
+    void resetCellLUT(void);
     float computeConsumption(const GASChromosome& ind) const;
     void computeFitness(GASChromosome& ind, float rnorm_factor);
-    bool satisfiesConstraints(GASChromosome ind, float* exceeded_res = nullptr) const;
+    bool satisfiesConstraints(GASChromosome ind) const;
     GASChromosome selectParent(std::vector<GASChromosome>& mating_pool) const;
     GASChromosome combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children);
-    bool stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax, float fitmin) const;
+    bool stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax) const;
 };
 
 #endif /* GA_SCHEDULER_HPP */
