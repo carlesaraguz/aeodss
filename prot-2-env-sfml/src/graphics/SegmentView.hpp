@@ -38,6 +38,8 @@ private:
     ThickLine m_line_end;
     sf::Text m_txt;
 
+    bool m_error;
+
     void decorate(void);
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 };

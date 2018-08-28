@@ -10,9 +10,10 @@
 
 #include "WorldView.hpp"
 
-WorldView::WorldView(WorldViewType type, std::vector<std::shared_ptr<Agent> > agents)
+WorldView::WorldView(WorldViewType type, std::vector<std::shared_ptr<Agent> > agents, std::shared_ptr<GlobalEnvModel> global)
     : m_type(type)
     , m_agents(agents)
+    , m_oracle_model(global)
 {
     m_border.setSize(sf::Vector2f(Config::world_width, Config::world_height));
     m_border.setFillColor(sf::Color::Transparent);
@@ -22,6 +23,11 @@ WorldView::WorldView(WorldViewType type, std::vector<std::shared_ptr<Agent> > ag
     m_target_texture.create(Config::world_width, Config::world_height);
     m_target_texture.setSmooth(true);
     m_canvas.setTexture(m_target_texture.getTexture());
+
+    if(m_type == WorldViewType::GLOBAL_ORACLE && m_oracle_model == nullptr) {
+        std::cerr << "World View error: can't initialize with a null global env. model.\n";
+        std::exit(-1);
+    }
 }
 
 void WorldView::draw(sf::RenderTarget& target, sf::RenderStates states) const
@@ -51,8 +57,6 @@ void WorldView::drawWorld(void)
             }
             break;
         case WorldViewType::GLOBAL_REAL:
-        case WorldViewType::GLOBAL_ORACLE:
-        default:
             for(const auto& a : m_agents) {
                 m_target_texture.draw(a->getAgentView());
                 auto segments = a->getSegmentViews();
@@ -60,6 +64,9 @@ void WorldView::drawWorld(void)
                     m_target_texture.draw(seg.second);
                 }
             }
+            break;
+        case WorldViewType::GLOBAL_ORACLE:
+            m_target_texture.draw(m_oracle_model->getView());
             break;
     }
     m_target_texture.display();

@@ -17,21 +17,21 @@ GAScheduler::GAScheduler(void)
     m_population.reserve(Config::ga_population_size);
 }
 
-void GAScheduler::setRewards(std::vector<std::vector<std::tuple<unsigned int, float> > > rewards)
+void GAScheduler::setRewards(
+    std::vector<std::shared_ptr<GASReward> > rptrs,
+    std::vector<std::vector<std::size_t> > rptrs_lut,
+    Aggregate ag_type,
+    float min_dist
+)
 {
-    m_rewards.clear();
-    m_cells_lut.clear();
-    int idx = 0;
-    for(auto rt : rewards) {
-        std::map<unsigned int, float> rvalues;
-        for(auto rs : rt) {
-            rvalues[std::get<0>(rs)] = std::get<1>(rs);
-            m_cells_lut[std::get<0>(rs)] = true;
-        }
-        GASReward reward(idx++);
-        reward.setValues(rvalues);
-        m_rewards.push_back(reward);
+    if((rptrs_lut.size() - 1) != m_sched_win_span) {
+        std::cerr << "Genetic Algorithm Scheduler Error: setting rewards failed. " << (rptrs_lut.size() - 1) << " != " << m_sched_win_span << "\n";
+        std::exit(-1);
     }
+    m_rewards     = rptrs;
+    m_reward_lut  = rptrs_lut;
+    m_reward_step = std::max(1, (int)std::ceil(min_dist / Config::agent_speed / Config::time_step));
+    m_aggregation_type = ag_type;
 }
 
 void GAScheduler::setSchedulingWindow(unsigned int span, const std::vector<float>& ts)
@@ -54,25 +54,16 @@ void GAScheduler::initPopulation(std::vector<Intent> prev_res)
     }
 }
 
-bool GAScheduler::stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax) const
+bool GAScheduler::stopGeneration(unsigned int gencount, float /* prev_fitmax */, float /* fitmax */) const
 {
     if(gencount < Config::ga_generations) {
         return false;
-    } else if(gencount >= Config::ga_generations * 2) {
-        return true;
     } else {
-        if(fitmax == 0.f) {
-            return false;
-        }
-        if((fitmax - prev_fitmax) / fitmax > 0.001f) {
-            return true;
-        } else {
-            return false;
-        }
+        return true;
     }
 }
 
-std::vector<Intent> GAScheduler::schedule(void)
+std::vector<Intent> GAScheduler::schedule(bool verbose)
 {
     GASChromosome best;
     float prev_fit_max = 0.f, fit_max = 0.f;
@@ -97,35 +88,42 @@ std::vector<Intent> GAScheduler::schedule(void)
             children.push_back(child1);
             children.push_back(child2);
         }
-        for(auto& c : children) {
-            computeFitness(c, rmax);
-        }
+        computeFitnessParallel(children, rmax);
         best = combine(m_population, children);    /* Updates m_population. */
         prev_fit_max = fit_max;
         fit_max = best.getFitness();
 
-        if( (generation_count %   5 == 0 && generation_count < Config::ga_generations / 100) ||
-            (generation_count %  50 == 0 && generation_count < Config::ga_generations / 10 ) ||
-            (generation_count % 100 == 0)) {
-            std::cout << "Genetic Algorithm Scheduler running... Fitness: "
-                << std::fixed << std::setprecision(3) << std::setw(10) << fit_max << ":: "
-                << "(" << best.getActiveSlotCount() << ") Progress: ";
-            std::cout << std::fixed << std::setprecision(1) << 50.f * (float)generation_count / Config::ga_generations
-                << "%\r" << std::flush;
+        if(verbose) {
+            if( (generation_count %   5 == 0 && generation_count < Config::ga_generations / 100) ||
+                (generation_count %  50 == 0 && generation_count < Config::ga_generations / 10 ) ||
+                (generation_count % 100 == 0)) {
+                std::clog << "Genetic Algorithm Scheduler running... Fitness: "
+                    << std::fixed << std::setprecision(3) << std::setw(8) << fit_max << ":: "
+                    << "(" << best.getActiveSlotCount() << " activities) Progress: ";
+                std::clog << std::fixed << std::setprecision(1) << 50.f * (float)generation_count / Config::ga_generations
+                    << "%\r" << std::flush;
+            }
+
         }
     }
-    std::cout << std::endl;
+    if(verbose) {
+        std::clog << "\n";
+    }
 
     auto retval = std::vector<Intent>();
     if(satisfiesConstraints(best)) {
         for(unsigned int iid = 0; iid < best.getTaskCount(); iid++) {
             if(best.isEnabled(iid)) {
                 /* Constructs Intent only providing tstart and tend: */
-                retval.emplace(retval.end(), best.getStart(iid), best.getStart(iid) + best.getDuration(iid));
+                retval.emplace(
+                    retval.end(),
+                    m_time_lut[best.getStart(iid)],
+                    m_time_lut[best.getStart(iid) + best.getDuration(iid)]
+                );
             }
         }
     } else {
-        std::cerr << "Best solution does not satisfy resource constraints:" << best;
+        std::cerr << "Genetic Algorithm Scheduler Error: the best solution does not satisfy resource constraints:" << best;
     }
     return retval;
 }
@@ -133,22 +131,49 @@ std::vector<Intent> GAScheduler::schedule(void)
 float GAScheduler::computeConsumption(const GASChromosome& ind) const
 {
     float acc = 0.f;
+    float duration_time;
     for(unsigned int task = 0; task < ind.getTaskCount(); task++) {
         if(ind.isEnabled(task)) {
-            acc += ind.getDuration(task) * Config::capacity_consume;
+            duration_time  = m_time_lut[ind.getStart(task) + ind.getDuration(task)];
+            duration_time -= m_time_lut[ind.getDuration(task)];
+            acc += duration_time * Config::capacity_consume;
         }
     }
     return acc;
 }
 
+void GAScheduler::computeFitnessParallel(std::vector<GASChromosome>& children, float rnf)
+{
+    unsigned int n_children = children.size() / Config::ga_thread_pool_size;
+    std::vector<std::thread> thread_pool;
+    for(unsigned int thread_id = 0; thread_id < Config::ga_thread_pool_size; thread_id++) {
+        auto c0 = children.begin() + n_children * thread_id;
+        auto c1 = children.begin() + n_children * (thread_id + 1);
+        if(thread_id == Config::ga_thread_pool_size - 1) {
+            c1 = children.end();
+        }
+        thread_pool.push_back(std::thread(&GAScheduler::computeFitnessHelper, this, c0, c1, rnf));
+    }
+    for(auto& th : thread_pool) {
+        th.join();
+    }
+}
+
+void GAScheduler::computeFitnessHelper(std::vector<GASChromosome>::iterator c0, std::vector<GASChromosome>::iterator c1, float rnf)
+{
+    for(auto c = c0; c != c1; c++) {
+        computeFitness(*c, rnf);
+    }
+}
 
 void GAScheduler::computeFitness(GASChromosome& ind, float rnorm_factor)
 {
-    resetCellLUT();
-
     float modifier;
     float fitness = 0.f;
     float acc_resources = 0.f;
+    float duration_time;
+
+    std::vector<bool> m_consumed_mask(m_rewards.size(), false);
 
     /*  Get a sorted list of enabled tasks as an ordered map of task durations with its key being
      *  the task start time:
@@ -156,26 +181,71 @@ void GAScheduler::computeFitness(GASChromosome& ind, float rnorm_factor)
     std::map<unsigned int, unsigned int> tasks;     /* pair: start time, duration. */
     for(unsigned int task = 0; task < ind.getTaskCount(); task++) {
         if(ind.isEnabled(task)) {
+            /* (A) Fill-in temporary map: */
             tasks[ind.getStart(task)] = ind.getDuration(task);
-            acc_resources += ind.getDuration(task) * Config::capacity_consume;
+
+            /* (B) Accumulate resource consumption: */
+            duration_time = m_time_lut[ind.getStart(task) + ind.getDuration(task)] - m_time_lut[ind.getStart(task)];
+            acc_resources += duration_time * Config::capacity_consume + Config::task_startup_cost;
         }
     }
     acc_resources = 1.f - (acc_resources / rnorm_factor);
 
-    /*  Compute fitness for each task (discarding visited cells as fitness is computed.)
-     *  Note that this process expects/assumes that tasks are not overlapping and are sorted early
-     *  to later.
+    /*  Compute fitness for each task based on rewards:
+     *  Note that this process expects/assumes that these `tasks` are not overlapping and are sorted
+     *  early-to-later. Sorting is, a priori, guaranteed by the ordedness of std::map.
      **/
-    for(const auto t : tasks) {
-        for(unsigned int i = t.first; i < t.first + t.second; i++) {
-            if(i >= m_sched_win_span) {
-                std::cout << "\nError during iteration " << i << ": infinite loop --> " << t.first << " + " << t.second << " = " << t.first + t.second << "\n";
-                std::cout << "Chromosome: " << ind;
-                std::exit(-1);
-            } else {
-                fitness += m_rewards[i].getReward(m_cells_lut);
-
+    int rcount = 0;
+    for(const auto& t : tasks) {
+        unsigned int i;
+        float reward_at_i = 0.f;
+        for(i = t.first; i < t.first + t.second; i += m_reward_step) {
+            reward_at_i = 0.f;
+            for(std::size_t j = 0; j < m_reward_lut[i].size(); j += 1) {
+                if(!m_consumed_mask[m_reward_lut[i][j]]) {
+                    switch(m_aggregation_type) {
+                        case Aggregate::MAX_VALUE:
+                            reward_at_i = std::max(m_rewards[m_reward_lut[i][j]]->consumeReward(i), reward_at_i);
+                            break;
+                        case Aggregate::MIN_VALUE:
+                            reward_at_i = std::min(m_rewards[m_reward_lut[i][j]]->consumeReward(i), reward_at_i);
+                            break;
+                        case Aggregate::MEAN_VALUE:
+                            reward_at_i += m_rewards[m_reward_lut[i][j]]->consumeReward(i);
+                            rcount++;
+                            break;
+                    }
+                    m_consumed_mask[m_reward_lut[i][j]] = true;
+                }
             }
+            if(m_aggregation_type == Aggregate::MEAN_VALUE) {
+                reward_at_i /= (float)rcount;
+            }
+            fitness += reward_at_i;
+        }
+        /* Ensure reward is also computed at the end: */
+        if(i != t.first + t.second - 1) {
+            i = t.first + t.second - 1;
+            for(std::size_t j = 0; j < m_reward_lut[i].size(); j += 1) {
+                if(!m_consumed_mask[m_reward_lut[i][j]]) {
+                    switch(m_aggregation_type) {
+                        case Aggregate::MAX_VALUE:
+                            reward_at_i = std::max(m_rewards[m_reward_lut[i][j]]->consumeReward(i), reward_at_i);
+                            break;
+                        case Aggregate::MIN_VALUE:
+                            reward_at_i = std::min(m_rewards[m_reward_lut[i][j]]->consumeReward(i), reward_at_i);
+                            break;
+                        case Aggregate::MEAN_VALUE:
+                            reward_at_i += m_rewards[m_reward_lut[i][j]]->consumeReward(i);
+                            rcount++;
+                            break;
+                    }
+                }
+            }
+            if(m_aggregation_type == Aggregate::MEAN_VALUE) {
+                reward_at_i /= (float)rcount;
+            }
+            fitness += reward_at_i;
         }
     }
 
@@ -188,9 +258,8 @@ void GAScheduler::computeFitness(GASChromosome& ind, float rnorm_factor)
     ind.setFitness(fitness * acc_resources * modifier);
 }
 
-bool GAScheduler::satisfiesConstraints(GASChromosome ind) const
+bool GAScheduler::satisfiesConstraints(GASChromosome ind, bool show) const
 {
-    return true;
     std::vector<float> t0s;
     std::vector<float> t1s;
     for(unsigned int i = 0; i < ind.getTaskCount(); i++) {
@@ -198,6 +267,17 @@ bool GAScheduler::satisfiesConstraints(GASChromosome ind) const
             t0s.push_back(m_time_lut[ind.getStart(i)]);
             t1s.push_back(m_time_lut[ind.getStart(i) + ind.getDuration(i)]);
         }
+    }
+
+    if(show) {
+        for(std::size_t i = 0; i < t0s.size(); i++) {
+            std::clog << "**************************** (" << i << ") Task: " << t0s[i] << " ··· " << t1s[i]
+                << "; Duration: " << t1s[i] - t0s[i]
+                << "; Consumption: "  << (t1s[i] - t0s[i]) * Config::capacity_consume << "\n";
+        }
+        std::clog << "** Init resource: " << m_init_resource << "\n";
+        std::clog << "** Start time:    " << m_time_lut[0] << "\n";
+        std::clog << "---------------------------\n";
     }
 
     bool retval = true;
@@ -211,10 +291,18 @@ bool GAScheduler::satisfiesConstraints(GASChromosome ind) const
         } else {
             r += dr * (t0s[i] - t);
         }
+        if(show) {
+            std::clog << "** At T0 = " << t0s[i] << ": R = " << r << "\n";
+        }
         dr = Config::capacity_restore - Config::capacity_consume;
+        r -= Config::task_startup_cost;
         r += dr * (t1s[i] - t0s[i]);
         t  = t1s[i];
-        if(r < 0.f) {
+        if(show) {
+            std::clog << "** At T1 = " << t1s[i] << ": R = " << r << "\n";
+            std::clog << "---------------------------\n";
+        }
+        if(r < Config::capacity_consume) {
             return false;
         }
     }
@@ -241,12 +329,12 @@ GASChromosome GAScheduler::selectParent(std::vector<GASChromosome>& mating_pool)
         case GASSelectionOp::FITNESS_PROPORTIONAL_ROULETTE_WHEEL:
         case GASSelectionOp::STOCHASTIC_UNIVERSAL:
         case GASSelectionOp::ELITIST:
-            std::cout << "Genetic Algorithm failure. Unimplemented operator (P selection).\n";
+            std::clog << "Genetic Algorithm failure. Unimplemented operator (P selection).\n";
             break;
         case GASSelectionOp::TRUNCATION:
         case GASSelectionOp::GENERATIONAL:
-            std::cout << "Genetic Algorithm failure. Truncation and Generational selection operators ";
-            std::cout << "are not suitable for parent selection.\n";
+            std::clog << "Genetic Algorithm failure. Truncation and Generational selection operators ";
+            std::clog << "are not suitable for parent selection.\n";
             break;
     }
     return retval;
@@ -277,15 +365,8 @@ GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vect
         case GASSelectionOp::TOURNAMENT:
         case GASSelectionOp::FITNESS_PROPORTIONAL_ROULETTE_WHEEL:
         case GASSelectionOp::STOCHASTIC_UNIVERSAL:
-            std::cout << "Genetic Algorithm failure. Unimplemented operator (P-C combination).\n";
+            std::clog << "Genetic Algorithm failure. Unimplemented operator (P-C combination).\n";
             break;
     }
     return best_individual;
-}
-
-void GAScheduler::resetCellLUT(void)
-{
-    for(auto elem = m_cells_lut.begin(); elem != m_cells_lut.end(); elem++) {
-        elem->second = true;
-    }
 }

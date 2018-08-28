@@ -20,11 +20,13 @@
 #include <cmath>
 #include <complex>
 #include <set>
+#include <chrono>
+#include <thread>
 
 /* -- Standard C libraries: */
-/* #include <unistd.h>      */
-/* #include <sys/types.h>   */
-/* #include <sys/wait.h>    */
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 /* -- SFML libraries: */
 #include <SFML/Graphics.hpp>

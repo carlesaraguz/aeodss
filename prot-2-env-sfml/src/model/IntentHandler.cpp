@@ -166,6 +166,22 @@ int IntentHandler::getIntentCount(std::string aid, float now) const
     }
 }
 
+float IntentHandler::getCurrentConsumption(void) const
+{
+    if(m_intents.find(m_agent_id) != m_intents.end()) {
+        float acc = 0.f;
+        for(auto& j : m_intents.at(m_agent_id)) {
+            if(m_time == j.second.tstart) {
+                acc += Config::task_startup_cost;
+            } else if(m_time > j.second.tstart && m_time < j.second.tend) {
+                acc += Config::capacity_consume;
+            }
+        }
+        return acc;
+    } else {
+        return 0.f;
+    }
+}
 
 int IntentHandler::getTotalIntentCount(void) const
 {
@@ -189,6 +205,23 @@ int IntentHandler::getActiveIntentsAt(float t, std::string aid) const
         return 0;
     }
 }
+void IntentHandler::setTime(float t)
+{
+    m_time = t;
+    decorateViews();
+}
+
+void IntentHandler::decorateViews(void)
+{
+    for(auto& ii : m_intents) {
+        for(auto& jj : ii.second) {
+            if(m_time >= jj.second.tstart && m_time < jj.second.tend) {
+                m_segments.at(ii.first).at(jj.second.id).setActive(true);
+            }
+        }
+    }
+}
+
 
 std::vector<std::tuple<sf::Vector2f, float> > IntentHandler::getActivePositions(float t) const
 {

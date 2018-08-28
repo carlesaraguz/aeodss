@@ -30,7 +30,7 @@ Agent::Agent(std::string id, unsigned int wwidht, unsigned int wheight, sf::Vect
     , m_intent_handler(id)
     , m_new_insights(true)
 {
-    std::cout << "Agent: " << m_id << ". Predict size: " << m_predict_size << "\n";
+    std::clog << "Agent: " << m_id << ". Predict size: " << m_predict_size << "\n";
 
     float theta = Random::getUf(0.f, 360.f);
     m_current_state.position = ipos;
@@ -38,7 +38,7 @@ Agent::Agent(std::string id, unsigned int wwidht, unsigned int wheight, sf::Vect
         m_speed * std::cos(theta),
         m_speed * std::sin(theta)
     };
-    m_current_state.resource = 0.f;
+    m_current_state.resource = Config::max_capacity / 2.f;
     m_states[m_current_time] = m_current_state;
 
     m_self_v.setSwath(m_swath);
@@ -214,8 +214,11 @@ void Agent::move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f
         move(p0, v0, dp, p, v);
     }
 }
-
-std::vector<std::tuple<unsigned int, float> > Agent::computeRewardAt(EnvModel& e, float t, const AgentState& s) const
+void Agent::computeRewardAt(EnvModel& e, float t, unsigned int tidx, const AgentState& s,
+    std::vector<std::shared_ptr<GASReward> >& rptrs,
+    std::vector<std::vector<std::size_t> >& rptrs_lut,
+    std::map<unsigned int, std::size_t>& rptrs_cell_lut
+) const
 {
     for(auto& tuple : m_intent_handler.getActivePositions(t)) {
         /*  Find whether some Agents are affecting my area of interest (i.e. parts of my trajectory)
@@ -238,19 +241,40 @@ std::vector<std::tuple<unsigned int, float> > Agent::computeRewardAt(EnvModel& e
             e.setValueByWorldCoord(t, p.x, p.y, 1.f, r, 0);
         }
     }
-    /*  Reward is computed as:
-     *      The mean revisit time at that position and time, where 0 means that all visible points
-     *      have just been captured by another agent and 1 means that at least one of the points has
-     *      reached the maximum allowed revisit time.
+    /*  Reward is the collection of cell-rewards (i.e. GASReward) obtained at the current position.
+     *  Cell-rewards are computed based on the environment update function set to `e`. First, cell-
+     *  reward values are computed by updating the environment. Then these values are retreived and
+     *  the corresponding GASReward object is created and pushed to `rptrs`.
      **/
     e.updateAll();
+
     auto cell_values = e.getValuesByWorldCoord(
-        s.position.x,                       /* Position of agent at T=t. */
-        s.position.y,                       /* Position of agent at T=t. */
-        m_swath / 2.f,                      /* Cover distance. */
-        0                                   /* Layer 0. */
+        s.position.x,       /* Position of agent at T=t.    */
+        s.position.y,       /* Position of agent at T=t.    */
+        m_swath / 2.f,      /* Cover distance.              */
+        0                   /* Layer 0.                     */
     );
-    return cell_values;
+
+    unsigned int cid;
+    float cval;
+    std::vector<std::size_t> rs_idxs;
+    for(auto& c : cell_values) {
+        cid  = std::get<0>(c);
+        cval = std::get<1>(c);
+        if(rptrs_cell_lut.count(cid) == 0) {
+            /* This cell didn't previously have a GASReward object. Create one: */
+            auto r_new = std::make_shared<GASReward>();
+            r_new->setValue(tidx, cval);
+            rptrs.push_back(r_new);
+            rptrs_cell_lut[cid] = rptrs.size() - 1;
+        } else {
+            /* This cell's GASReward object had been previously created: */
+            auto r_old = rptrs[rptrs_cell_lut[cid]];
+            r_old->setValue(tidx, cval);
+        }
+        rs_idxs.push_back(rptrs_cell_lut[cid]);
+    }
+    rptrs_lut.push_back(rs_idxs);
 }
 
 void Agent::plan(void)
@@ -270,129 +294,86 @@ void Agent::plan(void)
     pending += m_intent_handler.getActiveIntentsAt(m_current_time, m_id);
 
     /* If new insights are ready and we can schedule more tasks, invoke scheduler: */
-    if(pending == 0) {
-        std::cout << "Agent [" << m_id << "] is computing its rewards... " << std::flush;
+    if(pending == 0 && m_current_state.resource > 0.f) {
+        std::clog << "Agent [" << m_id << "] is computing its rewards... \n";
         /* Copy the current state of the environment and find how is it going to be at T = horizon. */
         float s_time = 0.f;
         EnvModel env_cpy = m_environment;
         env_cpy.setLayerFunction(0, [&s_time](EnvModel::Cell& c) {
+            float dt;
             if(c.time < 0.f) {
-                c.value = 50.f;
-                return;
+                dt = Config::max_revisit_time;
+            } else {
+                dt = s_time - c.time;
             }
-            float dt = s_time - c.time;
             if(dt <= 0.f) {
                 c.value = 0.f;
             } else if(dt > Config::max_revisit_time) {
-                c.value = 1.f;
+                c.value = 10.f;
             } else {
-                c.value = (dt / Config::max_revisit_time);
+                float a, b, k, r, l1 = 1.f, l2 = 10.f;
+                if(dt <= Config::target_revisit_time) {
+                    a = 0.f;
+                    b = Config::target_revisit_time;
+                    k = 3.f;
+                    r = (a - b) / k;
+                    c.value = l1 * (1 - std::exp((a - dt) / r)) / (1 - std::exp((a - b) / r));
+                } else {
+                    a = Config::target_revisit_time;
+                    b = Config::max_revisit_time;
+                    k = -10.f;
+                    r = (a - b) / k;
+                    c.value = (l2 - l1) * (1 - std::exp((a - dt) / r)) / (1 - std::exp((a - b) / r)) + l1;
+                }
             }
         });
-        std::vector<std::vector<std::tuple<unsigned int, float> > > rewards;
-        std::vector<float> times;
-        times.reserve(m_states.size());
+
+        /* Compute rewards and times look-up table: */
+        std::vector<std::shared_ptr<GASReward> > rptrs;
+        std::vector<std::vector<std::size_t> > rptrs_lut;
+        std::map<unsigned int, std::size_t> rptrs_cell_lut;
+        std::vector<float> times_lut;
+        times_lut.reserve(m_states.size());
+        int t_idx = 0;
         for(const auto& s : m_states) {
             s_time = s.first;
-            rewards.push_back(computeRewardAt(env_cpy, s.first, s.second));
-            times.push_back(s.first);
+            times_lut.push_back(s.first);
+            computeRewardAt(env_cpy, s.first, t_idx++, s.second, rptrs, rptrs_lut, rptrs_cell_lut);
         }
-        std::cout << "done\n";
 
-        m_sched.setSchedulingWindow(m_states.size(), times);
-        m_sched.setRewards(rewards);
+        m_sched.setSchedulingWindow(m_states.size() - 1, times_lut);
+        m_sched.setRewards(rptrs, rptrs_lut, Aggregate::MEAN_VALUE, (m_swath / 2.f));
         m_sched.initPopulation();
-        auto intents = m_sched.schedule();
+
+        Utils::tic();
+        std::clog << "Agent [" << m_id << "] Running GA Scheduler...\n";
+        auto intents = m_sched.schedule(true);
+        std::clog << "Agent [" << m_id << "] Activites scheduled after " << Utils::toc() << " seconds.\n";
 
         for(auto& i : intents) {
             /* Adjust times to the ones in the predicted vector of agent states: */
-            std::cerr << "Agent [" << m_id << "] generated an intent with tend=" << i.tend << " and tstart=" << i.tstart
-                << " (Window = " << m_states.cbegin()->first << ", " << m_states.crbegin()->first << "):\n";
-            i.tstart = m_states.lower_bound(i.tstart)->first;
-            i.tend   = m_states.lower_bound(i.tend)->first;
             i.setAgentId(m_id);
             i.setAgentSwath(m_swath);
-            auto s0  = m_states.find(i.tstart);
-            auto s1  = m_states.find(i.tend);
-            if(s0 != m_states.end() && s1 != m_states.end() && i.setPositions(s0, s1)) {
+            auto s0 = m_states.find(i.tstart);
+            auto s1 = m_states.find(i.tend);
+            if(i.tend >= Config::time_step && s0 != m_states.end() && s1 != m_states.end() && std::distance(s0, s1) > 0 && i.setPositions(s0, s1)) {
                 i.id = m_intent_id++;
                 m_intent_handler.createIntent(i);
+                std::clog << "Agent [" << m_id << "] New capture activity [" << i.id << "]: T{" << i.tstart << ", " << i.tend << "}::" << (i.tend - i.tstart) << "\n";
             } else {
-                std::cerr << "Agent [" << m_id << "] scheduled a task with an error. Discarding this: -------------------------------------------------------------------- \n";
-                std::cout << i;
+                std::cerr << "Agent [" << m_id << "] scheduled a task with an error. Discarding it:\n";
+                std::clog << i;
             }
         }
-        recomputeResource();
-
         m_new_insights = false;
     }
-
-    /////////
-    // if(m_intent_handler.getIntentCount(m_id, m_current_time) >= 3) {
-    //     return;
-    // }
-    // /* The agent is allowed to generate more intents: */
-    // float last_intent_time = m_intent_handler.getLastIntentTime(m_id);
-    //
-    // /* Unoptimized search: */
-    // bool creating_intent = false, i_continue = false;
-    // Intent i(m_swath);
-    // float i_duration;
-    // auto s = m_states.find(last_intent_time);
-    // if(s == m_states.end()) {
-    //     s = m_states.begin();
-    // }
-    // float start_resource = 0.f;
-    // for(; s != m_states.end(); s++) {
-    //     if(m_intent_handler.getIntentCount(m_id, m_current_time) >= 3) {
-    //         break;
-    //     }
-    //     if(s->first <= last_intent_time) {
-    //         continue;
-    //     }
-    //     if(!creating_intent) {
-    //         if(    s->second.resource >= Config::max_capacity * 0.5f
-    //             && !isCloseToBounds(s->second.position)
-    //             && (s != std::prev(m_states.end()))
-    //         ) {
-    //             /* Start the creation of a new intent: */
-    //             creating_intent = true;
-    //             i_continue = true;
-    //             start_resource = s->second.resource;
-    //             i.tstart = s->first;
-    //             i.pstart = s->second.position;
-    //         }
-    //     } else {
-    //         i_duration = s->first - i.tstart;
-    //         /* Check resource state: */
-    //         i_continue &= (start_resource - i_duration * (Config::capacity_consume - Config::capacity_restore) > Config::max_capacity * 0.1f);
-    //         /* Check proximity to borders: */
-    //         i_continue &= !isCloseToBounds(s->second.position);
-    //         /* Check prediction extent: */
-    //         i_continue &= (s != std::prev(m_states.end()));
-    //
-    //         if(!i_continue) {
-    //             if(i_duration >= 60.f) {
-    //                 i.tend = s->first;
-    //                 i.pend = s->second.position;
-    //                 i.id   = m_intent_id++;
-    //                 i.setAgentId(m_id);
-    //                 last_intent_time = i.tend;
-    //                 m_intent_handler.createIntent(i);
-    //                 recomputeResource();
-    //             }
-    //             creating_intent = false;
-    //         }
-    //     }
-    // } /* end for loop. */
 }
 
 void Agent::execute(void)
 {
     /* Agents' actions: */
-    if(m_intent_handler.getActiveIntentsAt(m_current_time, m_id) > 0) {
-        m_current_state.resource -= Config::capacity_consume;
-    }
+    m_intent_handler.setTime(m_current_time);
+    m_current_state.resource -= m_intent_handler.getCurrentConsumption();
     if(m_current_state.resource + Config::capacity_restore >= Config::max_capacity) {
         m_current_state.resource = Config::max_capacity;
     } else {
@@ -403,7 +384,6 @@ void Agent::execute(void)
         std::exit(-1);
     }
 
-    m_intent_handler.setTime(m_current_time);
     for(auto& tuple : m_intent_handler.getActivePositions()) {
         m_environment.setValueByWorldCoord(
             m_current_time,
@@ -414,34 +394,6 @@ void Agent::execute(void)
         );
     }
     m_intent_handler.disposeIntents(m_current_time);
-}
-
-void Agent::recomputeResource(void)
-{
-    // float r = m_states[m_current_time].resource;
-    // int count = 0;
-    // auto s = m_states.find(m_current_time);
-    // if(s == m_states.end()) {
-    //     std::cerr << "[Agent " << m_id << "] Something went wrong: current state was not found in predictions.\n";
-    //     std::exit(-1);
-    // }
-    // for(; s != m_states.end(); s++) {
-    //     auto active_intents = m_intent_handler.getActiveIntentsAt(s->first, m_id);
-    //     if(active_intents) count++;
-    //     // std::cout << "[Agent " << m_id << "] (" << std::setw(5) << count << ")" << std::fixed << std::setprecision(4)
-    //     //     << " T = " << s->first << ","
-    //     //     << " R = " << r << " + " << Config::capacity_restore << " - " << active_intents * Config::capacity_consume
-    //     //     << " = " << r + Config::capacity_restore - (active_intents * Config::capacity_consume) << "\n";
-    //     r += Config::capacity_restore - active_intents * Config::capacity_consume;
-    //     s->second.resource = r;
-    //     if(s->second.resource < 0.f) {
-    //         std::cerr << "[Agent " << m_id << "] Something went wrong, negative resource capacity (" <<
-    //             std::fixed << std::setprecision(3) << s->second.resource << ") at t=" << s->first;
-    //         std::cerr << " (" << count << " steps since t0 = " << m_current_time << "). Active intents: " << active_intents;
-    //         std::cerr << std::endl;
-    //         std::exit(-1);
-    //     }
-    // }
 }
 
 bool Agent::isCloseToBounds(const sf::Vector2f& p) const
@@ -526,14 +478,14 @@ void Agent::toggleAgentLink(std::string aid)
         auto aptrt = m_link_table[true][aid];
         m_link_table[true].erase(foundt);
         m_link_table[false][aptrt->getId()] = aptrt;
-        std::cout << "Agent [" << m_id << "] disconnected from [" << aid << "]\n";
+        std::clog << "Agent [" << m_id << "] disconnected from [" << aid << "]\n";
 
     } else if(foundf != m_link_table[false].end()) {
         auto aptrf = m_link_table[false][aid];
         m_link_table[false].erase(foundf);
         m_link_table[true][aptrf->getId()] = aptrf;
         m_has_communicated[aptrf->getId()] = false;
-        std::cout << "Agent [" << m_id << "] connected to [" << aid << "]\n";
+        std::clog << "Agent [" << m_id << "] connected to [" << aid << "]\n";
 
     } else {
         std::cerr << "[" << m_id << "] Toggling an agent link state for an unknown agent \'" << aid << "\'.\n";

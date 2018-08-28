@@ -13,14 +13,24 @@
 SegmentView::SegmentView(const Intent& in)
     : SegmentView(in.getPositions(), in.getAgentSwath(),
         in.getAgentId() + ":" + std::to_string(in.id))
-{ }
+{
+    if(m_error) {
+        std::cerr << "Intent information: " << in;
+        std::exit(-1);
+    }
+}
 
 SegmentView::SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string str)
     : m_positions(ps)
     , m_active(false)
     , m_owned(true)
     , m_done(false)
+    , m_error(false)
 {
+    if(m_positions.size() < 2) {
+        std::cerr << "Segment view error: can't define a segment with less than two positions.\n";
+        m_error = true;
+    }
     auto p_s0 = m_positions[0];
     auto p_s1 = m_positions[1];
     auto p_e0 = m_positions[m_positions.size() - 2];
@@ -46,6 +56,10 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string 
 
     /* Lines: trajectory of the segment. */
     for(unsigned int i = 1; i < m_positions.size(); i++) {
+        if((m_positions[i - 1].x <= 0.f && m_positions[i - 1].y <= 0.f) || (m_positions[i].x <= 0.f && m_positions[i].y <= 0.f)) {
+            std::cerr << "Segment view error: found a potential inconsistency in position {" << i << "}\n";
+            m_error = true;
+        }
         ThickLine tline(m_positions[i - 1], m_positions[i]);
         tline.setColor(c);
         tline.setThickness(2.f);

@@ -16,15 +16,15 @@
 class GASReward
 {
 public:
-    int time_idx;
+    GASReward(void) = default;
 
-    GASReward(int tidx = 0);
-
-    void setValues(std::map<unsigned int, float> vals) { m_values = vals; }
-    float getReward(std::map<unsigned int, bool>& cells) const;
+    void setValue(unsigned int time_idx, float value);
+    float consumeReward(unsigned int time_idx);
+    void revert(void);
 
 private:
-    std::map<unsigned int, float> m_values;
+    std::map<unsigned int, float> m_value;          /* Value of the reward at a given time-index. */
+    std::map<unsigned int, float> m_value_backup;   /* Recover information. */
 };
 
 #endif /* GAS_REWARD_HPP */

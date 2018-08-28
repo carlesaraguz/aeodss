@@ -45,8 +45,10 @@ EnvModel::EnvModel(unsigned int mw, unsigned int mh, unsigned int ww, unsigned i
             cs.reserve(m_model_h);
             for(unsigned int k = 0; k < m_model_h; k++) {
                 Cell c = {
-                    (j > m_model_w / 2.f ? -1.f : 1.f),       /* Initial .value       */
-                    (j > m_model_w / 2.f ? -1.f : 0.f),       /* Initial .update_time */
+                    // (j > m_model_w / 2.f ? -1.f : 1.f),       /* Initial .value       */
+                    0.f,
+                    // (j > m_model_w / 2.f ? -1.f : 0.f),       /* Initial .update_time */
+                    -1.f,
                     cid_acc++   /* Cell ID: .cid        */
                 };
                 cs.push_back(c);
@@ -83,9 +85,7 @@ void EnvModel::updatelLayer(unsigned int l)
     }
     for(std::size_t x = 0; x < m_model_cells[l].size(); x++) {
         for(std::size_t y = 0; y < m_model_cells[l][x].size(); y++) {
-            // if(m_model_cells[l][x][y].time != -1.f) {
-                m_layer_funcs[l](m_model_cells[l][x][y]);
-            // }
+            m_layer_funcs[l](m_model_cells[l][x][y]);
         }
     }
     if(m_view_layer == (int)l) {
@@ -304,6 +304,17 @@ EnvModelView& EnvModel::getView(void)
         m_view.show();
     }
     return m_view;
+}
+
+std::array<unsigned int, 5> EnvModel::getDimensions(void) const
+{
+    return {
+        m_model_w,
+        m_model_h,
+        m_world_w,
+        m_world_h,
+        m_num_layers
+    };
 }
 
 

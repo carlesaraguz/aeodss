@@ -10,16 +10,23 @@
 
 #include "GASReward.hpp"
 
-GASReward::GASReward(int tidx)
-    : time_idx(tidx)
-{ }
-
-float GASReward::getReward(std::map<unsigned int, bool>& cells) const
+void GASReward::setValue(unsigned int time_idx, float value)
 {
-    float acc = 0.f;
-    for(auto& v : m_values) {
-        acc = std::max(cells[v.first] * v.second, acc);
-        cells[v.first] = false;     /* Disable this reward. */
+    m_value[time_idx] = value;
+    m_value_backup[time_idx] = value;
+}
+
+float GASReward::consumeReward(unsigned int time_idx)
+{
+    float retval = 0.f;
+    try {
+        /*  Access with std::map::at has logarithmic complexity but the size of this map is
+        *  expected to be small.
+        **/
+        retval = m_value.at(time_idx);
+    } catch(std::out_of_range& e) {
+        std::cerr << "Genetic Algorithm Scheduler Error: un-registered reward value for time index " << time_idx << ".\n";
+        retval = 0.f;
     }
-    return acc;
+    return retval;
 }

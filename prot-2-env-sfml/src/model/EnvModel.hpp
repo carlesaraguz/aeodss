@@ -39,9 +39,6 @@ public:
     void addLayers(unsigned int nl);
     void removeLayer(unsigned int l_id);
 
-    // void defineFootprint(std::vector<sf::Vector2f> ps, float r);
-    // float setValueToFootprint
-
     /* Getters: */
     unsigned int getModelWidth(void) const { return m_model_w; }
     unsigned int getModelHeight(void) const { return m_model_h; }
@@ -49,6 +46,7 @@ public:
     unsigned int getWorldHeight(void) const { return m_world_h; }
     unsigned int getLayerCount(void) const { return m_num_layers; }
     EnvModelView& getView(void);
+    std::array<unsigned int, 5> getDimensions(void) const;
 
 protected:
     unsigned int m_model_w;

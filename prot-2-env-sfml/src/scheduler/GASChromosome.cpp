@@ -12,7 +12,7 @@
 
 GASChromosome::GASChromosome(unsigned int span, unsigned int maxd)
     : m_span(span)
-    , m_max_duration(maxd)
+    , m_max_duration(std::min(Config::max_task_duration, maxd))
     , m_fitness(0.f)
 {
     /* Initialize chromosome randomly: */

@@ -13,6 +13,7 @@
 
 #include "prot.hpp"
 #include "Agent.hpp"
+#include "GlobalEnvModel.hpp"
 
 enum class WorldViewType {
     SINGLE_AGENT,   /**< Display the state and environment of a single agent. */
@@ -23,7 +24,7 @@ enum class WorldViewType {
 class WorldView : public sf::Drawable, public sf::Transformable
 {
 public:
-    WorldView(WorldViewType type, std::vector<std::shared_ptr<Agent> > agents);
+    WorldView(WorldViewType type, std::vector<std::shared_ptr<Agent> > agents, std::shared_ptr<GlobalEnvModel> global = nullptr);
     void drawWorld(void);
 
 private:
@@ -32,6 +33,7 @@ private:
     sf::RectangleShape m_border;
     std::vector<std::shared_ptr<Agent> > m_agents;
     WorldViewType m_type;
+    std::shared_ptr<GlobalEnvModel> m_oracle_model;
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 };

@@ -23,7 +23,8 @@ public:
     EnvModelView(int modelw, int modelh, int worldw, int worldh, sf::Color init_color = sf::Color::Black);
     EnvModelView(const EnvModel& e, sf::Color init_color = sf::Color::Black);
 
-    void display(const EnvModel& e, unsigned int layer = 0);
+    template <class EM>
+    void display(const EM& e, unsigned int layer = 0);
     void setColorGradient(const ColorGradient& cg) { m_color_gradient = cg; }
 
 private:
@@ -54,5 +55,19 @@ private:
 };
 
 #include "EnvModel.hpp"
+
+template <class EM>
+void EnvModelView::display(const EM& e, unsigned int layer)
+{
+    if(m_show) {
+        float val;
+        for(int x = 0; x < m_model_w; x++) {
+            for(int y = 0; y < m_model_h; y++) {
+                val = e.getValueByModelCoord(x, y, layer);
+                setColor(x, y, m_color_gradient.getColorAt(val));
+            }
+        }
+    }
+}
 
 #endif /* ENV_MODEL_VIEW_HPP */

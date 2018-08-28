@@ -11,6 +11,7 @@
 
 #include "Agent.hpp"
 #include "Channel.hpp"
+#include "GlobalEnvModel.hpp"
 #include "WorldView.hpp"
 #include "Init.hpp"
 
@@ -39,6 +40,12 @@ int main(int /* argc */, char** /* argv */)
         agents.push_back(aptr);
     }
 
+    /* Create a global aggregated environment model: -------------------------------------------- */
+    auto global_model = std::make_shared<GlobalEnvModel>(agents[0]->getEnvModelDimensions());
+    for(auto& a : agents) {
+        global_model->addEnvModel(a->getEnvModelPtr());
+    }
+
     /* Create a common channel: ----------------------------------------------------------------- */
     Channel channel(agents);
     channel.configAgents();
@@ -47,17 +54,23 @@ int main(int /* argc */, char** /* argv */)
     WorldView wv1(WorldViewType::SINGLE_AGENT, std::vector<std::shared_ptr<Agent> >({ agents[0] }));
     WorldView wv2(WorldViewType::SINGLE_AGENT, std::vector<std::shared_ptr<Agent> >({ agents[1] }));
     WorldView wv3(WorldViewType::GLOBAL_REAL, agents);
+    WorldView wv4(WorldViewType::GLOBAL_ORACLE, agents, global_model);
     wv1.setScale(0.5f, 0.5f);
     wv2.setScale(0.5f, 0.5f);
     wv3.setScale(0.5f, 0.5f);
+    wv4.setScale(0.5f, 0.5f);
     wv2.setPosition(Config::win_width / 2.f, 0.f);
     wv3.setPosition(0.f, Config::win_height / 2.f);
+    wv4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
+
+    global_model->displayInView(0);
 
     while(window.isOpen()) {
         /* Event loop: -------------------------------------------------------------------------- */
         handleEvents(window);
 
         /* Update loop: ------------------------------------------------------------------------- */
+        std::vector<std::thread> thread_pool;
         if(play) {
             /* Update agents: */
             for(auto& a : agents) {
@@ -66,18 +79,23 @@ int main(int /* argc */, char** /* argv */)
 
             /* Trigger communications: */
             channel.handleLinks();
+
+            /* Update global model: */
+            global_model->updateAll();
         }
 
         /* Pre-draw loop: ----------------------------------------------------------------------- */
         wv1.drawWorld();
         wv2.drawWorld();
         wv3.drawWorld();
+        wv4.drawWorld();
 
         /* Draw loop: --------------------------------------------------------------------------- */
         window.clear();
         window.draw(wv1);
         window.draw(wv2);
         window.draw(wv3);
+        window.draw(wv4);
         window.display();
     }
 

@@ -17,6 +17,7 @@
 #include "AgentView.hpp"
 #include "EnvModel.hpp"
 #include "Random.hpp"
+#include "Utils.hpp"
 #include "GAScheduler.hpp"
 
 struct AgentState {
@@ -50,10 +51,12 @@ public:
     sf::Vector2f getWorldSize(void) const { return sf::Vector2f(m_world_w, m_world_h); }
     const AgentView& getAgentView(void) const { return m_self_v; }
     const IntentHandler::SegmentTable& getSegmentViews(void) const { return m_intent_handler.getViews(); }
+    const EnvModel* getEnvModelPtr(void) { return &m_environment; }
     EnvModelView& getEnvView(void) { return m_environment.getView(); }
     std::string getId(void) const { return m_id; }
     LinkTable& getLinks(void) { return m_link_table; }
     float getRange(void) const { return m_range; }
+    std::array<unsigned int, 5> getEnvModelDimensions(void) const { return m_environment.getDimensions(); }
 
     /* Overloaded operators: */
     bool operator==(const Agent& ra);
@@ -88,12 +91,16 @@ private:
     /* Graphical representations: */
     AgentView m_self_v;
 
-    void propagateState(void);
     void move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f& p, sf::Vector2f& v);
     void plan(void);
-    std::vector<std::tuple<unsigned int, float> > computeRewardAt(EnvModel& e, float t, const AgentState& s) const;
     void execute(void);
-    void recomputeResource(void);
+
+    using RewardVec = std::vector<std::vector<std::tuple<unsigned int, float> > >;
+    void computeRewardAt(EnvModel& e, float t, unsigned int tidx, const AgentState& s,
+        std::vector<std::shared_ptr<GASReward> >& rptrs,
+        std::vector<std::vector<std::size_t> >& rptrs_lut,
+        std::map<unsigned int, std::size_t>& rptrs_cell_lut) const;
+    void propagateState(void);
     bool isCloseToBounds(const sf::Vector2f& p) const;
     bool inBounds(const sf::Vector2f& p) const;
     void setViewText(void);
