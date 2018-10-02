@@ -17,16 +17,16 @@
 class MultiView : public sf::Drawable, public sf::Transformable
 {
 public:
-    MultiView(std::vector<std::shared_ptr<HasView> > views = { });
-    void setViews(std::vector<std::shared_ptr<HasView> > views) { m_views = views; }
-    void addViewToFront(std::shared_ptr<HasView> view);
-    void addViewToBack(std::shared_ptr<HasView> view);
+    MultiView(std::vector<std::shared_ptr<const HasView> > views = { });
+    void setViews(std::vector<std::shared_ptr<const HasView> > views) { m_views = views; }
+    void addViewToFront(std::shared_ptr<const HasView> view);
+    void addViewToBack(std::shared_ptr<const HasView> view);
     void drawViews(void);
 
 private:
     sf::RenderTexture m_target_texture;
     sf::RectangleShape m_border;
-    std::vector<std::shared_ptr<HasView> > m_views;
+    std::vector<std::shared_ptr<const HasView> > m_views;
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 };

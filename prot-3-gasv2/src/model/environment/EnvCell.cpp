@@ -56,7 +56,7 @@ float EnvCell::computeCellPayoff(unsigned int fidx, std::shared_ptr<Activity> ap
         /*  Payoff function for one cell:
          *  Arg. #0:          shared_ptr<Activity>  --> The potential new activity.
          *  Arg. #1:            pair<float, float>  --> t0 & t1 of the potential new activity.
-         *  Arg. #2:     vector<pair<float, float>  --> t0 & t1 of the activities for this cell.
+         *  Arg. #2:   vector<pair<float, float> >  --> t0 & t1 of the activities for this cell.
          *  Arg. #3: vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
          **/
         float at0, at1;

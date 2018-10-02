@@ -10,7 +10,7 @@
 
 #include "MultiView.hpp"
 
-MultiView::MultiView(std::vector<std::shared_ptr<HasView> > views)
+MultiView::MultiView(std::vector<std::shared_ptr<const HasView> > views)
     : m_views(views)
 {
     m_border.setSize(sf::Vector2f(Config::world_width, Config::world_height));
@@ -31,12 +31,12 @@ void MultiView::draw(sf::RenderTarget& target, sf::RenderStates states) const
     target.draw(m_border, states);
 }
 
-void MultiView::addViewToBack(std::shared_ptr<HasView> view)
+void MultiView::addViewToBack(std::shared_ptr<const HasView> view)
 {
     m_views.push_back(view);
 }
 
-void MultiView::addViewToFront(std::shared_ptr<HasView> view)
+void MultiView::addViewToFront(std::shared_ptr<const HasView> view)
 {
     m_views.insert(m_views.begin(), view);
 }

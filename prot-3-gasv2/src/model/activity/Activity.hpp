@@ -14,6 +14,8 @@
 #include "prot.hpp"
 #include "EnvModel.hpp"
 
+class SegmentView;
+
 struct ActivityCell {
     unsigned int x;     /* Cell column number in the environment model (not real world coordinates). */
     unsigned int y;     /* Cell row number in the environment model (not real world coordinates). */
@@ -24,7 +26,7 @@ struct ActivityCell {
 class Activity
 {
 public:
-    Activity(unsigned int id, std::string agent_id);
+    Activity(std::string agent_id, int id = -1);
     Activity(const Activity& other);
     Activity& operator=(const Activity& other);
     Activity(Activity&& other);
@@ -34,35 +36,50 @@ public:
     bool isConfimed(void) const { return m_confirmed; }
     bool isDiscarded(void) const { return m_discarded; }
     bool isFact(void) const { return (m_confirmed && !m_discarded) || (!m_confirmed && m_discarded); }
-    void setConfirmed(bool c = true);
-    void setDiscarded(bool d = true);
+    bool isOwner(std::string aid) const { return aid == m_agent_id; }
     void getCellTimes(unsigned int x, unsigned int y, float& t0, float& t1) const;
-    std::vector<std::pair<unsigned int, unsigned int> > getActiveCells(void) const;
+    std::vector<sf::Vector2i> getActiveCells(void) const;
+    std::shared_ptr<SegmentView> getView(void);
 
     /* Positions: */
     std::size_t getPositionCount(void) const { return m_trajectory.size(); }
+    void setTrajectory(const std::map<float, sf::Vector2f>& pts, const std::vector<ActivityCell>& acs);
 
     /* Payoff: */
     float computePayoff(const EnvModel& e);
 
     /* Getters & setters: */
+    void setConfirmed(bool c = true);
+    void setDiscarded(bool d = true);
+    void setId(int id);
     std::string getAgentId(void) const { return m_agent_id; }
     unsigned int getId(void) const { return m_id; }
-    float getStartTime(void) const { return m_trajectory.cbegin().first; }
-    float getEndTime(void) const { return m_trajectory.crbegin().first; }
+    float getStartTime(void) const;
+    float getEndTime(void) const;
+
+    /* Operator overloads: */
+    bool operator<(const Activity& a) const;
+    bool operator==(const Activity& a) const;
+
+    /* Friend debug functions: */
+    friend std::ostream& operator<<(std::ostream& os, const Activity& act);
 
 private:
     std::string m_agent_id;
-    unsigned int m_id;
+    int m_id;
     float m_payoff;
     bool m_confirmed;
     bool m_discarded;
+    bool m_ready;
     float m_confidence;
 
     /* Spatio-temporal information: */
+    std::shared_ptr<SegmentView> m_self_view;
     std::map<float, sf::Vector2f> m_trajectory;
     std::vector<ActivityCell> m_active_cells;
     std::map<unsigned int, std::map<unsigned int, int> > m_cell_lut;
 };
+
+
 
 #endif /* ACTIVITY_HPP */

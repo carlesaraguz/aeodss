@@ -45,17 +45,23 @@ int main(int /* argc */, char** /* argv */)
     for(auto a : agents) {
         a->getLink()->setAgents(agents);
     }
+    agents[0]->displayActivities(ActivityDisplayType::ALL);
+    agents[0]->showResources(true);
 
     /* Create a global aggregated environment model: -------------------------------------------- */
     auto world = std::make_shared<World>();
     world->addAgent(agents);
 
     /* Create multi-views: ---------------------------------------------------------------------- */
-    std::vector<std::shared_ptr<HasView> > avs(agents.begin(), agents.end());
+    std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
     MultiView mv1, mv2, mv3, mv4;
     mv1.setViews(avs);
+    mv2.addViewToBack(std::static_pointer_cast<const HasView>(agents[0]->getActivityHandler()));
     mv2.addViewToBack(avs[0]);
     mv3.addViewToBack(world);
+    for(auto& av : avs) {
+        mv3.addViewToBack(av);
+    }
     mv4.addViewToBack(world);
 
     mv1.setScale(0.5f, 0.5f);
@@ -90,7 +96,7 @@ int main(int /* argc */, char** /* argv */)
         mv2.drawViews();
         if(draw_it % 10 == 0) {
             draw_it = 0;
-            world->display(World::Layer::COVERAGE_BEST);
+            world->display(World::Layer::REVISIT_TIME_ACTUAL);
             mv3.drawViews();
             world->display(World::Layer::REVISIT_TIME_BEST);
             mv4.drawViews();

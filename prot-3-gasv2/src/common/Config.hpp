@@ -45,15 +45,15 @@ public:
     static constexpr const float agent_speed = 4.f;         /**< Distance per time unit.        */
     static constexpr const float activity_size = 0.01f;     /**< Size of a single agent msg.    */
     static const AgentMotionType motion_model = AgentMotionType::LINEAR_BOUNCE;
-    /* Resource consumptions: */
+    /* Resource consumptions and capacities: */
     /* -- Energy: */
-    static constexpr const float instrument_energy_min = 1.f;
-    static constexpr const float instrument_energy_max = 2.f;
+    static constexpr const float instrument_energy_min = 0.01f;
+    static constexpr const float instrument_energy_max = 0.02f;
     static constexpr const float link_tx_energy_rate = 0.5f;
     static constexpr const float link_rx_energy_rate = 0.05f;
     /* -- Storage: */
-    static constexpr const float instrument_storage_min = 1.f;
-    static constexpr const float instrument_storage_max = 2.f;
+    static constexpr const float instrument_storage_min = 0.001f;
+    static constexpr const float instrument_storage_max = 0.001f;
 
     /* Format and colors: */
     static sf::Font fnt_monospace;

@@ -13,22 +13,35 @@
 
 #include "prot.hpp"
 #include "Activity.hpp"
+#include "ActivityHandlerView.hpp"
 
-class ActivityHandler
+class ActivityHandler : public HasView
 {
 public:
     ActivityHandler(Agent* aptr);
 
-    std::shared_ptr<Activity> getNextActivity(void) const;
+    std::shared_ptr<Activity> getNextActivity(float t) const;
+    std::shared_ptr<Activity> getCurrentActivity(void) const;
     std::shared_ptr<Activity> getLastActivity(void) const;
-    void add(std::shared_ptr<Activity> pa) { m_activities_own.push_back(pa); } /* TODO. */
+    void add(std::shared_ptr<Activity> pa);
     unsigned int count(std::string aid) const;
+    unsigned int pending(std::string aid) const;
+    void setAgentId(std::string aid);
+    std::shared_ptr<Activity> createOwnedActivity(const std::map<float, sf::Vector2f>& a_pos, const std::vector<ActivityCell>& a_cells);
+
+    /* View and control: */
+    const sf::Drawable& getView(void) const override;
+    void autoUpdateView(bool auto_update = true);
+    void displayInView(ActivityDisplayType adt, std::vector<std::pair<std::string, unsigned int> > filter = { });
 
 private:
     std::vector<std::shared_ptr<Activity> > m_activities_own;   /* Sorted by start time. */
     std::map<std::string, std::vector<std::shared_ptr<Activity> > > m_activities_others;
     std::string m_agent_id;
     Agent* m_agent;
+    bool m_update_view;
+    ActivityHandlerView m_self_view;
+    unsigned int m_activity_count;
 };
 
 #endif /* ACTIVITY_HANDLER_HPP */

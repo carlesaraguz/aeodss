@@ -20,6 +20,7 @@ BasicInstrument::BasicInstrument(float world_swath)
     : m_swath(world_swath)
     , m_energy_rate(Random::getUf(Config::instrument_energy_min, Config::instrument_energy_max))
     , m_storage_rate(Random::getUf(Config::instrument_storage_min, Config::instrument_storage_max))
+    , m_enabled(false)
 { }
 
 bool BasicInstrument::applyToDistance(
@@ -30,7 +31,7 @@ bool BasicInstrument::applyToDistance(
     std::function<void(unsigned int, unsigned int)> f_true,
     std::function<void(unsigned int, unsigned int)> f_false) const
 {
-    /*  Find other cells that are at a distance of (m_swath/2.f) from (ox, oy):
+    /*  Find other cells that are at a distance of `r` from (ox, oy):
      *    - ox, oy : Spiral origin/offset.
      *    - xx, yy : Spiral iterators (origin = 0,0).
      *    - dx, dy : Iterator steps.
@@ -42,7 +43,7 @@ bool BasicInstrument::applyToDistance(
     if(world_distance) {
         b = 2 * (std::ceil(r) + 1);
     } else {
-        b = 2 * std::ceil(std::max(r / m_env_info.rw, r / m_env_info.rh));
+        b = 2 * std::ceil(std::max(r / m_env_info.rw, r / m_env_info.rh) + 1);
     }
     int max_iter = b * b;
     bool at_r = false;
@@ -96,18 +97,33 @@ bool BasicInstrument::applyToDistance(
     return (i < max_iter);
 }
 
+std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(float swath, sf::Vector2f position) const
+{
+    int ox = std::round(position.x / m_env_info.rw);
+    int oy = std::round(position.y / m_env_info.rh);
+    float dist = swath / 2.f;
+    std::vector<sf::Vector2i> cells;
+    auto f = [&cells](unsigned int x, unsigned int y) {
+        cells.push_back(sf::Vector2i(x, y));
+    };
+    if(!applyToDistance(ox, oy, dist, false, f)) {
+        Log::err << "Failed to get visible (model) cells from different position. Maximum number of oterations reached\n";
+        throw std::runtime_error("Error");
+        return { };
+    }
+    return cells;
+}
+
 std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(bool world_cells) const
 {
     int ox, oy;
-    float dist;
+    float dist = m_swath / 2.f;
     if(world_cells) {
         ox = std::round(m_position.x);
         oy = std::round(m_position.y);
-        dist = m_swath / 2.f;
     } else {
         ox = std::round(m_position.x / m_env_info.rw);
         oy = std::round(m_position.y / m_env_info.rh);
-        dist = (m_swath / 2.f) / m_env_info.rw; /* NB: This only works if cells are square-shaped. */
     }
     std::vector<sf::Vector2i> cells;
     auto f = [&cells](unsigned int x, unsigned int y) {

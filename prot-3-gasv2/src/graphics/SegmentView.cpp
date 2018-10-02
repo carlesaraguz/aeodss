@@ -10,13 +10,15 @@
 
 #include "SegmentView.hpp"
 
+CREATE_LOGGER(SegmentView)
+
 SegmentView::SegmentView(const Activity& /* a */)
 {
-    std::cerr << "[SegmentView] Error, unimplemented constructor.\n";
+    Log::err << "Error, unimplemented constructor.\n";
     std::exit(-1);
 }
 
-SegmentView::SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string str)
+SegmentView::SegmentView(std::vector<sf::Vector2f> ps, std::string str)
     : m_positions(ps)
     , m_active(false)
     , m_owned(true)
@@ -24,28 +26,28 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string 
     , m_error(false)
 {
     if(m_positions.size() < 2) {
-        std::cerr << "Segment view error: can't define a segment with less than two positions.\n";
+        Log::err << "Segment view error: can't define a segment with less than two positions.\n";
         m_error = true;
     }
     auto p_s0 = m_positions[0];
     auto p_s1 = m_positions[1];
-    auto p_e0 = m_positions[m_positions.size() - 2];
-    auto p_e1 = m_positions[m_positions.size() - 1];
+    // auto p_e0 = m_positions[m_positions.size() - 2];
+    // auto p_e1 = m_positions[m_positions.size() - 1];
 
-    /* Find a unitary vectors perpendicular to the start and end directions: */
+    // /* Find a unitary vectors perpendicular to the start and end directions: */
     sf::Vector2f p0 = p_s1 - p_s0;
-    sf::Vector2f p1 = p_e1 - p_e0;
+    // sf::Vector2f p1 = p_e1 - p_e0;
     p0 = p0 / std::sqrt(p0.x * p0.x + p0.y * p0.y);
-    p1 = p1 / std::sqrt(p1.x * p1.x + p1.y * p1.y);
-
-    sf::Vector2f u0 = { p_s1.y - p_s0.y, p_s0.x - p_s1.x };
-    sf::Vector2f u1 = { p_e1.y - p_e0.y, p_e0.x - p_e1.x };
-    u0 /= std::sqrt(u0.x * u0.x + u0.y * u0.y);
-    u1 /= std::sqrt(u1.x * u1.x + u1.y * u1.y);
-    sf::Vector2f p_sa = u0 * (swath / 2.f);
-    sf::Vector2f p_sb = u0 * (-swath / 2.f);
-    sf::Vector2f p_ea = u1 * (swath / 2.f);
-    sf::Vector2f p_eb = u1 * (-swath / 2.f);
+    // p1 = p1 / std::sqrt(p1.x * p1.x + p1.y * p1.y);
+    //
+    // sf::Vector2f u0 = { p_s1.y - p_s0.y, p_s0.x - p_s1.x };
+    // sf::Vector2f u1 = { p_e1.y - p_e0.y, p_e0.x - p_e1.x };
+    // u0 /= std::sqrt(u0.x * u0.x + u0.y * u0.y);
+    // u1 /= std::sqrt(u1.x * u1.x + u1.y * u1.y);
+    // sf::Vector2f p_sa = u0 * (swath / 2.f);
+    // sf::Vector2f p_sb = u0 * (-swath / 2.f);
+    // sf::Vector2f p_ea = u1 * (swath / 2.f);
+    // sf::Vector2f p_eb = u1 * (-swath / 2.f);
 
     sf::Color c = sf::Color::White;
     c.a = 180;
@@ -53,7 +55,7 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string 
     /* Lines: trajectory of the segment. */
     for(unsigned int i = 1; i < m_positions.size(); i++) {
         if((m_positions[i - 1].x <= 0.f && m_positions[i - 1].y <= 0.f) || (m_positions[i].x <= 0.f && m_positions[i].y <= 0.f)) {
-            std::cerr << "Segment view error: found a potential inconsistency in position {" << i << "}\n";
+            Log::err << "Segment view error: found a potential inconsistency in position {" << i << "}\n";
             m_error = true;
         }
         ThickLine tline(m_positions[i - 1], m_positions[i]);
@@ -62,15 +64,15 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string 
         m_lines.push_back(tline);
     }
 
-    /* Line: start of the segment. */
-    m_line_start.setPoints(p_sa + p_s0, p_sb + p_s0);
-    m_line_start.setColor(c);
-    m_line_start.setThickness(2.f);
+    /* Circle: start of the segment. */
+    m_circle_start.setRadius(10.f);
+    m_circle_start.setFillColor(c);
+    m_circle_start.setPosition(m_positions[0] - sf::Vector2f(10.f, 10.f));
 
-    /* Line: end of the segment. */
-    m_line_end.setPoints(p_ea + p_e1, p_eb + p_e1);
-    m_line_end.setColor(c);
-    m_line_end.setThickness(2.f);
+    /* Circle: end of the segment. */
+    m_circle_end.setRadius(10.f);
+    m_circle_end.setFillColor(c);
+    m_circle_end.setPosition(m_positions[m_positions.size() - 1] - sf::Vector2f(10.f, 10.f));
 
     m_txt.setFont(Config::fnt_monospace);
     m_txt.setString(str);
@@ -105,8 +107,8 @@ void SegmentView::decorate(void)
     for(auto& l : m_lines) {
         l.setColor(c);
     }
-    m_line_start.setColor(c);
-    m_line_end.setColor(c);
+    m_circle_start.setFillColor(c);
+    m_circle_end.setFillColor(c);
     m_txt.setColor(c);
 }
 
@@ -124,14 +126,14 @@ void SegmentView::setActive(bool active)
         for(auto& l : m_lines) {
             l.setThickness(3.f);
         }
-        m_line_start.setThickness(3.f);
-        m_line_end.setThickness(3.f);
+        m_circle_start.setRadius(15.f);
+        m_circle_end.setRadius(15.f);
     } else {
         for(auto& l : m_lines) {
             l.setThickness(2.f);
         }
-        m_line_start.setThickness(2.f);
-        m_line_end.setThickness(2.f);
+        m_circle_start.setRadius(10.f);
+        m_circle_end.setRadius(10.f);
     }
     decorate();
 }
@@ -148,8 +150,8 @@ void SegmentView::setDone(bool done)
 void SegmentView::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     if(m_show) {
-        target.draw(m_line_start, states);
-        target.draw(m_line_end, states);
+        target.draw(m_circle_start, states);
+        target.draw(m_circle_end, states);
         for(auto& l : m_lines) {
             target.draw(l, states);
         }

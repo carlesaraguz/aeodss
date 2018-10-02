@@ -21,7 +21,7 @@ class SegmentView : public HideGraphics, public sf::Drawable
 {
 public:
     SegmentView(const Activity& a);
-    SegmentView(std::vector<sf::Vector2f> ps, float swath, std::string str = "");
+    SegmentView(std::vector<sf::Vector2f> ps, std::string str = "");
 
     void setOwnership(bool mine);
     void setActive(bool active);
@@ -34,8 +34,8 @@ private:
     bool m_active;
     bool m_owned;
     std::vector<ThickLine> m_lines;
-    ThickLine m_line_start;
-    ThickLine m_line_end;
+    sf::CircleShape m_circle_start;
+    sf::CircleShape m_circle_end;
     sf::Text m_txt;
 
     bool m_error;

@@ -41,8 +41,10 @@ public:
     void setVelocity(sf::Vector2f v) override { setVelocity(sf::Vector3f(v.x, v.y, 0.f)); }
     void setVelocity(sf::Vector3f) override { /* Does nothing. TODO Preliminary version. */ }
     std::vector<sf::Vector2i> getVisibleCells(bool world_cells = false) const override;
+    std::vector<sf::Vector2i> getVisibleCells(float swath, sf::Vector2f position) const;
     std::vector<sf::Vector2f> getFootprint(void) const override;
     float getResourceRate(std::string rname) const override;
+    float getSwath(void) const { return m_swath; }
 
 private:
     EnvModelInfo m_env_info;

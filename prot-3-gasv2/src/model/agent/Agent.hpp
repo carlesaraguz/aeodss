@@ -13,13 +13,17 @@
 
 #include "prot.hpp"
 #include "TimeStep.hpp"
+#include "HasView.hpp"
+
 #include "AgentMotion.hpp"
 #include "AgentLink.hpp"
+#include "AgentView.hpp"
+
 #include "EnvModel.hpp"
+#include "ActivityHandler.hpp"
 #include "BasicInstrument.hpp"
 #include "Resource.hpp"
-#include "AgentView.hpp"
-#include "HasView.hpp"
+#include "CumulativeResource.hpp"
 
 class Agent : public TimeStep, public HasView
 {
@@ -29,16 +33,21 @@ public:
 
     /* Public member functions: */
     void step(void) override;
+    void showResources(bool d = true);
 
     /* Getters and setters: */
     std::string getId(void) const { return m_id; }
     const AgentView& getView(void) const override { return m_self_view; }
     const AgentMotion& getMotion(void) const { return m_motion; }
+    std::shared_ptr<const ActivityHandler> getActivityHandler(void) const { return m_activities; }
     std::vector<sf::Vector2i> getWorldFootprint(void) const;
     bool isCapturing(void) const { return m_payload.isEnabled(); }
 
     /* Agent Link: */
     std::shared_ptr<AgentLink> getLink(void) const { return m_link; }
+
+    /* Helpers: */
+    void displayActivities(ActivityDisplayType af);
 
     /* Overloaded operators: */
     bool operator==(const Agent& ra);
@@ -49,19 +58,20 @@ private:
     BasicInstrument m_payload;
     AgentMotion m_motion;
     std::shared_ptr<AgentLink> m_link;
-    ActivityHandler m_activities;
-    // std::vector<std::string> m_gs_network;
+    std::shared_ptr<ActivityHandler> m_activities;
+    std::shared_ptr<Activity> m_current_activity;
 
     /* State and resources: */
     EnvModel m_environment;
     std::map<std::string, std::shared_ptr<Resource> > m_resources;
 
-    /* Views: */
-    AgentView m_self_view;
-
     /* Other: */
-    // AgentReport m_report;
+    AgentView m_self_view;
     std::string m_id;
+    bool m_display_resources;
+
+    std::shared_ptr<Activity> createActivity(float t0, float t1, float swath);
+    void initializeResources(void);
 };
 
 #endif /* AGENT_HPP */
