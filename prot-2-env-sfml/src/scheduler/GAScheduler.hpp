@@ -12,7 +12,9 @@
 #define GA_SCHEDULER_HPP
 
 #include "prot.hpp"
+#include "common_enum_types.hpp"
 #include "Intent.hpp"
+#include "Utils.hpp"
 #include "GASChromosome.hpp"
 #include "GASReward.hpp"
 #include "GASOperators.hpp"
@@ -23,24 +25,37 @@ public:
     GAScheduler(void);
 
     void initPopulation(std::vector<Intent> prev_res = std::vector<Intent>());
-    void setRewards(std::vector<float> rewards);
+    void setSchedulingWindow(unsigned int span, const std::vector<float>& ts);
+    void setRewards(std::vector<std::shared_ptr<GASReward> > rptrs,
+        std::vector<std::vector<std::size_t> > rptrs_lut,
+        Aggregate ag_type,
+        float min_dist);
+    std::vector<Intent> schedule(bool verbose = false);
+
     void setInitResource(float r) { m_init_resource = r; }
-    void setSchedulingWindow(float t0, float t1);
-    std::vector<Intent> schedule(void);
 
 private:
-    std::vector<GASChromosome> m_population;
-    std::vector<GASReward> m_rewards;
-    float m_init_resource;
-    float m_sched_win_start;
-    float m_sched_win_end;
+    std::vector<GASChromosome> m_population;                /**< Bag of solutions.                  */
+    float m_init_resource;                                  /**< Initial resource state.            */
+    unsigned int m_sched_win_span;                          /**< Scheduling window length.          */
+    std::vector<std::shared_ptr<GASReward> > m_rewards;     /**< Reward objects.                    */
+    Aggregate m_aggregation_type;                           /**< Reward aggregation method.         */
+    int m_reward_step;                                      /**< Min. steps to re-compute reward.   */
+
+    /* Look-up tables ---- element access key = time index. */
+    std::vector<float> m_time_lut;
+    std::vector<std::vector<std::size_t> > m_reward_lut;    /**< For each element there is a number
+                                                             *   of GASReward's to check.
+                                                             **/
 
     float computeConsumption(const GASChromosome& ind) const;
     void computeFitness(GASChromosome& ind, float rnorm_factor);
-    bool satisfiesConstraints(GASChromosome ind, float* exceeded_res = nullptr) const;
+    void computeFitnessParallel(std::vector<GASChromosome>& children, float rnf);
+    void computeFitnessHelper(std::vector<GASChromosome>::iterator c0, std::vector<GASChromosome>::iterator c1, float rnf);
+    bool satisfiesConstraints(GASChromosome ind, bool show = false) const;
     GASChromosome selectParent(std::vector<GASChromosome>& mating_pool) const;
     GASChromosome combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children);
-    bool stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax, float fitmin) const;
+    bool stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax) const;
 };
 
 #endif /* GA_SCHEDULER_HPP */

@@ -12,6 +12,7 @@
 #define ENV_MODEL_HPP
 
 #include "prot.hpp"
+#include "common_enum_types.hpp"
 #include "Random.hpp"
 #include "EnvModelView.hpp"
 
@@ -23,11 +24,6 @@ public:
         float time;
         int cid;
     };
-    enum class Aggregate {
-        MAX_VALUE,
-        MIN_VALUE,
-        MEAN_VALUE,
-    };
 
     EnvModel(unsigned int mw, unsigned int mh, unsigned int ww, unsigned int wh, unsigned int n_layers = 1);
 
@@ -38,12 +34,10 @@ public:
 
     void setValueByWorldCoord(float t, float x, float y, float v, float r = 0.f, unsigned int layer = 0, bool update_after = false);
     float getValueByWorldCoord(float x, float y, float r = 0.f, unsigned int layer = 0, Aggregate fn = Aggregate::MAX_VALUE) const;
+    std::vector<std::tuple<unsigned int, float> > getValuesByWorldCoord(float x, float y, float r = 0.f, unsigned int layer = 0) const;
     float getValueByModelCoord(unsigned int x, unsigned int y, unsigned int layer) const;
     void addLayers(unsigned int nl);
     void removeLayer(unsigned int l_id);
-
-    // void defineFootprint(std::vector<sf::Vector2f> ps, float r);
-    // float setValueToFootprint
 
     /* Getters: */
     unsigned int getModelWidth(void) const { return m_model_w; }
@@ -52,6 +46,7 @@ public:
     unsigned int getWorldHeight(void) const { return m_world_h; }
     unsigned int getLayerCount(void) const { return m_num_layers; }
     EnvModelView& getView(void);
+    std::array<unsigned int, 5> getDimensions(void) const;
 
 protected:
     unsigned int m_model_w;

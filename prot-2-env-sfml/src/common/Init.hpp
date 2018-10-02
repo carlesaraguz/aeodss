@@ -20,6 +20,8 @@ class Init
 {
 public:
     static void doInit(void);
+private:
+    static std::string getRootPath(void);
 };
 
 #endif /* INIT_HPP */

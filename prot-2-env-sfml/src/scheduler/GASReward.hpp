@@ -16,19 +16,15 @@
 class GASReward
 {
 public:
-    GASReward(float t = 0.f, float v = 0.f);
+    GASReward(void) = default;
 
-    float time;
-    float value;
+    void setValue(unsigned int time_idx, float value);
+    float consumeReward(unsigned int time_idx);
+    void revert(void);
 
-    GASReward operator+(const GASReward &rval);
-    GASReward& operator+=(const GASReward &rval);
-    bool operator>(const GASReward& rhs) const;
-    bool operator<(const GASReward& rhs) const;
-    bool operator>=(const GASReward& rhs) const;
-    bool operator<=(const GASReward& rhs) const;
-    bool operator==(const GASReward& rhs) const;
-    bool operator!=(const GASReward& rhs) const;
+private:
+    std::map<unsigned int, float> m_value;          /* Value of the reward at a given time-index. */
+    std::map<unsigned int, float> m_value_backup;   /* Recover information. */
 };
 
 #endif /* GAS_REWARD_HPP */

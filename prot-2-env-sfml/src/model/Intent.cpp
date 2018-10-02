@@ -52,6 +52,19 @@ bool Intent::setPositions(std::map<float, AgentState>::const_iterator it0, std::
             /* Velocity changed: the agent bounced. */
             m_positions[t] = p;                             /* Save the previous point (before bounce.) */
             m_positions[it->first] = it->second.position;   /* Save the current point (after bounce.)   */
+            if(p == sf::Vector2f(0.f, 0.f) || it->second.position == sf::Vector2f(0.f, 0.f)) {
+                std::cerr << "There's probably something wrong here ************************************************ Displaying details: \n";
+                std::cerr << " ** time = it->first = " << it->first;
+                std::cerr << " ** position (prev) = p = (" << p.x << ", " << p.y << ")\n";
+                std::cerr << " ** position (curr) = it->second.position = (" << it->second.position.x << ", " << it->second.position.y << ")\n";
+                std::cerr << " ** velocity (prev) = v = (" << v.x << ", " << v.y << ")\n";
+                std::cerr << " ** velocity (curr) = it->second.velocity = (" << it->second.velocity.x << ", " << it->second.velocity.y << ")\n";
+                std::cerr << " ** Point counter = " << aux << "\n";
+                std::cerr << " ** Iterator distance = " << std::distance(it0, it1) << "\n";
+                std::cerr << "Press any key to continue... \n";
+                std::string dummy_str;
+                std::cin >> dummy_str;
+            }
         }
         p = it->second.position;
         v = it->second.velocity;

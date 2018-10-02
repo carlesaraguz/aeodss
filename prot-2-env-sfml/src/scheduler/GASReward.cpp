@@ -10,50 +10,23 @@
 
 #include "GASReward.hpp"
 
-GASReward::GASReward(float t, float v)
-    : time(t)
-    , value(v)
-{ }
-
-GASReward GASReward::operator+(const GASReward& rval)
+void GASReward::setValue(unsigned int time_idx, float value)
 {
-    GASReward retval = *this;
-    retval.value += rval.value;
+    m_value[time_idx] = value;
+    m_value_backup[time_idx] = value;
+}
+
+float GASReward::consumeReward(unsigned int time_idx)
+{
+    float retval = 0.f;
+    try {
+        /*  Access with std::map::at has logarithmic complexity but the size of this map is
+        *  expected to be small.
+        **/
+        retval = m_value.at(time_idx);
+    } catch(std::out_of_range& e) {
+        std::cerr << "Genetic Algorithm Scheduler Error: un-registered reward value for time index " << time_idx << ".\n";
+        retval = 0.f;
+    }
     return retval;
-}
-
-GASReward& GASReward::operator+=(const GASReward& rval)
-{
-    value += rval.value;
-    return *this;
-}
-
-bool GASReward::operator>(const GASReward& rhs) const
-{
-    return time > rhs.time;
-}
-
-bool GASReward::operator<(const GASReward& rhs) const
-{
-    return time < rhs.time;
-}
-
-bool GASReward::operator>=(const GASReward& rhs) const
-{
-    return time  >=rhs.time;
-}
-
-bool GASReward::operator<=(const GASReward& rhs) const
-{
-    return time  <=rhs.time;
-}
-
-bool GASReward::operator==(const GASReward& rhs) const
-{
-    return time  ==rhs.time;
-}
-
-bool GASReward::operator!=(const GASReward& rhs) const
-{
-    return time  !=rhs.time;
 }

@@ -19,17 +19,17 @@
 class GASChromosome
 {
 public:
-    GASChromosome(float t0 = 0.f, float t1 = 0.f, float maxd = 0.f);
+    GASChromosome(unsigned int span = 0, unsigned int maxd = 0);
     GASChromosome(GASChromosome p1, GASChromosome p2);
-    GASChromosome(float t0, float t1, float maxd, std::vector<Intent> prev_res);
+    GASChromosome(unsigned int span, unsigned int maxd, std::vector<Intent> prev_res);
     GASChromosome(const GASChromosome& cpy);
 
     static void crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2);
     void mutate(void);
     void repair(void);
 
-    float getStart(unsigned int taskid) const { return m_alleles[taskid].t_start; }
-    float getDuration(unsigned int taskid) const { return m_alleles[taskid].t_duration; }
+    int getStart(unsigned int taskid) const { return m_alleles[taskid].t_start; }
+    int getDuration(unsigned int taskid) const { return m_alleles[taskid].t_duration; }
     bool isEnabled(unsigned int taskid) const { return m_alleles[taskid].en; }
     unsigned int getTaskCount(void) const { return m_alleles.size(); }
     unsigned int getActiveSlotCount(void) const;
@@ -48,15 +48,14 @@ public:
 private:
     struct Allele {
         bool en;
-        float t_start;
-        float t_duration;
+        int t_start;
+        int t_duration;
     };
 
     std::vector<Allele> m_alleles;
     float m_fitness;
-    float m_t0;
-    float m_t1;
-    float m_max_duration;
+    unsigned int m_span;
+    unsigned int m_max_duration;
 
     static void copyAllele(const Allele& from, Allele& to);
 };

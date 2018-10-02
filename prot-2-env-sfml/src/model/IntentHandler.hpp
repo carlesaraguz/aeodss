@@ -49,14 +49,16 @@ public:
     int getTotalIntentCount(void) const;
     int getIntentCount(std::string aid, float now) const;
     int getActiveIntentsAt(float t, std::string aid) const;
+    float getCurrentConsumption(void) const;
     std::vector<std::tuple<sf::Vector2f, float> > getActivePositions(float t = -1.f) const;
     void disposeIntents(float t);
+    void decorateView(void);
     bool isActiveAt(float t);
     float getLastIntentTime(std::string aid) const;
 
     /* Getters and setters: */
     const SegmentTable& getViews(void) const { return m_segments; }
-    void setTime(float t) { m_time = t; }
+    void setTime(float t);
 
 private:
     typedef typename IntentTable::mapped_type::const_iterator IntentTableElemIt;
@@ -67,6 +69,7 @@ private:
     float m_time;
 
     void addNewIntent(IntentTableElemIt ib, IntentTableElemIt ie, std::string aid);
+    void decorateViews(void);
 };
 
 inline IntentSelection operator&(IntentSelection lhs, IntentSelection rhs)

@@ -16,7 +16,7 @@ EnvModelView::EnvModelView(int modelw, int modelh, int worldw, int worldh, sf::C
     , m_world_w(worldw)
     , m_world_h(worldh)
     , m_grid(sf::Triangles, modelw * modelh * 6)
-    , m_color_gradient(Config::color_gradient_blue)
+    , m_color_gradient(Config::color_gradient_krbg)
 {
     float cell_w = (float)m_world_w / (float)m_model_w;
     float cell_h = (float)m_world_h / (float)m_model_h;
@@ -74,18 +74,5 @@ void EnvModelView::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     if(m_show) {
         target.draw(m_grid, states);
-    }
-}
-
-void EnvModelView::display(const EnvModel& e, unsigned int layer)
-{
-    if(m_show) {
-        float val;
-        for(int x = 0; x < m_model_w; x++) {
-            for(int y = 0; y < m_model_h; y++) {
-                val = e.getValueByModelCoord(x, y, layer);
-                setColor(x, y, m_color_gradient.getColorAt(val));
-            }
-        }
     }
 }
