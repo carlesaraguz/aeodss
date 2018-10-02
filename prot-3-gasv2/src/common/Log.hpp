@@ -36,8 +36,15 @@ public:
         NO_COLOR
     };
 
+    enum class Level {
+        NONE,
+        DEBUG,
+        WARNING,
+        ERROR
+    };
+
     LogStream(void);
-    LogStream(std::basic_ostream<char>& out, std::string cname, char c, Color icon_color, Color text_color = Color::NO_COLOR);
+    LogStream(std::basic_ostream<char>& out, Level level, std::string cname, char c, Color icon_color, Color text_color = Color::NO_COLOR);
 
     /* Non-copiable. */
     LogStream(const LogStream&) = delete;
@@ -46,12 +53,15 @@ public:
     void setColors(Color icon_color, Color text_color = Color::NO_COLOR);
     void setIcon(char c) { m_icon = c; }
     static void setNameLength(int l);
+    static void setLogLevel(Level l) { m_enabled_level = l; }
 
 protected:
     int_type overflow(int_type c = traits_type::eof());
     std::streamsize xsputn(const char* s, std::streamsize n);
 
 private:
+    static Level m_enabled_level;
+    Level m_level;
     Color m_color_icon;
     Color m_color_text;
     char m_icon;
@@ -64,25 +74,27 @@ private:
 
     void conditionalPrintHeader(void);
     void endLine(void);
-
 };
 
 #define CREATE_LOGGER(klass)                        \
     namespace Log {                                 \
         static std::ostream dbg(new LogStream(      \
             std::clog,                              \
+            LogStream::Level::DEBUG,                \
             #klass,                                 \
             '>',                                    \
             LogStream::Color::BLUE_BRIGHT,          \
             LogStream::Color::NO_COLOR));           \
         static std::ostream err(new LogStream(      \
             std::clog,                              \
+            LogStream::Level::ERROR,                \
             #klass,                                 \
             'e',                                    \
             LogStream::Color::RED_BRIGHT,           \
             LogStream::Color::RED_DARK));           \
         static std::ostream warn(new LogStream(     \
             std::clog,                              \
+            LogStream::Level::WARNING,              \
             #klass,                                 \
             '!',                                    \
             LogStream::Color::YELLOW_BRIGHT,        \

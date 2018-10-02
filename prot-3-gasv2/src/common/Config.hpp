@@ -32,8 +32,10 @@ public:
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
     static const unsigned int n_agents = 20;                /**< Total number of agents.        */
     static constexpr const float time_step = 1.f;           /**< Units of time per step.        */
-    static constexpr const float max_revisit_time = 1e4;    /**< Units of time.                 */
+    static constexpr const float max_revisit_time = 2e3;    /**< Units of time.                 */
     static constexpr const float target_revisit_time = 1e3; /**< Units of time.                 */
+    static constexpr const float min_payoff = 1e-3f;        /**< Unit-less (payoff RT < target) */
+    static constexpr const float max_payoff = 1.f;          /**< Unit-less (payoff RT > max.)   */
 
     /* Agent parametrization: */
     static constexpr const float agent_swath_min =  70.f;   /**< Minimum swath for agents.      */

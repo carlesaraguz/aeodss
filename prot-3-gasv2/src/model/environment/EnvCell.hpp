@@ -26,7 +26,7 @@ public:
     /*  Payoff function for one cell:
      *  Arg. #0:          shared_ptr<Activity>  --> The potential new activity.
      *  Arg. #1:            pair<float, float>  --> t0 & t1 of the potential new activity.
-     *  Arg. #2:     vector<pair<float, float>  --> t0 & t1 of the activities for this cell.
+     *  Arg. #2:   vector<pair<float, float> >  --> t0 & t1 of the activities for this cell.
      *  Arg. #3: vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
      *
      *  Return: the (potential) partial payoff value for this cell.
