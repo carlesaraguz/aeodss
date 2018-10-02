@@ -31,7 +31,6 @@ function(add_test_subdirectory module)
     endif()
 endfunction(add_test_subdirectory)
 
-
 # Add test subdirectories:
 # -- NB: Prototype: add_test_subdirectory(<module_name> [<list_of_additional_module_dependencies>])
 # --    Please note that module dependencies are normally required and configured in the module's
@@ -39,5 +38,4 @@ endfunction(add_test_subdirectory)
 # --    external to the module itself.
 # -- NOTE: folder/module names MUST match those in the sources.
 add_test_subdirectory(common)
-add_test_subdirectory(model
-    common_test)
+add_test_subdirectory(model     common_test  graphics_test)

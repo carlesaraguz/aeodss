@@ -51,11 +51,13 @@ public:
     /* Getters & setters: */
     void setConfirmed(bool c = true);
     void setDiscarded(bool d = true);
+    void setConfidence(float c) { m_confidence = c; }
     void setId(int id);
     std::string getAgentId(void) const { return m_agent_id; }
     unsigned int getId(void) const { return m_id; }
     float getStartTime(void) const;
     float getEndTime(void) const;
+    float getConfidence(void) const { return m_confidence; }
 
     /* Operator overloads: */
     bool operator<(const Activity& a) const;

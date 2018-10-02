@@ -14,6 +14,8 @@ CREATE_LOGGER(Init)
 
 void Init::doInit(void)
 {
+    LogStream::setLogLevel(LogStream::Level::DEBUG);
+
     Random::doInit();
 
     Config::fnt_monospace.loadFromFile("/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-R.ttf");

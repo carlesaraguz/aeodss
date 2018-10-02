@@ -11,6 +11,7 @@
 #include "Log.hpp"
 
 int LogStream::m_max_cname_len = 0;
+LogStream::Level LogStream::m_enabled_level = LogStream::Level::NONE;
 
 std::map<LogStream::Color, const std::string> LogStream::m_color_lut = {
     { Color::RED_DARK     , "\x1b[0;31m" },
@@ -28,17 +29,20 @@ std::map<LogStream::Color, const std::string> LogStream::m_color_lut = {
     { Color::NO_COLOR     , "\x1b[0m" }
 };
 
+
+
 LogStream::LogStream(void)
-    : LogStream(std::clog, "UNDEFINED", '#', Color::NO_COLOR)
+    : LogStream(std::clog, Level::NONE, "UNDEFINED", '#', Color::NO_COLOR)
 { }
 
-LogStream::LogStream(std::basic_ostream<char>& out, std::string cname, char c, Color icon_color, Color text_color)
+LogStream::LogStream(std::basic_ostream<char>& out, Level level, std::string cname, char c, Color icon_color, Color text_color)
     : m_out(out)
     , m_new_line(true)
     , m_icon(c)
     , m_color_icon(icon_color)
     , m_color_text(text_color)
     , m_cname(cname)
+    , m_level(level)
 {
     setNameLength(cname.length());
 }
@@ -55,15 +59,22 @@ LogStream::int_type LogStream::overflow(int_type c)
 
 std::streamsize LogStream::xsputn(const char* s, std::streamsize n)
 {
-    conditionalPrintHeader();
-    std::string str;
-    for(int c = 0; c < n; c++) {
-        str += s[c];
-    }
-    m_out << str;
-    if(s[n - 1] == '\n') {
-        m_new_line = true;
-        endLine();
+    bool enabled = false;
+    enabled |= (m_level == Level::DEBUG   && (m_enabled_level == Level::DEBUG));
+    enabled |= (m_level == Level::WARNING && (m_enabled_level == Level::DEBUG || m_enabled_level == Level::WARNING));
+    enabled |= (m_level == Level::ERROR   && (m_enabled_level == Level::DEBUG || m_enabled_level == Level::WARNING || m_enabled_level == Level::ERROR));
+
+    if(enabled) {
+        conditionalPrintHeader();
+        std::string str;
+        for(int c = 0; c < n; c++) {
+            str += s[c];
+        }
+        m_out << str;
+        if(s[n - 1] == '\n') {
+            m_new_line = true;
+            endLine();
+        }
     }
     return n;
 }

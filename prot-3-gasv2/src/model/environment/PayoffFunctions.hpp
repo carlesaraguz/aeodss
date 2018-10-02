@@ -35,6 +35,8 @@ private:
     typedef std::vector<std::shared_ptr<Activity> > PFArg3;
     typedef float CFArg0;
     typedef std::vector<std::shared_ptr<Activity> > CFArg1;
+
+    static float revisit_time_norm(float rev_time);
 };
 
 #endif /* PAYOFF_FUNCTIONS_HPP */
