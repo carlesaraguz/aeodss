@@ -1,0 +1,21 @@
+/***********************************************************************************************//**
+ *  CMake placeholder to implement unit tests with GoogleTest.
+ *  @file       test.hpp.in
+ *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
+ *  @date       2018-oct-02
+ *  @version    0.1
+ *  @copyright  This file is part of a project developed by Nano-Satellite and Payload Laboratory
+ *              (NanoSat Lab) at Technical University of Catalonia - UPC BarcelonaTech.
+ **************************************************************************************************/
+
+@donotmod_message@
+
+#ifndef UNIT_TEST_PLACEHOLDER_HPP
+#define UNIT_TEST_PLACEHOLDER_HPP
+
+#include <gtest/gtest.h>
+
+/* Tests to run */
+@test_list_includes@
+
+#endif /* UNIT_TEST_PLACEHOLDER_HPP */
