@@ -22,6 +22,7 @@
 #include <set>
 #include <chrono>
 #include <thread>
+#include <functional>
 
 /* -- Standard C libraries: */
 #include <unistd.h>
