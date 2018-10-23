@@ -25,6 +25,8 @@
 #include "Resource.hpp"
 #include "CumulativeResource.hpp"
 
+#include "GAScheduler.hpp"
+
 class Agent : public TimeStep, public HasView
 {
 public:
@@ -38,6 +40,7 @@ public:
     /* Getters and setters: */
     std::string getId(void) const { return m_id; }
     const AgentView& getView(void) const override { return m_self_view; }
+    std::shared_ptr<EnvModel> getEnvironment(void) { return m_environment; }
     const AgentMotion& getMotion(void) const { return m_motion; }
     std::shared_ptr<const ActivityHandler> getActivityHandler(void) const { return m_activities; }
     std::vector<sf::Vector2i> getWorldFootprint(void) const;
@@ -62,7 +65,7 @@ private:
     std::shared_ptr<Activity> m_current_activity;
 
     /* State and resources: */
-    EnvModel m_environment;
+    std::shared_ptr<EnvModel> m_environment;
     std::map<std::string, std::shared_ptr<Resource> > m_resources;
 
     /* Other: */
@@ -72,6 +75,10 @@ private:
 
     std::shared_ptr<Activity> createActivity(float t0, float t1, float swath);
     void initializeResources(void);
+
+    void plan(void);
+    void execute(void);
+    void consume(void);
 };
 
 #endif /* AGENT_HPP */

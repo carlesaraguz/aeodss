@@ -21,6 +21,5 @@ ColorGradient Config::color_gradient_rbg;
 ColorGradient Config::color_gradient_krbg;
 ColorGradient Config::color_gradient_1;
 ColorGradient Config::color_gradient_blue;
-unsigned int Config::max_task_duration;
 unsigned int Config::ga_crossover_points = 5;
 std::string Config::root_path;

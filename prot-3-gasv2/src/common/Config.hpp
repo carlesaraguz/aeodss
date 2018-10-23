@@ -13,7 +13,7 @@
 
 #include "prot.hpp"
 #include "common_enum_types.hpp"
-// #include "GASOperators.hpp"
+#include "GASOperators.hpp"
 
 class ColorGradient;
 
@@ -38,24 +38,26 @@ public:
     static constexpr const float max_payoff = 1.f;          /**< Unit-less (payoff RT > max.)   */
 
     /* Agent parametrization: */
-    static constexpr const float agent_swath_min =  70.f;   /**< Minimum swath for agents.      */
-    static constexpr const float agent_swath_max = 132.f;   /**< Maximum swath for agents.      */
+    static constexpr const float agent_swath_min = 99.9f; //  70.f;   /**< Minimum swath for agents.      */
+    static constexpr const float agent_swath_max = 100.f; // 132.f;   /**< Maximum swath for agents.      */
     static constexpr const float agent_range_min = 50.f;    /**< Minimum range for agents.      */
     static constexpr const float agent_range_max = 90.f;    /**< Maximum range for agents.      */
     static constexpr const float agent_datarate_min = 0.1f; /**< Minimum range for agents.      */
     static constexpr const float agent_datarate_max = 0.2f; /**< Maximum range for agents.      */
-    static constexpr const float agent_speed = 4.f;         /**< Distance per time unit.        */
+    static constexpr const float agent_speed =  4.f;        /**< Distance per time unit.        */
+    static const unsigned int agent_planning_window = 3.5e2;  /**< Steps.                         */
     static constexpr const float activity_size = 0.01f;     /**< Size of a single agent msg.    */
     static const AgentMotionType motion_model = AgentMotionType::LINEAR_BOUNCE;
     /* Resource consumptions and capacities: */
     /* -- Energy: */
+    static constexpr const float agent_energy_generation_rate = -0.01f;
     static constexpr const float instrument_energy_min = 0.01f;
     static constexpr const float instrument_energy_max = 0.02f;
     static constexpr const float link_tx_energy_rate = 0.5f;
     static constexpr const float link_rx_energy_rate = 0.05f;
     /* -- Storage: */
-    static constexpr const float instrument_storage_min = 0.001f;
-    static constexpr const float instrument_storage_max = 0.001f;
+    static constexpr const float instrument_storage_min = 0.01f;
+    static constexpr const float instrument_storage_max = 0.01f;
 
     /* Format and colors: */
     static sf::Font fnt_monospace;
@@ -71,23 +73,21 @@ public:
     static const unsigned int fnt_size = 24;
 
     /* Scheduling hard constraints: */
-    static const unsigned int max_tasks = 15;
-    static unsigned int max_task_duration;
+    static const unsigned int max_tasks = 20;
+    static const unsigned int max_task_duration = 20;
     static constexpr const float task_startup_cost = 1.f;
 
     /* Genetic Algorithm configuration: */
-    static const unsigned int ga_generations = 1000;
+    static const unsigned int ga_max_activities = 30;
+    static const unsigned int ga_generations = 10000;
+    static constexpr const float ga_min_improvement_rate = 0.001f;
     static const unsigned int ga_population_size = 500;
     static unsigned int ga_crossover_points;
     static const unsigned int ga_tournament_k = 2;
-    static constexpr const float ga_mutation_rate_times = 0.4;
-    static constexpr const float ga_mutation_rate_enable = 0.2;
-    static constexpr const float ga_gaussian_mutation_std = 10.f;
-    static constexpr const float ga_gaussian_mutation_k1 = 10.f;
-    static constexpr const float ga_gaussian_mutation_k2 = 5.f;
-    // static const GASCrossoverOp ga_crossover_op = GASCrossoverOp::MULIPLE_POINT;
-    // static const GASSelectionOp ga_parentsel_op = GASSelectionOp::TOURNAMENT;
-    // static const GASSelectionOp ga_environsel_op = GASSelectionOp::TRUNCATION;
+    static constexpr const float ga_mutation_rate = 0.2f;
+    static const GASCrossoverOp ga_crossover_op = GASCrossoverOp::MULIPLE_POINT;
+    static const GASSelectionOp ga_parentsel_op = GASSelectionOp::TOURNAMENT;
+    static const GASSelectionOp ga_environsel_op = GASSelectionOp::TRUNCATION;
     static const unsigned int ga_thread_pool_size = 8;
 
     /* Global values: */

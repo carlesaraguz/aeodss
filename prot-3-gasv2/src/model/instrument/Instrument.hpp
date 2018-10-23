@@ -30,6 +30,7 @@ public:
     virtual std::vector<sf::Vector2i> getVisibleCells(bool world_cells = false) const = 0;  /* From current position. */
     virtual std::vector<sf::Vector2f> getFootprint(void) const = 0;
     virtual float getResourceRate(std::string rname) const = 0;
+    virtual std::map<std::string, float> getResourceRates(void) const = 0;
 };
 
 #endif /* INSTRUMENT_HPP */

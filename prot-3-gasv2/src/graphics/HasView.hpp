@@ -16,6 +16,7 @@
 class HasView
 {
 public:
+    virtual ~HasView(void) = default;
     virtual const sf::Drawable& getView(void) const = 0;
 };
 

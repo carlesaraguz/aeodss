@@ -18,8 +18,8 @@ void Init::doInit(void)
 
     Random::doInit();
 
-    Config::fnt_monospace.loadFromFile("/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-R.ttf");
-    Config::fnt_normal.loadFromFile("/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-L.ttf");
+    Config::fnt_monospace.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf");
+    Config::fnt_normal.loadFromFile("/usr/share/fonts/truetype/ubuntu/Ubuntu-L.ttf");
     Config::fnt_awesome.loadFromFile("/usr/share/fonts/opentype/font-awesome/FontAwesome.otf");
     Config::color_orange = sf::Color(255, 153, 102);
     Config::color_dark_green = sf::Color(35, 94, 92);
@@ -51,9 +51,6 @@ void Init::doInit(void)
     gradient[1.f]  = sf::Color(219, 234, 255, 255);     /* Pale blue.   */
     Config::color_gradient_blue.setGradient(gradient);
     gradient.clear();
-
-    // Config::max_task_duration = -Config::max_capacity / (Config::capacity_restore - Config::capacity_consume);
-    Config::max_task_duration = 100;
 
     // if(Config::ga_crossover_points > Config::max_tasks - 1) {
     //     Config::ga_crossover_points = Random::getUi(1, Config::max_tasks - 1);

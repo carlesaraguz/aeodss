@@ -31,7 +31,6 @@ namespace
         auto actptr_a1 = std::make_shared<Activity>("AX", 1);
         auto actptr_b0 = std::make_shared<Activity>("AX", 2);
         auto actptr_b1 = std::make_shared<Activity>("AX", 3);
-        auto actptr_test = std::make_shared<Activity>("AY", 4);
 
         /* Transform into facts: */
         actptr_a0->setConfirmed(true);
@@ -46,16 +45,16 @@ namespace
         vec_act_ptr.push_back(actptr_b1);
 
         float rt = -((Config::max_revisit_time - Config::target_revisit_time) / 2.f + Config::target_revisit_time);
-        std::vector<std::pair<float, float> > vec_times;
-        vec_times.push_back(std::make_pair(rt - 12.f, rt - 11.f));  /* a0 */
-        vec_times.push_back(std::make_pair(rt - 10.f, rt));         /* a1 */
-        vec_times.push_back(std::make_pair(11.f, 12.f));            /* b0 */
-        vec_times.push_back(std::make_pair(13.f, 14.f));            /* b1 */
+        std::vector<std::vector<std::pair<float, float> > > vec_times;
+        vec_times.push_back({std::make_pair(rt - 12.f, rt - 11.f)});    /* a0 */
+        vec_times.push_back({std::make_pair(rt - 10.f, rt)});           /* a1 */
+        vec_times.push_back({std::make_pair(11.f, 12.f)});              /* b0 */
+        vec_times.push_back({std::make_pair(13.f, 14.f)});              /* b1 */
 
         float payoff;
-        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(actptr_test, std::make_pair(0.f, 10.f), { }, { }));
+        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), { }, { }));
         EXPECT_EQ(payoff, 1.f);
-        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(actptr_test, std::make_pair(0.f, 10.f), vec_times, vec_act_ptr));
+        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), vec_times, vec_act_ptr));
         EXPECT_NEAR(payoff, 0.5f * (Config::max_payoff - Config::min_payoff) + Config::min_payoff, 1e-3);
     }
 
@@ -66,7 +65,6 @@ namespace
         auto actptr1 = std::make_shared<Activity>("AX", 1);
         auto actptr2 = std::make_shared<Activity>("AX", 2);
         auto actptr3 = std::make_shared<Activity>("AX", 3);
-        auto actptr_test = std::make_shared<Activity>("AY", 4);
 
         /* Transform into fact: */
         actptr0->setConfirmed(true);
@@ -86,16 +84,16 @@ namespace
         float rtopt = -Config::target_revisit_time;
         float rtmed = (rtopt + (rtmax - rtopt) / 2.f);
         float m = rtopt / 10.f;
-        std::vector<std::pair<float, float> > vec_times;
-        vec_times.push_back(std::make_pair(rtmax * 2.f, rtmax));    /* 0 */
-        vec_times.push_back(std::make_pair(rtmax - m,   rtmed));    /* 1 */
-        vec_times.push_back(std::make_pair(rtmax - m,   rtmed));    /* 2 */
-        vec_times.push_back(std::make_pair(rtmed - m,   rtmed));    /* 3 */
+        std::vector<std::vector<std::pair<float, float> > > vec_times;
+        vec_times.push_back({std::make_pair(rtmax * 2.f, rtmax)});    /* 0 */
+        vec_times.push_back({std::make_pair(rtmax - m,   rtmed)});    /* 1 */
+        vec_times.push_back({std::make_pair(rtmax - m,   rtmed)});    /* 2 */
+        vec_times.push_back({std::make_pair(rtmed - m,   rtmed)});    /* 3 */
 
         float equiv_rt = (Config::max_revisit_time - Config::target_revisit_time) / 8.f + Config::target_revisit_time;
         float delta = (Config::max_payoff - Config::min_payoff) / (Config::max_revisit_time - Config::target_revisit_time);
         float expected_payoff = delta * (equiv_rt - Config::target_revisit_time) + Config::min_payoff;
-        float payoff = PayoffFunctions::f_revisit_time_backwards.first(actptr_test, std::make_pair(0.f, 10.f), vec_times, vec_act_ptr);
+        float payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), vec_times, vec_act_ptr);
         EXPECT_NEAR(payoff, expected_payoff, 1e-3);
     }
 
@@ -106,7 +104,6 @@ namespace
         auto actptr1 = std::make_shared<Activity>("AX", 1);
         auto actptr2 = std::make_shared<Activity>("AX", 2);
         auto actptr3 = std::make_shared<Activity>("AX", 3);
-        auto actptr_test = std::make_shared<Activity>("AY", 4);
 
         /* Transform into fact: */
         actptr0->setConfirmed(true);
@@ -126,16 +123,16 @@ namespace
         float rtopt = -Config::target_revisit_time;
         float rtmed = (rtopt + (rtmax - rtopt) * 3.f / 4.f);
         float m = rtopt / 10.f;
-        std::vector<std::pair<float, float> > vec_times;
-        vec_times.push_back(std::make_pair(rtmax * 2.f, rtmax));    /* 0 */
-        vec_times.push_back(std::make_pair(rtmax - m,   rtmed / 1.f));    /* 1 */
-        vec_times.push_back(std::make_pair(rtmax - m,   rtmed / 2.f));    /* 2 */
-        vec_times.push_back(std::make_pair(rtmed - m,   rtmed / 4.f));    /* 3 */
+        std::vector<std::vector<std::pair<float, float> > > vec_times;
+        vec_times.push_back({std::make_pair(rtmax * 2.f, rtmax)});          /* 0 */
+        vec_times.push_back({std::make_pair(rtmax - m,   rtmed / 1.f)});    /* 1 */
+        vec_times.push_back({std::make_pair(rtmax - m,   rtmed / 2.f)});    /* 2 */
+        vec_times.push_back({std::make_pair(rtmed - m,   rtmed / 4.f)});    /* 3 */
 
         float equiv_rt = (Config::max_revisit_time - Config::target_revisit_time) / 8.f + Config::target_revisit_time;
         float delta = (Config::max_payoff - Config::min_payoff) / (Config::max_revisit_time - Config::target_revisit_time);
         float expected_payoff = delta * (equiv_rt - Config::target_revisit_time) + Config::min_payoff;
-        float payoff = PayoffFunctions::f_revisit_time_backwards.first(actptr_test, std::make_pair(0.f, 10.f), vec_times, vec_act_ptr);
+        float payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), vec_times, vec_act_ptr);
         EXPECT_NEAR(payoff, expected_payoff, 1e-3);
     }
 }

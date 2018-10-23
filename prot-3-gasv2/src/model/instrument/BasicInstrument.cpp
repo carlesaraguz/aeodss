@@ -107,8 +107,9 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(float swath, sf::Vect
         cells.push_back(sf::Vector2i(x, y));
     };
     if(!applyToDistance(ox, oy, dist, false, f)) {
-        Log::err << "Failed to get visible (model) cells from different position. Maximum number of oterations reached\n";
-        throw std::runtime_error("Error");
+        Log::err << "Failed to get visible (model) cells from different position: "
+            << "(" << ox << ", "<< oy << ") <=> " << dist << ". Maximum number of operations reached.\n";
+        throw std::runtime_error("Failed to get visible (model) cells from different position. Maximum number of operations reached.");
         return { };
     }
     return cells;
@@ -130,7 +131,8 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(bool world_cells) con
         cells.push_back(sf::Vector2i(x, y));
     };
     if(!applyToDistance(ox, oy, dist, world_cells, f)) {
-        Log::err << "Failed to get visible (" << (world_cells ? "world" : "model") << ") cells. Maximum number of oterations reached\n";
+        Log::err << "Failed to get visible (" << (world_cells ? "world" : "model") << ") cells: "
+            << "(" << ox << ", "<< oy << ") <=> " << dist << ". Maximum number of operations reached.\n";
         return { };
     }
     return cells;
@@ -151,12 +153,21 @@ float BasicInstrument::getResourceRate(std::string rname) const
 {
     if(rname == "energy") {
         return m_energy_rate;
-    } else if(rname == "storage") {
-        return m_storage_rate;
+    // } else if(rname == "storage") {
+        // return m_storage_rate;
     } else {
         return 0.f;
     }
 }
+
+std::map<std::string, float> BasicInstrument::getResourceRates(void) const
+{
+    std::map<std::string, float> rmap;
+    rmap["energy"] = m_energy_rate;
+    // rmap["storage"] = m_storage_rate;
+    return rmap;
+}
+
 
 void BasicInstrument::enable(void)
 {

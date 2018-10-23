@@ -2,8 +2,8 @@
  *  Task scheduler based on Genetic Algorithm.
  *  @class      GAScheduler
  *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
- *  @date       2018-apr-11
- *  @version    0.1
+ *  @date       2018-oct-08
+ *  @version    0.2
  *  @copyright  This file is part of a project developed at Nano-Satellite and Payload Laboratory
  *              (NanoSat Lab), Technical University of Catalonia - UPC BarcelonaTech.
  **************************************************************************************************/
@@ -12,50 +12,109 @@
 #define GA_SCHEDULER_HPP
 
 #include "prot.hpp"
-#include "common_enum_types.hpp"
-#include "Intent.hpp"
 #include "Utils.hpp"
+#include "Resource.hpp"
 #include "GASChromosome.hpp"
-#include "GASReward.hpp"
 #include "GASOperators.hpp"
 
 class GAScheduler
 {
 public:
-    GAScheduler(void);
+    /*******************************************************************************************//**
+     *  Constructor.
+     *  @param  t0      Start time (usually: VirtualTime::now()).
+     *  @param  t1      End time of scheduling window.
+     *  @param  res     Agent resources to consider for scheduling and fitness.
+     **********************************************************************************************/
+    GAScheduler(float t0, float t1, std::map<std::string, std::shared_ptr<const Resource> > res);
 
-    void initPopulation(std::vector<Intent> prev_res = std::vector<Intent>());
-    void setSchedulingWindow(unsigned int span, const std::vector<float>& ts);
-    void setRewards(std::vector<std::shared_ptr<GASReward> > rptrs,
-        std::vector<std::vector<std::size_t> > rptrs_lut,
-        Aggregate ag_type,
-        float min_dist);
-    std::vector<Intent> schedule(bool verbose = false);
+    /*******************************************************************************************//**
+     *  Starts the GA Scheduler algorithm. Needs to (previously) having spwaned population and
+     *  configured payoffs.
+     *  @return Start and end times of scheduled activities.
+     **********************************************************************************************/
+    std::vector<std::pair<float, float> > schedule(void);
 
-    void setInitResource(float r) { m_init_resource = r; }
+    /*******************************************************************************************//**
+     *  Spawn population. Creates individuals (i.e. GASChromosome's) based on predefined activities/
+     *  tasks and their information.
+     *  @param  t0s     Start times for each activity/task.
+     *  @param  s       Number of steps for each activity/task.
+     *  @param  cs      Resources consumed by this activity (rates at each step).
+     **********************************************************************************************/
+    void setChromosomeInfo(std::vector<float> t0s, std::vector<int> s, const std::map<std::string, float>& cs);
+
+    /*******************************************************************************************//**
+     *  Prepares activity/choromosome information. Computes aggregated payoff for a given activity,
+     *  based on the payoffs for each of their active cells.
+     *  @param  idx     Activity index (i.e. chromosome allele).
+     *  @param  cells   Cells affected or that would be captured during the activity `idx`.
+     *  @param  payoff  Payoff values for these cells.
+     *  @param  type    The type of payoff aggregation function to perform.
+     **********************************************************************************************/
+    void setAggregatedPayoff(unsigned int idx,
+        const std::vector<sf::Vector2i>& cells,
+        const std::vector<float>& payoff,
+        Aggregate type = Aggregate::MEAN_VALUE);
+
 
 private:
-    std::vector<GASChromosome> m_population;                /**< Bag of solutions.                  */
-    float m_init_resource;                                  /**< Initial resource state.            */
-    unsigned int m_sched_win_span;                          /**< Scheduling window length.          */
-    std::vector<std::shared_ptr<GASReward> > m_rewards;     /**< Reward objects.                    */
-    Aggregate m_aggregation_type;                           /**< Reward aggregation method.         */
-    int m_reward_step;                                      /**< Min. steps to re-compute reward.   */
+    struct GASInfo {                        /**< Info for a single chromosome allele. */
+        float t_start;                      /**< Start time of the allele. */
+        int t_steps;                        /**< Steps of duration of this allele. */
+        float ag_payoff;                    /**< Aggregated payoff that would be obtained. */
+    };
+    const float m_big_coeff = 1e4f;         /**< Ensure big enough to discard resource violations. */
+    const float m_small_coeff = 1e-4f;      /**< Ensure small. */
 
-    /* Look-up tables ---- element access key = time index. */
-    std::vector<float> m_time_lut;
-    std::vector<std::vector<std::size_t> > m_reward_lut;    /**< For each element there is a number
-                                                             *   of GASReward's to check.
-                                                             **/
+    std::vector<std::pair<unsigned int, float> > m_iteration_profile;   /**< Runtime information about the scheduling heuristic. */
+    std::vector<GASChromosome> m_population;    /**< Chromosomes/individuals. */
+    std::map<std::string, float> m_costs;       /**< Resource consumptions. */
+    std::vector<GASInfo> m_individual_info;     /**< Info about chromosomes and their alleles. */
+    float m_tstart;                             /**< Scheduling window start time. */
+    float m_tend;                               /**< Scheduling window end time. */
+    std::map<std::string, std::shared_ptr<const Resource> > m_resources_init;   /* Agent resources at start time. */
 
-    float computeConsumption(const GASChromosome& ind) const;
-    void computeFitness(GASChromosome& ind, float rnorm_factor);
-    void computeFitnessParallel(std::vector<GASChromosome>& children, float rnf);
-    void computeFitnessHelper(std::vector<GASChromosome>::iterator c0, std::vector<GASChromosome>::iterator c1, float rnf);
-    bool satisfiesConstraints(GASChromosome ind, bool show = false) const;
-    GASChromosome selectParent(std::vector<GASChromosome>& mating_pool) const;
+
+    /*******************************************************************************************//**
+     *  Compute fitness of a chromosome. Takes payoffs for all the active alleles (i.e. tasks/
+     *  activities) and divides by normalized resource states. Ensures that resource capacities are
+     *  not exceeded but does not discard solutions where this happens. Instead, their payof is
+     *  largely scaled down with a big constant.
+     *  @param  c   The chromosome to compute the fitness of. Its fitness attribute will be set.
+     *  @return     The chromosome fitness (which is also stored internally).
+     **********************************************************************************************/
+    float computeFitness(GASChromosome& c);
+
+    /*******************************************************************************************//**
+     *  Select a parent from the mating pool. Parent selection is based on either of the following
+     *  techniques: tournament selection or fitness proportionate selection (a.k.a. roulette wheel).
+     *  The selected parent will be removed from the pool.
+     *  @param  mating_pool The pool of individuals where the parent will be selected and removed
+     *                      from.
+     *  @return A parent selected with the method in Config::ga_parentsel_op.
+     **********************************************************************************************/
+    GASChromosome select(std::vector<GASChromosome>& mating_pool) const;
+
+    /*******************************************************************************************//**
+     *  Combine two generations. Parents and children are combined based on the following
+     *  techniques: truncation/elitist or generational. The result is stored in m_population.
+     *  @param  parents     The parents.
+     *  @param  children    Their offspring.
+     *  @return The best individual after the combination.
+     *  @note   Combination is performed according to the environment combination operator defined
+     *          in Config::ga_environsel_op.
+     **********************************************************************************************/
     GASChromosome combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children);
-    bool stopGeneration(unsigned int gencount, float prev_fitmax, float fitmax) const;
+
+    /*******************************************************************************************//**
+     *  Determines whether to continue iterating (i.e. trying to improve solution) or not.
+     *  @param  g   Current number of generations/iterations.
+     *  @param  f   Current best fitness.
+     *  @return     True if GA scheduler needs to keep looking for solutions. False otherwise.
+     **********************************************************************************************/
+    bool iterate(unsigned int& g, float f);
 };
+
 
 #endif /* GA_SCHEDULER_HPP */

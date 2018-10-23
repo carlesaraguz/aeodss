@@ -29,10 +29,16 @@ public:
     float getMaxCapacity(void) const override { return m_max_capacity; }
     void setMaxCapacity(float c) override;
     void applyOnce(float c) override;
+    bool applyUntil(float c, unsigned int steps);
+    bool isFull(void) const override { return m_capacity == m_max_capacity; }
+    bool isEmpty(void) const override { return m_capacity == 0.f; }
+    bool tryApplyOnce(float c) const override;
     void addRate(float dc, Activity* ptr) override;
     void removeRate(Activity* ptr) override;
     void setName(std::string name) override { m_name = name; }
     std::string getName(void) const override { return m_name; }
+    DepletableResource* clone(void) const override { return new DepletableResource(*this); }
+    void showStatus(void) const;
 
     void step(void) override;
 
@@ -43,7 +49,7 @@ private:
     std::string m_name;
     float m_instantaneous;
 
-    std::map<Activity*, float> m_rates;
+    std::map<std::string, float> m_rates;
 };
 
 #endif /* DEPLETABLE_RESOURCE_HPP */
