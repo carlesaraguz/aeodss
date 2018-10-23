@@ -44,6 +44,7 @@ public:
     std::vector<sf::Vector2i> getVisibleCells(float swath, sf::Vector2f position) const;
     std::vector<sf::Vector2f> getFootprint(void) const override;
     float getResourceRate(std::string rname) const override;
+    std::map<std::string, float> getResourceRates(void) const;
     float getSwath(void) const { return m_swath; }
 
 private:

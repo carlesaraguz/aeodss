@@ -16,10 +16,9 @@ CREATE_LOGGER(PayoffFunctions)
 /*  REMARKS:
  *  ------------------------------------------------------------------------------------------------
  *  EnvCellPayoffFunc === Payoff function for one cell:
- *  Arg. #0:          shared_ptr<Activity>  --> The potential new activity.
- *  Arg. #1:            pair<float, float>  --> t0 & t1 of the potential new activity.
- *  Arg. #2:   vector<pair<float, float> >  --> t0 & t1 of the activities for this cell.
- *  Arg. #3: vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
+ *  Arg. #0:                   pair<float, float>  --> t0 & t1 of the potential new activity.
+ *  Arg. #1: vector<vector<pair<float, float> > >  --> vector of t0 & t1 of the activities for this cell.
+ *  Arg. #2:        vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
  *  Returns: the (potential) partial payoff value for this cell.
  *  ------------------------------------------------------------------------------------------------
  *  EnvCellCleanFunc === Cleaning function for one cell:
@@ -54,7 +53,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
     Log::dbg << "Binding global payoff functions.\n";
 
     /* Revisit time forwards: ------------------------------------------------------------------- */
-    f_revisit_time_forwards.first = [](PFArg0 /* a */, PFArg1 /* ats */, PFArg2 /* bts */, PFArg3 /* bs */) {
+    f_revisit_time_forwards.first = [](PFArg0 /* ats */, PFArg1 /* bts */, PFArg2 /* bs */) {
         return Random::getUf(0.f, 1.f);
     };
     f_revisit_time_forwards.second = [](CFArg0 /* t */, CFArg1 /* as */) {
@@ -62,7 +61,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
     };
 
     /* Revisit time backwards: ------------------------------------------------------------------ */
-    f_revisit_time_backwards.first = [](PFArg0 /* a */, PFArg1 ats, PFArg2 bts, PFArg3 bs) {
+    f_revisit_time_backwards.first = [](PFArg0 ats, PFArg1 bts, PFArg2 bs) {
         /* Find the first confirmed activity with t_end closer to the new activity's t_start. */
         float t_diff = -1.f;
         // Log::warn << "Activity* " << a->getId() << " has times {" << ats.first << ", " << ats.second << "}.\n";
@@ -70,18 +69,20 @@ void PayoffFunctions::bindPayoffFunctions(void)
         std::shared_ptr<Activity> prev_act(nullptr);
         for(unsigned int i = 0; i < bs.size(); i++) {
             auto& b_act_ptr = bs[i];
-            if(b_act_ptr->isFact() && b_act_ptr->isConfimed()) {
-                float t_diff_i = ats.first - bts[i].second;
-                // Log::warn << "Activity " << b_act_ptr->getId() << " has times {" << bts[i].first << ", " << bts[i].second << "}.\n";
-                if(t_diff == -1.f && t_diff_i >= 0.f) {
-                    t_diff = t_diff_i;
-                    prev_act = b_act_ptr;
-                    // Log::warn << "Activity " << b_act_ptr->getId() << " is now the first previous activity (t_diff = " << t_diff << ").\n";
-                } else if(t_diff > -1.f && t_diff_i >= 0.f && t_diff_i < t_diff) {
-                    t_diff = t_diff_i;
-                    prev_act = b_act_ptr;
-                    // Log::warn << "Activity " << b_act_ptr->getId() << " is now the previous activity (t_diff = " << t_diff << ").\n";
-                } /* ... else, we don't care. */
+            for(unsigned int j = 0; j < bts[i].size(); j++) {
+                if(b_act_ptr->isFact() && b_act_ptr->isConfimed()) {
+                    float t_diff_i = ats.first - bts[i][j].second;
+                    // Log::warn << "Activity " << b_act_ptr->getId() << " has times {" << bts[i][j].first << ", " << bts[i][j].second << "}.\n";
+                    if(t_diff == -1.f && t_diff_i >= 0.f) {
+                        t_diff = t_diff_i;
+                        prev_act = b_act_ptr;
+                        // Log::warn << "Activity " << b_act_ptr->getId() << " is now the first previous activity (t_diff = " << t_diff << ").\n";
+                    } else if(t_diff > -1.f && t_diff_i >= 0.f && t_diff_i < t_diff) {
+                        t_diff = t_diff_i;
+                        prev_act = b_act_ptr;
+                        // Log::warn << "Activity " << b_act_ptr->getId() << " is now the previous activity (t_diff = " << t_diff << ").\n";
+                    } /* ... else, we don't care. */
+                }
             }
         }
         // if(prev_act) Log::warn << "t_diff = " << t_diff << ": " << *prev_act << "\n";
@@ -103,12 +104,14 @@ void PayoffFunctions::bindPayoffFunctions(void)
             std::vector<std::pair<float, std::shared_ptr<Activity> > > selected;
             for(unsigned int i = 0; i < bs.size(); i++) {
                 auto& b_act_ptr = bs[i];
-                float t_diff_i = ats.first - bts[i].second;
-                if(t_diff_i >= 0.f && t_diff_i < t_diff && prev_act != b_act_ptr && !b_act_ptr->isDiscarded()) {
-                    /* Select this activity for payoff calculation: */
-                    selected.push_back(std::make_pair(revisit_time_norm(t_diff_i), b_act_ptr));
-                    // Log::warn << "Activity " << *b_act_ptr << " has been selected and has t_diff_i = "
-                    //     << t_diff_i << " (" << revisit_time_norm(t_diff_i) << " norm.)\n";
+                for(unsigned int j = 0; j < bts[i].size(); j++) {
+                    float t_diff_i = ats.first - bts[i][j].second;
+                    if(t_diff_i >= 0.f && t_diff_i < t_diff && prev_act != b_act_ptr && !b_act_ptr->isDiscarded()) {
+                        /* Select this activity for payoff calculation: */
+                        selected.push_back(std::make_pair(revisit_time_norm(t_diff_i), b_act_ptr));
+                        // Log::warn << "Activity " << *b_act_ptr << " has been selected and has t_diff_i = "
+                        //     << t_diff_i << " (" << revisit_time_norm(t_diff_i) << " norm.)\n";
+                    }
                 }
             }
             /* Sort selected activities: */
@@ -134,7 +137,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
     };
 
     /* Coverage: -------------------------------------------------------------------------------- */
-    f_coverage.first = [](PFArg0 /* a */, PFArg1 /* ats */, PFArg2 /* bts */, PFArg3 /* bs */) {
+    f_coverage.first = [](PFArg0 /* ats */, PFArg1 /* bts */, PFArg2 /* bs */) {
         return Random::getUf(0.f, 1.f);
     };
     f_coverage.second = [](CFArg0 /* t */, CFArg1 /* as */) {
@@ -142,7 +145,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
     };
 
     /* Latency: --------------------------------------------------------------------------------- */
-    f_latency.first = [](PFArg0 /* a */, PFArg1 /* ats */, PFArg2 /* bts */, PFArg3 /* bs */) {
+    f_latency.first = [](PFArg0 /* ats */, PFArg1 /* bts */, PFArg2 /* bs */) {
         return Random::getUf(0.f, 1.f);
     };
     f_latency.second = [](CFArg0 /* t */, CFArg1 /* as */) {

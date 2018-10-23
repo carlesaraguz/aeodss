@@ -16,25 +16,24 @@
 class Activity;
 
 struct EnvCellState {
-    float t0;       /* Time when this activity starts influencing. */
-    float t1;       /* Time when this activity ends influencing. */
+    float* t0s;         /* Times when an activity starts influencing. */
+    float* t1s;         /* Times when an activity ends influencing. */
+    int nts;            /* Number of times that an activity influences over this cell. */
 };
 
 class EnvCell
 {
 public:
     /*  Payoff function for one cell:
-     *  Arg. #0:          shared_ptr<Activity>  --> The potential new activity.
-     *  Arg. #1:            pair<float, float>  --> t0 & t1 of the potential new activity.
-     *  Arg. #2:   vector<pair<float, float> >  --> t0 & t1 of the activities for this cell.
-     *  Arg. #3: vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
+     *  Arg. #0:                     pair<float, float>  --> t0 & t1 of the potential new activity.
+     *  Arg. #1:   vector<vector<pair<float, float> > >  --> vector of t0 & t1 of the activities for this cell.
+     *  Arg. #2:          vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
      *
      *  Return: the (potential) partial payoff value for this cell.
      **/
     typedef std::function<float(
-        std::shared_ptr<Activity>,
         std::pair<float, float>,
-        std::vector<std::pair<float, float> >,
+        std::vector<std::vector<std::pair<float, float> > >,
         std::vector<std::shared_ptr<Activity> >
     )> EnvCellPayoffFunc;
 
@@ -55,19 +54,26 @@ public:
     EnvCell(unsigned int cx, unsigned int cy);
     EnvCell(unsigned int cx, unsigned int cy, EnvCellPayoffFunc fp, EnvCellCleanFunc fc);
 
-    void addActivity(std::shared_ptr<Activity> aptr);
-    void removeActivity(std::shared_ptr<Activity> aptr);
+    void addCellActivity(std::shared_ptr<Activity> aptr);
+    bool removeCellActivity(std::shared_ptr<Activity> aptr);
     std::vector<std::shared_ptr<Activity> > getAllActivities(void) const;
-    float computeCellPayoff(unsigned int fidx, std::shared_ptr<Activity> aptr) const;
+    float computeCellPayoff(unsigned int fidx, float* at0s, float* at1s, int nts);
     void clean(unsigned int fidx, float t);
     std::size_t pushPayoffFunc(const EnvCellPayoffFunc fp, const EnvCellCleanFunc fc);
     std::size_t pushPayoffFunc(const std::pair<EnvCellPayoffFunc, EnvCellCleanFunc> f);
-    std::size_t getPayoffCount(void) const { return m_payoff_func.size(); }
+    std::size_t getPayoffFuncCount(void) { return m_payoff_func.size(); }
+    float getPayoff(float t) const;
+    std::map<float, float> getAllPayoffs(void) const { return m_payoff; }
+    std::size_t getPayoffCount(void) const { return m_payoff.size(); }
+
+    /* Friend debug functions: */
+    friend std::ostream& operator<<(std::ostream& os, const EnvCell& ec);
 
 private:
     std::map<std::shared_ptr<Activity>, EnvCellState> m_activities;
     std::vector<EnvCellPayoffFunc> m_payoff_func;
     std::vector<EnvCellCleanFunc> m_clean_func;
+    std::map<float, float> m_payoff;    /**< Time of payoff <-> Payoff value. */
 };
 
 #endif /* ENV_CELL_HPP */

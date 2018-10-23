@@ -16,6 +16,7 @@
 class TimeStep
 {
 public:
+    virtual ~TimeStep(void) = default;
     virtual void step(void) = 0;
 };
 

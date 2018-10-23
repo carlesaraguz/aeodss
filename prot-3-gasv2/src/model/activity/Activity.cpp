@@ -16,7 +16,6 @@ CREATE_LOGGER(Activity)
 Activity::Activity(std::string agent_id, int id)
     : m_agent_id(agent_id)
     , m_id(id)
-    , m_payoff(-1.f)
     , m_confirmed(false)
     , m_discarded(false)
     , m_confidence(0.f)
@@ -24,10 +23,18 @@ Activity::Activity(std::string agent_id, int id)
     , m_self_view(nullptr)
 { }
 
+Activity::~Activity(void)
+{
+    for(auto& cell : m_active_cells) {
+        delete[] cell.t0s;
+        delete[] cell.t1s;
+    }
+}
+
+
 Activity::Activity(const Activity& other)
     : m_agent_id(other.m_agent_id)
     , m_id(other.m_id)
-    , m_payoff(-1.f)
     , m_confirmed(other.m_confirmed)
     , m_discarded(other.m_discarded)
     // , m_trajectory(other.m_trajectory)
@@ -46,7 +53,6 @@ Activity& Activity::operator=(const Activity& other)
     // m_trajectory = other.m_trajectory;
     // m_active_cells = other.m_active_cells;
     m_ready = false;
-    m_payoff = -1.f;
     m_confidence = 0.f;
     m_self_view = nullptr;
     return *this;
@@ -55,7 +61,6 @@ Activity& Activity::operator=(const Activity& other)
 Activity::Activity(Activity&& other)
     : m_agent_id(other.m_agent_id)
     , m_id(other.m_id)
-    , m_payoff(-1.f)
     , m_confirmed(other.m_confirmed)
     , m_discarded(other.m_discarded)
     , m_confidence(0.f)
@@ -71,7 +76,6 @@ Activity& Activity::operator=(Activity&& other)
     m_discarded = other.m_discarded;
     m_trajectory = std::move(other.m_trajectory);
     m_active_cells = std::move(other.m_active_cells);
-    m_payoff = -1.f;
     m_confidence = 0.f;
     return *this;
 }
@@ -87,12 +91,6 @@ void Activity::setDiscarded(bool d)
     m_confirmed = !d;
 }
 
-float Activity::computePayoff(const EnvModel& /* e */)
-{
-    Log::err << "[" << m_agent_id << ":" << m_id << "] Payoff function unimplemented.\n";
-    return -1.f;
-}
-
 std::vector<sf::Vector2i> Activity::getActiveCells(void) const
 {
     std::vector<sf::Vector2i> retval;
@@ -102,18 +100,37 @@ std::vector<sf::Vector2i> Activity::getActiveCells(void) const
     return retval;
 }
 
-void Activity::getCellTimes(unsigned int x, unsigned int y, float& t0, float& t1) const
+std::vector<sf::Vector2i> Activity::getActiveCells(float t) const
 {
+    std::vector<sf::Vector2i> retval;
+    for(auto& ac : m_active_cells) {
+        for(unsigned int i = 0; i < ac.nts; i++) {
+            if(ac.t0s[i] <= t && ac.t1s[i] > t) {
+                retval.push_back(sf::Vector2i(ac.x, ac.y));
+            }
+        }
+    }
+    return retval;
+}
+
+int Activity::getCellTimes(unsigned int x, unsigned int y, float** t0s, float** t1s) const
+{
+    if(t0s == nullptr || t1s == nullptr) {
+        Log::err << "Error getting cell times for activity " << *this << ". Null pointer (" << (void*)t0s << ", " << (void*)t1s << ").\n";
+        return 0;
+    }
     if(m_cell_lut.find(x) != m_cell_lut.end()) {
         if(m_cell_lut.at(x).find(y) != m_cell_lut.at(x).end()) {
             auto idx = m_cell_lut.at(x).at(y);
-            t0 = m_active_cells[idx].t0;
-            t1 = m_active_cells[idx].t1;
-            return;
+            *t0s = m_active_cells[idx].t0s;
+            *t1s = m_active_cells[idx].t1s;
+            return m_active_cells[idx].nts;
         }
     }
-    t0 = -1.f;
-    t1 = -1.f;
+    /* Not found: */
+    *t0s = nullptr;
+    *t1s = nullptr;
+    return 0;
 }
 
 void Activity::setTrajectory(const std::map<float, sf::Vector2f>& pts, const std::vector<ActivityCell>& acs)

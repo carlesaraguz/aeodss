@@ -25,7 +25,7 @@ int main(int /* argc */, char** /* argv */)
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 0;
-    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Prototype", sf::Style::Default, settings);
+    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Prototype", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(60);
     /*  NOTE:
      *  Update mechanism should be changed to something user controlled and rely upon sf::Clock and
@@ -34,12 +34,13 @@ int main(int /* argc */, char** /* argv */)
 
     /* Create agents: --------------------------------------------------------------------------- */
     std::vector<std::shared_ptr<Agent> > agents;
-    for(unsigned int i = 0; i < Config::n_agents; i++) {
-        auto aptr = std::make_shared<Agent>("A" + std::to_string(i));
-        agents.push_back(aptr);
-    }
-    // agents.push_back(std::make_shared<Agent>("A0", sf::Vector2f(100.f, 400.f), sf::Vector2f(10.f, 0.f)));
-    // agents.push_back(std::make_shared<Agent>("A1", sf::Vector2f(300.f, 400.f), sf::Vector2f(-10.f, 0.f)));
+    // for(unsigned int i = 0; i < Config::n_agents; i++) {
+    //     auto aptr = std::make_shared<Agent>("A" + std::to_string(i));
+    //     agents.push_back(aptr);
+    // }
+    // agents.push_back(std::make_shared<Agent>("A0", sf::Vector2f(0.f, 0.f), sf::Vector2f(10.f, 10.f)));
+    agents.push_back(std::make_shared<Agent>("A1", sf::Vector2f(0.f, 460.f), sf::Vector2f(10.f, -5.1f)));
+    // agents.push_back(std::make_shared<Agent>("A2", sf::Vector2f(0.f, 460.f), sf::Vector2f(10.f, 0.f)));
 
     /* Configure agents: ------------------------------------------------------------------------ */
     for(auto a : agents) {
@@ -47,6 +48,7 @@ int main(int /* argc */, char** /* argv */)
     }
     agents[0]->displayActivities(ActivityDisplayType::ALL);
     agents[0]->showResources(true);
+    agents[0]->getEnvironment()->buildView();
 
     /* Create a global aggregated environment model: -------------------------------------------- */
     auto world = std::make_shared<World>();
@@ -56,6 +58,7 @@ int main(int /* argc */, char** /* argv */)
     std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
     MultiView mv1, mv2, mv3, mv4;
     mv1.setViews(avs);
+    mv2.addViewToBack(agents[0]->getEnvironment());
     mv2.addViewToBack(std::static_pointer_cast<const HasView>(agents[0]->getActivityHandler()));
     mv2.addViewToBack(avs[0]);
     mv3.addViewToBack(world);

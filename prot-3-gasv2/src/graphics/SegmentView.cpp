@@ -64,20 +64,21 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, std::string str)
         m_lines.push_back(tline);
     }
 
+    float circle_radius = 7.f;
     /* Circle: start of the segment. */
-    m_circle_start.setRadius(10.f);
+    m_circle_start.setRadius(circle_radius);
     m_circle_start.setFillColor(c);
-    m_circle_start.setPosition(m_positions[0] - sf::Vector2f(10.f, 10.f));
+    m_circle_start.setPosition(m_positions[0] - sf::Vector2f(circle_radius, circle_radius));
 
     /* Circle: end of the segment. */
-    m_circle_end.setRadius(10.f);
+    m_circle_end.setRadius(circle_radius);
     m_circle_end.setFillColor(c);
-    m_circle_end.setPosition(m_positions[m_positions.size() - 1] - sf::Vector2f(10.f, 10.f));
+    m_circle_end.setPosition(m_positions[m_positions.size() - 1] - sf::Vector2f(circle_radius, circle_radius));
 
     m_txt.setFont(Config::fnt_monospace);
     m_txt.setString(str);
     m_txt.setCharacterSize(Config::fnt_size);
-    m_txt.setColor(sf::Color::White);
+    m_txt.setFillColor(sf::Color::White);
 
     sf::FloatRect txt_rect = m_txt.getLocalBounds();
     m_txt.setOrigin(txt_rect.left + txt_rect.width / 2.0f, txt_rect.top  + txt_rect.height / 2.0f);
@@ -109,7 +110,7 @@ void SegmentView::decorate(void)
     }
     m_circle_start.setFillColor(c);
     m_circle_end.setFillColor(c);
-    m_txt.setColor(c);
+    m_txt.setFillColor(c);
 }
 
 void SegmentView::setOwnership(bool mine)

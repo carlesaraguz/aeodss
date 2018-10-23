@@ -22,6 +22,7 @@ public:
 
     void setColorGradient(const ColorGradient& cg) { m_color_gradient = cg; }
     void setValue(int x, int y, float v);
+    void setValue(float v);
 
 private:
     struct GridUnit {

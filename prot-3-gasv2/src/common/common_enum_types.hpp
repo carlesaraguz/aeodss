@@ -16,6 +16,7 @@ enum class Aggregate {
     MAX_VALUE,
     MIN_VALUE,
     MEAN_VALUE,
+    SUM_VALUE,
 };
 
 enum class AgentMotionType {

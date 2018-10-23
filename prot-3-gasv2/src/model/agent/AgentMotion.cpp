@@ -57,13 +57,14 @@ AgentMotion::AgentMotion(Agent* aptr, sf::Vector2f init_pos, sf::Vector2f init_v
 void AgentMotion::step(void)
 {
     if(m_position.size() == 1) {
-        propagate(1);
+        propagate(2);
     }
+
     if(m_position.size() > 1) {
         m_position.erase(m_position.begin());
         m_velocity.erase(m_velocity.begin());
     } else {
-        Log::warn << "[" << m_agent->getId() << "] Agent motion failure.\n";
+        Log::warn << "[" << m_agent->getId() << "] Agent motion failure (" << m_position.size() << ").\n";
     }
 }
 
@@ -77,13 +78,15 @@ void AgentMotion::clearPropagation(void)
 
 std::vector<sf::Vector2f> AgentMotion::propagate(unsigned int nsteps)
 {
-    switch(Config::motion_model) {
-        case AgentMotionType::LINEAR_BOUNCE:
+    if(nsteps > m_position.size()) {
+        switch(Config::motion_model) {
+            case AgentMotionType::LINEAR_BOUNCE:
             {
                 sf::Vector2f p0 = m_position.back();
                 sf::Vector2f v0 = m_velocity.back();
                 sf::Vector2f p, v;
-                for(unsigned int i = 0; i < nsteps; i++) {
+                unsigned int count = nsteps - m_position.size();
+                for(unsigned int i = 0; i < count; i++) {
                     sf::Vector2f dp = v0 * Config::time_step;
                     move(p0, v0, dp, p, v);
                     m_position.push_back(p);
@@ -93,11 +96,14 @@ std::vector<sf::Vector2f> AgentMotion::propagate(unsigned int nsteps)
                 }
             }
             break;
-        default:
+            default:
             /* Does nothing. */
             break;
+        }
+        return m_position;
+    } else {
+        return std::vector<sf::Vector2f>(m_position.begin(), m_position.begin() + nsteps);
     }
-    return m_position;
 }
 
 void AgentMotion::move(sf::Vector2f p0, sf::Vector2f v0, sf::Vector2f dp, sf::Vector2f& p, sf::Vector2f& v) const

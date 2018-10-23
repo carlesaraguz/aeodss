@@ -37,21 +37,65 @@ void DepletableResource::setMaxCapacity(float c)
     m_max_capacity = c;
 }
 
+bool DepletableResource::tryApplyOnce(float c) const
+{
+    float acc = 0.f;
+    for(auto& r : m_rates) {
+        acc += r.second;
+    }
+    acc += m_instantaneous + c;
+    return acc <= m_max_capacity;
+}
+
 void DepletableResource::applyOnce(float c)
 {
     m_instantaneous += c;
 }
 
+bool DepletableResource::applyUntil(float c, unsigned int steps)
+{
+    if(steps == 0) {
+        return true;
+    }
+
+    float acc = 0.f;
+    for(auto& r : m_rates) {
+        acc += r.second * Config::time_step;
+    }
+    acc += c * Config::time_step;
+    if(m_max_capacity - acc - m_instantaneous >= 0.f) {
+        m_capacity = m_max_capacity - Config::time_step * (acc + (m_instantaneous * (int)(steps == 1)));
+        return true;
+    } else {
+        m_capacity = 0.f;
+        return false;
+    }
+}
+
 void DepletableResource::addRate(float dc, Activity* ptr)
 {
-    m_rates[ptr] = dc;
+    std::string rate_id;
+    if(ptr == nullptr) {
+        rate_id = "undefined";
+    } else {
+        rate_id = ptr->getAgentId() + ":" + std::to_string(ptr->getId());
+    }
+    m_rates[rate_id] = dc;
 }
 
 void DepletableResource::removeRate(Activity* ptr)
 {
-    auto it = m_rates.find(ptr);
+    std::string rate_id;
+    if(ptr == nullptr) {
+        rate_id = "undefined";
+    } else {
+        rate_id = ptr->getAgentId() + ":" + std::to_string(ptr->getId());
+    }
+    auto it = m_rates.find(rate_id);
     if(it != m_rates.end()) {
         m_rates.erase(it);
+    } else {
+        Log::err << "Could not remove resource consumption rate for activity " << rate_id << " and resource \'" << m_name << "\'.\n";
     }
 }
 
@@ -59,9 +103,9 @@ void DepletableResource::step(void)
 {
     float acc = 0.f;
     for(auto& r : m_rates) {
-        acc += r.second;
+        acc += r.second * Config::time_step;
     }
-    acc += m_instantaneous;
+    acc += m_instantaneous * Config::time_step;
     if(acc > m_max_capacity) {
         Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Trying to consume ["
             << m_capacity << "-]" << acc << " would result in negative capacity.\n";
@@ -76,4 +120,14 @@ void DepletableResource::step(void)
         m_capacity = m_max_capacity - acc;
     }
     m_instantaneous = 0.f;
+}
+
+void DepletableResource::showStatus(void) const
+{
+    Log::dbg << "Resource status [" << m_name << "]: capacity is " << m_capacity << "/" << m_max_capacity
+        << " (" << std::fixed << std::setprecision(0) << (100.f * m_capacity / m_max_capacity) << "%). Active rates: " << m_rates.size() << ".\n";
+    for(auto& r : m_rates) {
+        Log::dbg << " # " << r.first << " -> " << std::defaultfloat << r.second << ".\n";
+    }
+    Log::dbg << std::defaultfloat;
 }

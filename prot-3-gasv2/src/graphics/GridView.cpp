@@ -73,3 +73,12 @@ void GridView::setValue(int x, int y, float v)
 {
     setColor(x, y, m_color_gradient.getColorAt(v));
 }
+
+void GridView::setValue(float v)
+{
+    for(int xx = 0; xx < m_width; xx++) {
+        for(int yy = 0; yy < m_height; yy++) {
+            setColor(xx, yy, m_color_gradient.getColorAt(v));
+        }
+    }
+}

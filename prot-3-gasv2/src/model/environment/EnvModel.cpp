@@ -19,7 +19,7 @@ EnvModel::EnvModel(Agent* aptr, unsigned int mw, unsigned int mh)
     , m_model_h(mh)
     , m_world_w(World::getWidth())
     , m_world_h(World::getHeight())
-    , m_view_payoff(nullptr)
+    , m_payoff_view(nullptr)
 {
     if(m_model_w == 0 || m_model_h == 0) {
         Log::warn << "Model can't have 0-length dimensions (" << m_model_w << ", " << m_model_h << ").\n";
@@ -51,25 +51,147 @@ EnvModel::EnvModel(Agent* aptr, unsigned int mw, unsigned int mh)
     }
 }
 
-void EnvModel::updateView(void)
+void EnvModel::buildView(void)
 {
+    m_payoff_view = std::make_shared<GridView>(m_model_w, m_model_h, Config::model_unity_size, Config::model_unity_size);
 }
 
 void EnvModel::clearView(void)
 {
+    if(m_payoff_view) {
+        m_payoff_view->setValue(0.f);
+    }
 }
 
-void EnvModel::enableViewUnits(std::vector<sf::Vector2i> us)
+void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_view)
 {
+    float* t0s;
+    float* t1s;
+    float po;
+    if(display_in_view && m_payoff_view) {
+        clearView();
+    }
+    int nts;
+
+    auto cells = tmp_act->getActiveCells();
+    #pragma omp parallel for
+    for(std::size_t i = 0; i < cells.size(); i++) {
+        auto& c = cells[i];
+        nts = tmp_act->getCellTimes(c.x, c.y, &t0s, &t1s);
+        po = m_cells[c.x][c.y].computeCellPayoff(0, t0s, t1s, nts);
+        if(display_in_view && m_payoff_view) {
+            m_payoff_view->setValue(c.x, c.y, po);
+        }
+    }
+}
+
+void EnvModel::addActivity(std::shared_ptr<Activity> act)
+{
+    auto cells = act->getActiveCells();
+    #pragma omp parallel for
+    for(std::size_t i = 0; i < cells.size(); i++) {
+        auto& c = cells[i];
+        m_cells[c.x][c.y].addCellActivity(act);
+    }
+}
+
+bool EnvModel::removeActivity(std::shared_ptr<Activity> act)
+{
+    auto cells = act->getActiveCells();
+    bool retval = false;
+    #pragma omp parallel for
+    for(std::size_t i = 0; i < cells.size(); i++) {
+        auto& c = cells[i];
+        retval |= m_cells[c.x][c.y].removeCellActivity(act);
+    }
+    return retval;
+}
+
+void EnvModel::cleanActivities(float t)
+{
+    if(t == -1.f) {
+        t = VirtualTime::now();
+    }
+    #pragma omp parallel for
+    for(unsigned int xx = 0; xx < m_model_w; xx++) {
+        #pragma omp parallel for
+        for(unsigned int yy = 0; yy < m_model_h; yy++) {
+            m_cells[xx][yy].clean(0, t);
+        }
+    }
+}
+
+std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> tmp_act)
+{
+    Log::dbg << "[" << m_agent->getId() << "] Generating potential activities in the range t = [" << tmp_act->getStartTime() << ", " << tmp_act->getEndTime() << "].\n";
+    std::vector<ActivityGen> retval;
+
+    /* Iterate in time steps, to generate new activities: */
+    float tstart = tmp_act->getStartTime();
+    float tend = tmp_act->getEndTime();
+    float t, t0 = 0.f, t1;
+    bool bflag = false;
+    std::unordered_set<sf::Vector2i, Vector2iHash> selected_cells;
+    for(unsigned int s = 0; tstart + s * Config::time_step <= tend; s++) {
+        t = tstart + s * Config::time_step;
+        auto cells = tmp_act->getActiveCells(t);
+        /* Remove meaningless cells (i.e. those that don't provide enough payoff at time `t`.) */
+        for(auto it = cells.begin(); it != cells.end(); ) {
+            EnvCell& c = m_cells[it->x][it->y];
+            bool remove_cell = true;
+            for(auto p : c.getAllPayoffs()) {
+                if(p.second > Config::min_payoff) {
+                    remove_cell = false;
+                    break;
+                }
+            }
+            if(remove_cell) {
+                it = cells.erase(it);
+            } else {
+                selected_cells.insert(*it);
+                it++;
+            }
+        }
+        if(bflag && (cells.size() == 0 || (t - t0) >= Config::max_task_duration || t >= (tend - Config::time_step))) {
+            /* End the previous activity: */
+            t1 = t;
+            bflag = false;
+            if(t1 > t0 && selected_cells.size() > 0) {
+                // Log::dbg << "[" << m_agent->getId() << "] - Activity #" << retval.size() << ", T start = " << t0 << ", end = " << t1
+                //     << ", Cell count: " << selected_cells.size() << ".\n";
+                std::vector<sf::Vector2i> vec_selected_cells(selected_cells.begin(), selected_cells.end());
+                std::vector<float> vec_payoffs;
+                for(auto& vsc : vec_selected_cells) {
+                    vec_payoffs.push_back(m_cells.at(vsc.x).at(vsc.y).getPayoff((t0 + t1) / 2.f));     /* COMBAK */
+                }
+                ActivityGen ag;
+                ag.t0 = t0;
+                ag.t1 = t1;
+                ag.c_coord   = vec_selected_cells;
+                ag.c_payoffs = vec_payoffs;
+                retval.push_back(ag);
+            }
+            selected_cells.clear();
+        }
+        if(!bflag && cells.size() > 0) {
+            /* Start a new activity: */
+            t0 = t;
+            bflag = true;
+        }
+        if(retval.size() >= Config::max_tasks) {
+            break;
+        }
+    }
+    return retval;
 }
 
 const GridView& EnvModel::getView(void) const
 {
-    if(m_view_payoff == nullptr) {
+    if(m_payoff_view == nullptr) {
         Log::err << "Environment view for agent " << m_agent->getId() << " has not been initialized but has just been requested.\n";
         throw std::runtime_error("Uninitialized environment view requested");
     }
-    return *m_view_payoff;
+    return *m_payoff_view;
 }
 
 

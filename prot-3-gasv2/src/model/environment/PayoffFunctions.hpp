@@ -29,10 +29,9 @@ public:
     static FunctionPair f_latency;
 
 private:
-    typedef std::shared_ptr<Activity> PFArg0;
-    typedef std::pair<float, float> PFArg1;
-    typedef std::vector<std::pair<float, float> > PFArg2;
-    typedef std::vector<std::shared_ptr<Activity> > PFArg3;
+    typedef std::pair<float, float> PFArg0;
+    typedef std::vector<std::vector<std::pair<float, float> > > PFArg1;
+    typedef std::vector<std::shared_ptr<Activity> > PFArg2;
     typedef float CFArg0;
     typedef std::vector<std::shared_ptr<Activity> > CFArg1;
 

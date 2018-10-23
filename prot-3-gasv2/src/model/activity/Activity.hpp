@@ -19,14 +19,18 @@ class SegmentView;
 struct ActivityCell {
     unsigned int x;     /* Cell column number in the environment model (not real world coordinates). */
     unsigned int y;     /* Cell row number in the environment model (not real world coordinates). */
-    float t0;           /* Time when this cell starts becoming active by the activity. */
-    float t1;           /* Time when this cell ends being active by the activity. */
+    float* t0s;         /* Times when this cell starts becoming active by the activity. */
+    float* t1s;         /* Times when this cell ends being active by the activity. */
+    unsigned int nts;   /* The number of elements in the lists t0s and t1s. */
+    bool ready;         /* The information in this cell is ready/valid. */
 };
 
 class Activity
 {
 public:
     Activity(std::string agent_id, int id = -1);
+    ~Activity(void);
+
     Activity(const Activity& other);
     Activity& operator=(const Activity& other);
     Activity(Activity&& other);
@@ -37,16 +41,14 @@ public:
     bool isDiscarded(void) const { return m_discarded; }
     bool isFact(void) const { return (m_confirmed && !m_discarded) || (!m_confirmed && m_discarded); }
     bool isOwner(std::string aid) const { return aid == m_agent_id; }
-    void getCellTimes(unsigned int x, unsigned int y, float& t0, float& t1) const;
+    int getCellTimes(unsigned int x, unsigned int y, float** t0s, float** t1s) const;
     std::vector<sf::Vector2i> getActiveCells(void) const;
+    std::vector<sf::Vector2i> getActiveCells(float t) const;
     std::shared_ptr<SegmentView> getView(void);
 
     /* Positions: */
     std::size_t getPositionCount(void) const { return m_trajectory.size(); }
     void setTrajectory(const std::map<float, sf::Vector2f>& pts, const std::vector<ActivityCell>& acs);
-
-    /* Payoff: */
-    float computePayoff(const EnvModel& e);
 
     /* Getters & setters: */
     void setConfirmed(bool c = true);
@@ -69,7 +71,6 @@ public:
 private:
     std::string m_agent_id;
     int m_id;
-    float m_payoff;
     bool m_confirmed;
     bool m_discarded;
     bool m_ready;

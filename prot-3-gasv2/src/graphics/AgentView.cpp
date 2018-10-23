@@ -41,7 +41,7 @@ AgentView::AgentView(std::string str, float comms_range)
     m_txt.setFont(Config::fnt_monospace);
     m_txt.setString(str);
     m_txt.setCharacterSize(Config::fnt_size);
-    m_txt.setColor(sf::Color::White);
+    m_txt.setFillColor(sf::Color::White);
 }
 
 void AgentView::setFootprint(std::vector<sf::Vector2f> footprint)
