@@ -24,16 +24,14 @@
 prot-1-circular-orbits/data/m_map/*
 
 # Shared objects and build files:
-prot-1-circular-orbits/build/*
-prot-2-env-sfml/build/*
+prot-*/build/*
 *.dll
 *.so
 *.so.*
 *.dylib
 
 # Executables
-prot-1-circular-orbits/bin/*
-prot-2-env-sfml/bin/*
+prot-*/bin/*
 *.exe
 *.out
 *.app

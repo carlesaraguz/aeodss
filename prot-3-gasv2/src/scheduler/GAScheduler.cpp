@@ -16,35 +16,54 @@ GAScheduler::GAScheduler(float t0, float t1, std::map<std::string, std::shared_p
     : m_tstart(t0)
     , m_tend(t1)
     , m_resources_init(res)
+    , m_best(0)
+    , m_max_payoff(0.f)
 {
     m_population.reserve(Config::ga_population_size);
 }
 
-bool GAScheduler::iterate(unsigned int& g, float f)
+bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
 {
     bool do_continue = true;
     if(m_iteration_profile.size() == 0) {
-        m_iteration_profile.push_back(std::make_pair(g, f));
+        m_iteration_profile.push_back(std::make_pair(g, best.fitness));
     }
+    if(best == m_best) {
+        m_generation_timeout++;
+    } else {
+        m_best = best;
+        m_generation_timeout = 0;
+        /*  DEBUG:
+         *  Log::dbg << "GA Scheduler found a better solution: " << best << ".\n";
+         **/
+    }
+
     if(g >= Config::ga_generations) {
         do_continue = false;
         Log::dbg << "GA Scheduler reached the maximum amount of generations, stopping now.\n";
-    } else if(g > Config::ga_generations / 2) {
-        /* Check improvement: */
-        unsigned int g0 = m_iteration_profile[m_iteration_profile.size() - 1].first;
-        float f0        = m_iteration_profile[m_iteration_profile.size() - 1].second;
-        if(std::abs(f - f0) > 1e-8f) {
-            float delta = (f - f0) / (g - g0);
-            Log::dbg << "GA Scheduler, at g = " << g << ": f = " << f << ", Δ(abs) = " << std::abs(f - f0) << ", Δ(rel) = " << delta << "\n";
-            m_iteration_profile.push_back(std::make_pair(g, f));
-            if(delta < Config::ga_min_improvement_rate) {
-                do_continue = false;
-            }
-        }
-        g++;
+    } else if(/* (g > Config::ga_generations / 3) && */ m_best.valid && (m_generation_timeout >= Config::ga_timeout)) {
+        do_continue = false;
+        Log::dbg << "GA Scheduler timed out after " << g << " generations, stopping now.\n";
+        /*  NOTE:
+         *  Previous version checked improvement rate and decided to complete the heuristic process
+         *  by assessing that figure. The code is left commented below for future reference:
+         *  ========================================================================================
+         *    unsigned int g0 = m_iteration_profile[m_iteration_profile.size() - 1].first;
+         *    float f0        = m_iteration_profile[m_iteration_profile.size() - 1].second;
+         *    if(std::abs(f - f0) > Config::ga_min_improvement_rate) {
+         *        float delta = (f - f0) / (g - g0);
+         *        Log::dbg << "GA Scheduler, at g = " << g << ": f = " << f << ", Δ(abs) = " << std::abs(f - f0) << ", Δ(rel) = " << delta << "\n";
+         *        m_iteration_profile.push_back(std::make_pair(g, f));
+         *        if(delta < Config::ga_min_improvement_rate) {
+         *            do_continue = false;
+         *        }
+         *    }
+         **/
     } else {
-        // m_iteration_profile[0].first  = g;
-        // m_iteration_profile[0].second = f;
+        /*  NOTE: This part also belonged to the previous version (see comment above):
+         *      m_iteration_profile[0].first  = g;
+         *      m_iteration_profile[0].second = f;
+         **/
         g++;
     }
     return do_continue;
@@ -57,11 +76,40 @@ std::vector<std::pair<float, float> > GAScheduler::schedule(void)
         throw std::runtime_error("GA Scheduler failed to start because population is not ready.");
     }
 
+    /* Initialize control variables: */
     GASChromosome best(m_individual_info.size());  /* Randomly initializes. */
-    float best_f = 0.f;
     unsigned int g = 0;
+    /* DEBUG with: bool prev_best_valid = false; */
     m_iteration_profile.clear();
-    while(iterate(g, best_f)) {
+
+    /* Initialize max. resource consumptions and payoffs (needed to compute fitnesses): */
+    for(auto& cost : m_costs) {
+        if(m_max_cost.find(cost.first) == m_max_cost.end()) {
+            m_max_cost[cost.first] = 0.f;
+        }
+        for(unsigned int act = 0; act < m_individual_info.size(); act++) {
+            m_max_cost[cost.first] += cost.second * Config::time_step * m_individual_info[act].t_steps;
+        }
+        /*  DEBUG with:
+         *  Log::dbg << "Max. \'" << cost.first << "\' cost: " << m_max_cost[cost.first] << ".\n";
+         **/
+    }
+    for(auto& inf : m_individual_info) {
+        m_max_payoff += inf.ag_payoff;
+    }
+
+    /* Initialize population fitness: */
+    #pragma omp parallel for
+    for(unsigned int i = 0; i < m_population.size(); i++) {
+        computeFitness(m_population[i]);
+    }
+
+    while(iterate(g, best)) {
+        /* Repopulate in case we lost too many invalid options. */
+        while(m_population.size() < Config::ga_population_size) {
+            m_population.push_back(GASChromosome(m_individual_info.size()));
+        }
+
         std::vector<GASChromosome> children;
         std::vector<GASChromosome> parents = m_population;  /* Copy. */
         while(children.size() < m_population.size()) {
@@ -79,9 +127,21 @@ std::vector<std::pair<float, float> > GAScheduler::schedule(void)
         for(unsigned int i = 0; i < children.size(); i++) {
             computeFitness(children[i]);
         }
-        best = combine(m_population, children);    /* Environment selection: updates population. */
-        best_f = best.fitness;
-        // Log::dbg << "GA Scheduler, best: " << best << ".\n";
+
+        if(g == 1) {
+            repairPool(m_population);               /* Removes invalid parents. */
+        }
+        repairPool(children);                       /* Removes invalid children. */
+        best = combine(m_population, children);     /* Environment selection: updates population. */
+
+        /*  DEBUG:
+         *  if(!prev_best_valid && best.valid) {
+         *      Log::dbg << "GA Scheduler found a valid solution at generation " << std::setw(4) << g << ": " << best << ".\n";
+         *  } else if(prev_best_valid && !best.valid) {
+         *      Log::err << "GA Scheduler errored at " << std::setw(4) << g << ": best solution is no longer valid: " << best << ".\n";
+         *  }
+         *  prev_best_valid = best.valid;
+         **/
     }
 
     std::vector<std::pair<float, float> > retvec;
@@ -159,10 +219,27 @@ void GAScheduler::setChromosomeInfo(std::vector<float> t0s, std::vector<int> s, 
         return;
     }
 
-    for(unsigned int i = 0; i < Config::ga_population_size; i++) {
-        m_population.push_back(GASChromosome(l));   /* Randomly initializes the new chromosome. */
+    /*  We always insert two types of baseline options:
+     *  - `l` solutions with a single activity enabled; and
+     *  - one solution where all activities are enabled.
+     **/
+    for(unsigned int b = 0; b < l + 1; b++) {
+        GASChromosome cbaseline(l);
+        for(unsigned int a = 0; a < cbaseline.alleles.size(); a++) {
+            if(a == b && b < l) {
+                cbaseline.alleles[a] = true;
+            } else if(a != b && b < l) {
+                cbaseline.alleles[a] = false;
+            } else {
+                cbaseline.alleles[a] = true;
+            }
+        }
+        m_population.push_back(cbaseline);
     }
 
+    while(m_population.size() < Config::ga_population_size) {
+        m_population.push_back(GASChromosome(l));   /* Randomly initializes the new chromosome. */
+    }
 }
 
 void GAScheduler::setAggregatedPayoff(unsigned int idx,
@@ -201,18 +278,18 @@ void GAScheduler::setAggregatedPayoff(unsigned int idx,
         po /= payoff.size();
     }
     m_individual_info[idx].ag_payoff = po;
-    // Log::dbg << "GAS Chromosome " << idx << " has a payoff of " << po << ".\n";
 }
 
 float GAScheduler::computeFitness(GASChromosome& c)
 {
-    float f = 0.f;                      /* Fitness. */
+    float po = 0.f;                     /* Payoff. */
     float r = 0.f;                      /* Normalized and aggregated resource consumption. */
     std::map<std::string, float> rk;    /* Single resource capacity consumption (normalized). */
 
     /*  NOTE, `r` is computed as:
      *  R(k) = Σ consumption over t --> absolute accumulated consumption of resource `k`.
-     *  `r` = (1/N) · Σ R(k)
+     *  R_norm(k) = R(k) / capacity.
+     *  `r` = (1/N) · Σ R_norm(k)
      **/
 
     std::map<std::string, std::unique_ptr<Resource> > res_cpy;
@@ -224,7 +301,7 @@ float GAScheduler::computeFitness(GASChromosome& c)
     for(unsigned int i = 0; i < c.alleles.size(); i++) {
         if(c.alleles.at(i)) {
             /* Allele is active: add payoff. */
-            f += m_individual_info[i].ag_payoff;
+            po += m_individual_info[i].ag_payoff;
             count_active_alleles++;
         }
 
@@ -247,26 +324,33 @@ float GAScheduler::computeFitness(GASChromosome& c)
             }
         }
     }
+    if(count_active_alleles == 0) {
+        c.valid = false;
+    }
+    float fitness = 0.f;
     if(c.valid) {
         /* There hasn't been resource violations: */
         for(auto rit : rk) {
-            r += rit.second;
+            r += rit.second / m_max_cost[rit.first];
         }
         r /= rk.size();
-        if(r == 0.f) {
+        r = 1.f - r;
+        if(r == 0.f && count_active_alleles > 0) {
+            // Log::err << "Chromosome " << c << " is valid but does not consume resources.\n";
             r = m_small_coeff;
         }
-        f /= r;                                                     /* Minimize resource consumption. */
-        f *= (count_active_alleles + 1) / (c.alleles.size() + 1);   /* Maximize number of activities. */
-        if(count_active_alleles == 0) {
-            c.valid = false;
-        } else {
-        }
+
+        po /= m_max_payoff;
+        fitness = (po + r) / 2.f;
+        // Log::warn << "Chromosome " << c << ": f=" << po << ", r=" << r << " --> " << fitness << "\n";
     } else {
-        f /= m_big_coeff;
+        fitness = po / m_big_coeff;
     }
-    c.fitness = f;
-    return f;
+    c.fitness = fitness;
+    if(fitness > 1.f) {
+        Log::warn << c << " has an unexpectedly large fitness: f=" << po << ", r=" << r << " --> " << fitness << "\n";
+    }
+    return fitness;
 }
 
 GASChromosome GAScheduler::select(std::vector<GASChromosome>& mating_pool) const
@@ -322,6 +406,17 @@ GASChromosome GAScheduler::select(std::vector<GASChromosome>& mating_pool) const
     }
 }
 
+void GAScheduler::repairPool(std::vector<GASChromosome>& pool)
+{
+    for(auto ind = pool.begin(); ind != pool.end(); ) {
+        if(!ind->valid) {
+            ind = pool.erase(ind);
+        } else {
+            ind++;
+        }
+    }
+}
+
 GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children)
 {
     GASChromosome best_individual(m_individual_info.size());
@@ -332,7 +427,8 @@ GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vect
                 auto pc = parents;
                 pc.insert(pc.end(), children.begin(), children.end());
                 std::sort(pc.begin(), pc.end(), std::greater<GASChromosome>());
-                std::vector<GASChromosome> combination(pc.begin(), pc.begin() + Config::ga_population_size);
+                int elems = (pc.size() >= Config::ga_population_size ? Config::ga_population_size : pc.size());
+                std::vector<GASChromosome> combination(pc.begin(), pc.begin() + elems);
                 m_population = std::move(combination);
                 best_individual = m_population[0];
             }
@@ -349,4 +445,28 @@ GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vect
             throw std::runtime_error("Genetic Algorithm Scheduler failure, unimplemented environment selection operator case.");
     }
     return best_individual;
+}
+
+void GAScheduler::debug(void) const
+{
+    Log::dbg << "GA Scheduler, debug info:\n";
+    Log::dbg << "Costs: " << m_costs.size() << ".\n";
+    for(auto c : m_costs) {
+        Log::dbg << "# \'" << c.first << "\': " << c.second << ".\n";
+    }
+    Log::dbg << "Activities: " << m_individual_info.size() << ".\n";
+    int count = 0;
+    float cost;
+    for(auto& ind_info : m_individual_info) {
+        cost = 0.f;
+        for(auto& c : m_costs) {
+            cost += c.second * Config::time_step * ind_info.t_steps;
+        }
+        Log::dbg << "# " << count++
+            << ": Tstart(" << ind_info.t_start
+            << "). Steps(" << ind_info.t_steps
+            << "). AgPO(" << ind_info.ag_payoff
+            << "). Cost(" << cost
+            << "). Result: " << ind_info.ag_payoff / cost << ".\n";
+    }
 }

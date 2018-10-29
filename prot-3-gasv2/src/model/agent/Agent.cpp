@@ -124,6 +124,8 @@ void Agent::plan(void)
             scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, Aggregate::SUM_VALUE);
         }
 
+        /* scheduler.debug(); */
+
         /* Run the scheduler: */
         auto result = scheduler.schedule();
 
