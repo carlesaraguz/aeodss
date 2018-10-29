@@ -13,6 +13,7 @@
 GASChromosome::GASChromosome(unsigned int sz)
     : alleles(sz)
     , valid(true)
+    , fitness(0.f)
 {
     for(unsigned int i = 0; i < sz; i++) {
         alleles[i] = (Random::getUf() > 0.5f);
@@ -122,14 +123,18 @@ bool GASChromosome::operator<=(const GASChromosome& rhs) const
 
 bool GASChromosome::operator==(const GASChromosome& rhs) const
 {
-    bool bflag = (alleles.size() == rhs.alleles.size());
-    for(std::size_t a = 0; a < alleles.size(); a++) {
-        if(alleles[a] != rhs.alleles[a]) {
-            bflag &= false;
-            break;
+    if(alleles.size() == rhs.alleles.size()) {
+        bool bflag = true;
+        for(std::size_t a = 0; a < alleles.size(); a++) {
+            if(alleles[a] != rhs.alleles[a]) {
+                bflag &= false;
+                break;
+            }
         }
+        return bflag && (fitness == rhs.fitness);
+    } else {
+        return false;
     }
-    return bflag && (fitness == rhs.fitness);
 }
 
 bool GASChromosome::operator!=(const GASChromosome& rhs) const
@@ -139,10 +144,16 @@ bool GASChromosome::operator!=(const GASChromosome& rhs) const
 
 std::ostream& operator<<(std::ostream& os, const GASChromosome& chr)
 {
+    int count_active = 0;
     os << "{";
     for(auto a : chr.alleles) {
         os << (int)a;
+        count_active += (int)a;
     }
-    os << ":" << chr.fitness << "}";
+    os << " : " << count_active << " : " << std::fixed << std::setprecision(6) << std::setw(13) << chr.fitness << std::defaultfloat;
+    if(!chr.valid) {
+        os << "*";
+    }
+    os << "}";
     return os;
 }

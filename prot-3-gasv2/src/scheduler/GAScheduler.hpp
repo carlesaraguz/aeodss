@@ -57,16 +57,25 @@ public:
         const std::vector<float>& payoff,
         Aggregate type = Aggregate::MEAN_VALUE);
 
+    /*******************************************************************************************//**
+     *  Shows debug information related to potential activities. Should allow finding the optimal
+     *  solution manually and may assist in a debugging endeavor.
+     **********************************************************************************************/
+    void debug(void) const;
 
 private:
-    struct GASInfo {                        /**< Info for a single chromosome allele. */
-        float t_start;                      /**< Start time of the allele. */
-        int t_steps;                        /**< Steps of duration of this allele. */
-        float ag_payoff;                    /**< Aggregated payoff that would be obtained. */
+    struct GASInfo {                            /**< Info for a single chromosome allele. */
+        float t_start;                          /**< Start time of the allele. */
+        int t_steps;                            /**< Steps of duration of this allele. */
+        float ag_payoff;                        /**< Aggregated payoff that would be obtained. */
     };
-    const float m_big_coeff = 1e4f;         /**< Ensure big enough to discard resource violations. */
-    const float m_small_coeff = 1e-4f;      /**< Ensure small. */
+    const float m_big_coeff = 1e6f;             /**< Ensure big enough to discard resource violations. */
+    const float m_small_coeff = 1e-4f;          /**< Ensure small. */
 
+    float m_max_payoff;                         /**< The maximum payoff possible (i.e. payoff of a chromosome that enables all alleles). */
+    std::map<std::string, float> m_max_cost;    /**< The total cost for each resource (i.e. cost of a chromosome that enables all alleles). */
+    GASChromosome m_best;                       /**< A copy of the best chromosome for comparison purposes. */
+    unsigned int m_generation_timeout;          /**< Counts number of generations where best has not changed. */
     std::vector<std::pair<unsigned int, float> > m_iteration_profile;   /**< Runtime information about the scheduling heuristic. */
     std::vector<GASChromosome> m_population;    /**< Chromosomes/individuals. */
     std::map<std::string, float> m_costs;       /**< Resource consumptions. */
@@ -74,6 +83,7 @@ private:
     float m_tstart;                             /**< Scheduling window start time. */
     float m_tend;                               /**< Scheduling window end time. */
     std::map<std::string, std::shared_ptr<const Resource> > m_resources_init;   /* Agent resources at start time. */
+
 
 
     /*******************************************************************************************//**
@@ -97,6 +107,12 @@ private:
     GASChromosome select(std::vector<GASChromosome>& mating_pool) const;
 
     /*******************************************************************************************//**
+     *  Repairs a pool of individuals by removing invalid ones.
+     *  @param  pool    The pool to be removed.
+     **********************************************************************************************/
+    void repairPool(std::vector<GASChromosome>& pool);
+
+    /*******************************************************************************************//**
      *  Combine two generations. Parents and children are combined based on the following
      *  techniques: truncation/elitist or generational. The result is stored in m_population.
      *  @param  parents     The parents.
@@ -109,11 +125,11 @@ private:
 
     /*******************************************************************************************//**
      *  Determines whether to continue iterating (i.e. trying to improve solution) or not.
-     *  @param  g   Current number of generations/iterations.
-     *  @param  f   Current best fitness.
-     *  @return     True if GA scheduler needs to keep looking for solutions. False otherwise.
+     *  @param  g       Current number of generations/iterations.
+     *  @param  best    Current best individual/solution.
+     *  @return         True if GA scheduler needs to keep looking for solutions. False otherwise.
      **********************************************************************************************/
-    bool iterate(unsigned int& g, float f);
+    bool iterate(unsigned int& g, GASChromosome best);
 };
 
 

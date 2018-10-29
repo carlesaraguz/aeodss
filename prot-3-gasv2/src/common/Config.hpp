@@ -74,20 +74,21 @@ public:
 
     /* Scheduling hard constraints: */
     static const unsigned int max_tasks = 20;
-    static const unsigned int max_task_duration = 20;
+    static constexpr const float max_task_duration = 20.f;
     static constexpr const float task_startup_cost = 1.f;
 
     /* Genetic Algorithm configuration: */
     static const unsigned int ga_max_activities = 30;
     static const unsigned int ga_generations = 10000;
-    static constexpr const float ga_min_improvement_rate = 0.001f;
+    static const unsigned int ga_timeout = 1000;
+    static constexpr const float ga_min_improvement_rate = 0.01f;
     static const unsigned int ga_population_size = 500;
     static unsigned int ga_crossover_points;
     static const unsigned int ga_tournament_k = 2;
     static constexpr const float ga_mutation_rate = 0.2f;
     static const GASCrossoverOp ga_crossover_op = GASCrossoverOp::MULIPLE_POINT;
     static const GASSelectionOp ga_parentsel_op = GASSelectionOp::TOURNAMENT;
-    static const GASSelectionOp ga_environsel_op = GASSelectionOp::TRUNCATION;
+    static const GASSelectionOp ga_environsel_op = GASSelectionOp::ELITIST;
     static const unsigned int ga_thread_pool_size = 8;
 
     /* Global values: */

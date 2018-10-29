@@ -34,12 +34,12 @@ int main(int /* argc */, char** /* argv */)
 
     /* Create agents: --------------------------------------------------------------------------- */
     std::vector<std::shared_ptr<Agent> > agents;
-    // for(unsigned int i = 0; i < Config::n_agents; i++) {
-    //     auto aptr = std::make_shared<Agent>("A" + std::to_string(i));
-    //     agents.push_back(aptr);
-    // }
+    for(unsigned int i = 0; i < Config::n_agents; i++) {
+        auto aptr = std::make_shared<Agent>("A" + std::to_string(i));
+        agents.push_back(aptr);
+    }
     // agents.push_back(std::make_shared<Agent>("A0", sf::Vector2f(0.f, 0.f), sf::Vector2f(10.f, 10.f)));
-    agents.push_back(std::make_shared<Agent>("A1", sf::Vector2f(0.f, 460.f), sf::Vector2f(10.f, -5.1f)));
+    // agents.push_back(std::make_shared<Agent>("A1", sf::Vector2f(0.f, 460.f), sf::Vector2f(10.f, -5.1f)));
     // agents.push_back(std::make_shared<Agent>("A2", sf::Vector2f(0.f, 460.f), sf::Vector2f(10.f, 0.f)));
 
     /* Configure agents: ------------------------------------------------------------------------ */
