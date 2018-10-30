@@ -30,12 +30,19 @@ public:
     static const unsigned int world_height =  900;          /**< Default window height.         */
     static const unsigned int model_unity_size = 10;        /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents = 20;                /**< Total number of agents.        */
-    static constexpr const float time_step = 1.f;           /**< Units of time per step.        */
+    static const unsigned int n_agents =  1;                /**< Total number of agents.        */
+    static constexpr const float start_epoch = 2451545.0;   /**< Start epoch (in J2000).        */
+    static constexpr const float time_step = 600.f / (3600.f * 24.f); /**< Units of time per step. */ /**  == DEBUG --> equals to 600 seconds. */
     static constexpr const float max_revisit_time = 2e3;    /**< Units of time.                 */
     static constexpr const float target_revisit_time = 1e3; /**< Units of time.                 */
     static constexpr const float min_payoff = 1e-3f;        /**< Unit-less (payoff RT < target) */
     static constexpr const float max_payoff = 1.f;          /**< Unit-less (payoff RT > max.)   */
+
+    /* Earth WGS84 parameters: */
+    static constexpr const double earth_wgs84_a = 6378137.0;        /**< Semi-major axis of WGS84 ellipsoid (in meters). */
+    static constexpr const double earth_wgs84_b = 6356752.314245;   /**< Semi-minor axis of WGS84 ellipsoid (in meters). */
+    static constexpr const double earth_wgs84_e = 0.08181919;       /**< Eccentricity of WGS84 ellipsoid. */
+    static constexpr const double earth_mu = 3.986004419 * std::pow(10, 14); /**< Earth's gravitational constant. */
 
     /* Agent parametrization: */
     static constexpr const float agent_swath_min = 99.9f; //  70.f;   /**< Minimum swath for agents.      */
@@ -47,7 +54,7 @@ public:
     static constexpr const float agent_speed =  4.f;        /**< Distance per time unit.        */
     static const unsigned int agent_planning_window = 3.5e2;  /**< Steps.                         */
     static constexpr const float activity_size = 0.01f;     /**< Size of a single agent msg.    */
-    static const AgentMotionType motion_model = AgentMotionType::LINEAR_BOUNCE;
+    static const AgentMotionType motion_model = AgentMotionType::ORBITAL;
     /* Resource consumptions and capacities: */
     /* -- Energy: */
     static constexpr const float agent_energy_generation_rate = -0.01f;

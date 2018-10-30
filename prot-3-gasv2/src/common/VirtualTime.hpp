@@ -12,6 +12,7 @@
 #define VIRTUAL_TIME_HPP
 
 #include "prot.hpp"
+#include "Config.hpp"
 
 class VirtualTime
 {
@@ -19,6 +20,7 @@ public:
     static void step(void);
     static std::string getTimeStr(void);
     static float now(void) { return m_vtime; }
+
 private:
     static float m_vtime;
 };

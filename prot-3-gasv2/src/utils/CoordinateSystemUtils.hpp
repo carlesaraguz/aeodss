@@ -1,0 +1,204 @@
+/***************************************************************************************************
+*  File:        CoordinateSystemUtils.hpp                                                          *
+*  Authors:     Carles Araguz (CA), <carles.araguz@upc.edu>                                        *
+*               Joan Adrià Ruiz de Azúa (JARA). <joan.adria@tsc.upc.edu>                           *
+*  Creation:    2018-jan-26                                                                        *
+*  Description: Class that implements different mechanisms to parse between space coordinate       *
+*               frames                                                                             *
+*                                                                                                  *
+*  This file is part of a project developed by Nano-Satellite and Payload Laboratory (NanoSat Lab) *
+*  at Technical University of Catalonia - UPC BarcelonaTech.                                       *
+* ------------------------------------------------------------------------------------------------ *
+*  Changelog:                                                                                      *
+*  v#   Date            Author  Description                                                        *
+*  0.0  2017-may-23     CA      Implementation of ECI to ECEF methods in ECICoordonates.cpp        *
+*  0.1  2018-jan-26     JARA    Creation.                                                          *
+***************************************************************************************************/
+
+#ifndef __COORDINATE_SYSTEM_UTILS__
+#define __COORDINATE_SYSTEM_UTILS__
+
+/* External includes */
+#include <gsl/gsl_matrix.h>         /* GNU Scientific Library headers.                  */
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_permutation.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_math.h>
+
+/* Internal includes */
+#include "MathUtils.hpp"
+#include "CoordinateSystemUtilsCoeff.hpp"
+#include "VirtualTime.hpp"
+
+/***********************************************************************************************//**
+ * It provides frame transformation mechanisms. It is able to transform coordinates between
+ * different frames:
+ *  - [Earth-Centered Inertial (ECI) frame](https://en.wikipedia.org/wiki/Earth-centered_inertial)
+ *  - [Earth-Centered Earth-Fixed (ECEF) frame](https://en.wikipedia.org/wiki/ECEF)
+ *  - [Orbital frame](https://en.wikipedia.org/wiki/Orbital_elements)
+ *  - [Geographic or Geodetic frame](https://en.wikipedia.org/wiki/Geographic_coordinate_system)
+ * Note that the implemented transformations are the following ones:
+ *  - from ECI to ECEF and viceversa
+ *  - from Geographic to ECEF and viceversa
+ *  - from ECI to Geographic and viceversa
+ *  - from Orbital to ECI, or to ECEF, or to Geographic
+ **************************************************************************************************/
+class CoordinateSystemUtils
+{
+public:
+    /*******************************************************************************************//**
+     * Transformation from ECI to ECEF. This conversion is based upon "Appendix - Transformation
+     * of ECI (CIS, EPOCH J2000.0) coordinates to WGS84 (CTS, ECEF) coordinates", from the
+     * National Geospatial-Intelligence Agency, available
+     * [on-line](http://earth-info.nga.mil/GandG/publications/tr8350.2/tr8350.2-a/Appendix.pdf).
+     *
+     * @param coord     Coordinates in ECI frame to be transformed
+     * @param jd        Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static sf::Vector3f fromECItoECEF(sf::Vector3f coord, double jd);
+
+    /*******************************************************************************************//**
+     * Transformation from ECI to Geographic. This conversion uses an intermediate transformation
+     * from ECI to ECEF, and then from ECEF to Geographic.
+     *
+     * @param coord     Coordinates in ECI frame to be transformed
+     * @param jd        Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static sf::Vector3f fromECItoGeographic(sf::Vector3f coord, double jd);
+
+    /*******************************************************************************************//**
+     * Transformation from ECEF to Geographic. This conversion is based on the [Ferrari's solution
+     * using the Zhu formulation](https://en.wikipedia.org/wiki/Geographic_coordinate_conversion)
+     *
+     * @param coord     Coordinates in ECEF frame to be transformed
+     **********************************************************************************************/
+    static sf::Vector3f fromECEFtoGeographic(sf::Vector3f coord);
+
+    /*******************************************************************************************//**
+     *  Transformation from Orbital to ECI. This conversion is based upon the kepler orbital
+     *  elements. It does not consider effects of the [flattering effect (J2-term)](
+     *  https://en.wikipedia.org/wiki/Orbital_perturbation_analysis#The_effect_of_the_Earth_flattening)
+     *  the argument of periapsis either right ascension of the ascending node.
+     *  @param radius        Orbital coordinate to be transformed: radius.
+     *  @param true_anomaly  Orbital coordinate to be transformed: true anomaly (in radians).
+     *  @param right_asc     Right ascension of the ascending node of the orbit [º]
+     *  @param arg_perigee   Argument of periapsis of the orbit [º]
+     *  @param inclination   Inclination of the orbit [º]
+     **********************************************************************************************/
+    static sf::Vector3f fromOrbitaltoECI(
+        double radius,
+        double true_anomaly,
+        double right_asc,
+        double arg_perigee,
+        double inclination
+    );
+
+    /*******************************************************************************************//**
+     *  Transformation from Orbital to ECEF. This conversion uses an intermediate transformation
+     *  from Orbital to ECI, and then from ECI to ECEF.
+     *  @param radius        Orbital coordinate to be transformed: radius.
+     *  @param true_anomaly  Orbital coordinate to be transformed: true anomaly (in radians).
+     *  @param jd            Current Julian Days of the transformation [days]
+     *  @param right_asc     Right ascension of the ascending node of the orbit [º]
+     *  @param arg_perigee   Argument of periapsis of the orbit [º]
+     *  @param inclination   Inclination of the orbit [º]
+     **********************************************************************************************/
+    static sf::Vector3f fromOrbitaltoECEF(
+        double radius,
+        double true_anomaly,
+        double jd,
+        double right_asc,
+        double arg_perigee,
+        double inclination
+    );
+
+    /*******************************************************************************************//**
+     *  Transformation from Orbital to Geographic. This conversion uses intermediate transformations
+     *  from Orbital to ECI, then from ECI to ECEF, and finally from ECEF to Geographic.
+     *  @param radius        Orbital coordinate to be transformed: radius.
+     *  @param true_anomaly  Orbital coordinate to be transformed: true anomaly (in radians).
+     *  @param jd            Current Julian Days of the transformation [days]
+     *  @param right_asc     Right ascension of the ascending node of the orbit [º]
+     *  @param arg_perigee   Argument of periapsis of the orbit [º]
+     *  @param inclination   Inclination of the orbit [º]
+     **********************************************************************************************/
+    static sf::Vector3f fromOrbitaltoGeographic(
+        double radius,
+        double true_anomaly,
+        double jd,
+        double right_asc,
+        double arg_perigee,
+        double inclination
+    );
+
+
+private:
+    /*******************************************************************************************//**
+     * Computes the Julian Centuries from the Julian Days. This function is used in the ECEF/ECI
+     * conversion process.
+     *
+     * @param jd            Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static double getJulianCenturies(double jd);
+
+    /*******************************************************************************************//**
+     * Computes the Greenwich Mean Sidereal Time (GSMT) from the Julian Days. This function is used
+     * in the ECEF/ECI conversion process.
+     *
+     * @param jd            Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static double getGMST(double jd);
+
+    /*******************************************************************************************//**
+     * Computes the precession matrix of the Earth. The Earth rotational axis changes through time
+     * and this matrix enables to characterize this perturbation. This function is used in the
+     * ECEF/ECI conversion process.
+     *
+     * @param jd            Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static gsl_matrix * getPrecessionMatrix(double jd);
+
+    /*******************************************************************************************//**
+     * Computes the nutation matrix of the Earth. The Earth rotational axis has a nodding motion
+     * which needs to be characterized during the ECEF/ECI conversion process.
+     *
+     * @param jd            Current Julian Days of the transformation [days]
+     * @param eps_ptr       Reference parameter to the true obliquity of ecliptic [radians]
+     * @param d_psi_ptr     Reference parameter to the nutation in longitude [radians]
+     **********************************************************************************************/
+    static gsl_matrix * getNutationMatrix(double jd, double* eps_ptr, double* d_psi_ptr);
+
+    /*******************************************************************************************//**
+     * Computes the sideral matrix of the Earth. This function is used in the ECEF/ECI conversion
+     * process. Type of error from the gsl library
+     *
+     * @param jd        Current Julian Days of the transformation [days]
+     * @param eps       True obliquity of ecliptic [radians]
+     * @param d_psi     Nutation in longitude [radians]
+     **********************************************************************************************/
+    static gsl_matrix * getSideralMatrix(double jd, double eps, double d_psi);
+
+    /*******************************************************************************************//**
+     * Computes a GSL matrix from a double pointer. This method reads the rows and the columns and
+     * constructs the GSL matrix accordingly to the input matrix. Note that the input i and j
+     * represent the number of rows and coulmns that have the input matrix. This method is used
+     * to work with other gsl functions.
+     *
+     * @param ptr   double pointer to the data matrix to be parsed
+     * @param i     number of matrix rows
+     * @param j     number of matrix columns
+     **********************************************************************************************/
+    static gsl_matrix * getGSLMatrixFromPtr(double * ptr, size_t i, size_t j);
+
+    /*******************************************************************************************//**
+     * It computes the polar motion matrix of the Earth. As it does not exist a specific model
+     * to compute this matrix. Indeed, it is used a set of empiric measurements from IERS and JPL
+     * database. This function is used in the ECEF/ECI conversion process.
+     *
+     * @param jd        Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static gsl_matrix * getPolarMotionMatrix(double jd);
+};
+
+#endif  /* __COORDINATE_SYSTEM_UTILS__ */

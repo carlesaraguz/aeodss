@@ -13,6 +13,7 @@
 
 #include "prot.hpp"
 #include "Activity.hpp"
+#include "VirtualTime.hpp"
 
 class Agent;
 

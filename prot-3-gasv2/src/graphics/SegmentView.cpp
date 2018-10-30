@@ -53,9 +53,13 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, std::string str)
     c.a = 180;
 
     /* Lines: trajectory of the segment. */
+    Log::err << "**** pos size: " << m_positions.size() << "\n";
+    Log::err << "**** x: " << m_positions.front().x <<  "\n";
+
     for(unsigned int i = 1; i < m_positions.size(); i++) {
         if((m_positions[i - 1].x <= 0.f && m_positions[i - 1].y <= 0.f) || (m_positions[i].x <= 0.f && m_positions[i].y <= 0.f)) {
             Log::err << "Segment view error: found a potential inconsistency in position {" << i << "}\n";
+            Log::err << "***** x: " << m_positions[i - 1].x << " y: " << m_positions[i - 1].y << "\n";
             m_error = true;
         }
         ThickLine tline(m_positions[i - 1], m_positions[i]);

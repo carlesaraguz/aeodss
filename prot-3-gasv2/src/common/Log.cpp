@@ -84,8 +84,13 @@ void LogStream::conditionalPrintHeader(void)
     if(m_new_line) {
         m_out << m_color_lut[Color::GRAY] << "[ " << m_color_lut[Color::NO_COLOR]
             << WallTime::getTimeStr();
-        m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " "
-            << std::setw(7) << std::setprecision(1) << std::fixed << VirtualTime::now();
+        m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " ";
+
+        if(Config::motion_model == AgentMotionType::ORBITAL) {
+            m_out << std::setw(10) << std::setprecision(8) << std::fixed << VirtualTime::now() - Config::start_epoch;
+        } else {
+            m_out << std::setw(7) << std::setprecision(1) << std::fixed << VirtualTime::now();
+        }
         m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " "
             << std::right << std::setfill(' ') << std::setw(m_max_cname_len) << m_cname;
         m_out << m_color_lut[Color::GRAY] << " ]" << m_color_lut[Color::NO_COLOR] << " ("

@@ -101,6 +101,10 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(float swath, sf::Vect
 {
     int ox = std::round(position.x / m_env_info.rw);
     int oy = std::round(position.y / m_env_info.rh);
+    if(ox > (int)m_env_info.mw || oy > (int)m_env_info.mh || ox < 0 || oy < 0) {
+        Log::err << "Can't get visible cells for a point that is outside the model space O(" << ox << ", " << oy << ")\n";
+        throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
+    }
     float dist = swath / 2.f;
     std::vector<sf::Vector2i> cells;
     auto f = [&cells](unsigned int x, unsigned int y) {
@@ -122,10 +126,19 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(bool world_cells) con
     if(world_cells) {
         ox = std::round(m_position.x);
         oy = std::round(m_position.y);
+        if(ox > (int)Config::world_width || oy > (int)Config::world_height || ox < 0 || oy < 0) {
+            Log::err << "Can't get visible cells for a point that is outside the world space O(" << ox << ", " << oy << ")\n";
+            throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
+        }
     } else {
         ox = std::round(m_position.x / m_env_info.rw);
         oy = std::round(m_position.y / m_env_info.rh);
+        if(ox > (int)m_env_info.mw || oy > (int)m_env_info.mh || ox < 0 || oy < 0) {
+            Log::err << "Can't get visible cells for a point that is outside the model space O(" << ox << ", " << oy << ")\n";
+            throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
+        }
     }
+
     std::vector<sf::Vector2i> cells;
     auto f = [&cells](unsigned int x, unsigned int y) {
         cells.push_back(sf::Vector2i(x, y));

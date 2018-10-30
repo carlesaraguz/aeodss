@@ -14,6 +14,7 @@
 #include "prot.hpp"
 #include "HideGraphics.hpp"
 #include "ThickLine.hpp"
+#include "VirtualTime.hpp"
 
 class AgentView : public HideGraphics, public sf::Drawable, public sf::Transformable
 {

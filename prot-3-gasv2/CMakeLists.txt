@@ -16,6 +16,11 @@ if(SFML_FOUND)
     link_libraries(${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 endif()
 
+# -- GNU Scientific Library:
+find_package(GSL REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
+link_libraries(${GSL_LIBRARIES})
+
 # -- GoogleTest
 find_package(GTest)
 if(GTEST_FOUND)

@@ -24,6 +24,7 @@
 #include "BasicInstrument.hpp"
 #include "Resource.hpp"
 #include "CumulativeResource.hpp"
+#include "VirtualTime.hpp"
 
 #include "GAScheduler.hpp"
 
@@ -31,7 +32,7 @@ class Agent : public TimeStep, public HasView
 {
 public:
     Agent(std::string id);
-    Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel);
+    Agent(std::string id, sf::Vector3f init_pos, sf::Vector3f init_vel);
 
     /* Public member functions: */
     void step(void) override;

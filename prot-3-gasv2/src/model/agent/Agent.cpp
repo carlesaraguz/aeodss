@@ -12,7 +12,7 @@
 
 CREATE_LOGGER(Agent)
 
-Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
+Agent::Agent(std::string id, sf::Vector3f init_pos, sf::Vector3f init_vel)
     : m_id(id)
     , m_self_view(id)
     , m_motion(this, init_pos, init_vel)
@@ -23,7 +23,7 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_display_resources(false)
 {
     m_payload.setDimensions(m_environment->getEnvModelInfo());
-    m_payload.setPosition(m_motion.getPosition());
+    m_payload.setPosition(m_motion.getProjection2D());
     m_activities->setAgentId(m_id);
     initializeResources();
 }
@@ -31,7 +31,7 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
 Agent::Agent(std::string id)
     : m_id(id)
     , m_self_view(id)
-    , m_motion(this)
+    , m_motion(this, Random::getUf(0.f, 2 * Config::pi))
     , m_environment(std::make_shared<EnvModel>(this, (Config::world_width / Config::model_unity_size), (Config::world_height / Config::model_unity_size)))
     , m_link(std::make_shared<AgentLink>(this))
     , m_activities(std::make_shared<ActivityHandler>(this))
@@ -39,7 +39,7 @@ Agent::Agent(std::string id)
     , m_display_resources(false)
 {
     m_payload.setDimensions(m_environment->getEnvModelInfo());
-    m_payload.setPosition(m_motion.getPosition());
+    m_payload.setPosition(m_motion.getProjection2D());
     m_activities->setAgentId(m_id);
     initializeResources();
 }
@@ -56,7 +56,7 @@ void Agent::initializeResources(void)
 void Agent::step(void)
 {
     m_motion.step();
-    m_payload.setPosition(m_motion.getPosition());
+    m_payload.setPosition(m_motion.getProjection2D());
 
     plan();
     execute();
@@ -73,8 +73,8 @@ void Agent::step(void)
     } else {
         m_self_view.setText(m_id);
     }
-    m_self_view.setPosition(m_motion.getPosition());
-    m_self_view.setDirection(m_motion.getVelocity());
+    m_self_view.setPosition(m_motion.getProjection2D());
+    m_self_view.setDirection(m_motion.getDirection2D());
     m_self_view.setFootprint(m_payload.getFootprint());
 }
 
@@ -209,12 +209,14 @@ bool Agent::operator!=(const Agent& ra)
 std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
 {
     if(t0 >= t1 || t0 < VirtualTime::now()) {
-        Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: " << t0 << ", " << t1 << ".\n";
+        Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: " << t0 << ", " << t1 << " ["
+            << (int)(t0 >= t1) << "|" << (int)(t0 < VirtualTime::now()) << "]\n";
         throw std::runtime_error("Error creating activity (1)");
     }
     unsigned int n_steps = (t1 - t0) / Config::time_step;
     unsigned int n_delay = (t0 - VirtualTime::now()) / Config::time_step;
-    std::vector<sf::Vector2f> ps = m_motion.propagate(n_delay + n_steps);
+    std::vector<sf::Vector3f> ps = m_motion.propagate(n_delay + n_steps);
+
     if(ps.size() != n_delay + n_steps) {
         Log::err << "Agent " << m_id << " failed when creating activity, unexpected propagation points ("
             << n_delay + n_steps << " req., " << ps.size() << " returned).\n";
@@ -232,8 +234,9 @@ std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
     /* Find active cells and their times: */
     float t = t0;
     for(auto p = ps.begin() + n_delay; p != ps.begin() + n_delay + n_steps; p++) {
-        a_pos[t] = *p;
-        auto cell_coords = m_payload.getVisibleCells(swath, *p);
+        sf::Vector2f p2d(p->x, p->y);
+        a_pos[t] = sf::Vector2f(p->x, p->y);
+        auto cell_coords = m_payload.getVisibleCells(swath, p2d);
         for(auto& cit : cell_coords) {
             /* Check whether that cell was already in the list: */
             int idx = a_cells_lut[cit.x][cit.y].v;
@@ -276,7 +279,6 @@ std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
     }
     return m_activities->createOwnedActivity(a_pos, a_cells);
 }
-
 
 void Agent::displayActivities(ActivityDisplayType af)
 {

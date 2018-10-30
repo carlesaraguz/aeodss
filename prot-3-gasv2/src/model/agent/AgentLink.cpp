@@ -131,7 +131,7 @@ void AgentLink::update(void)
     std::vector<std::string> disconnect_list;
     for(auto& l : m_connected) {
         if(l.second) {
-            if(m_other_agents[l.first]->getLink()->distanceFrom(m_agent->getMotion().getPosition()) > m_link_ranges.at(l.first)) {
+            if(m_other_agents[l.first]->getLink()->distanceFrom(m_agent->getMotion().getProjection2D()) > m_link_ranges.at(l.first)) {
                 disconnect_list.push_back(l.first);
             }
         }
@@ -148,7 +148,7 @@ void AgentLink::update(void)
         for(auto& a : m_other_agents) {
             std::string id = a.second->getId();
             float r = a.second->getLink()->getRange();
-            float d = a.second->getLink()->distanceFrom(m_agent->getMotion().getPosition());
+            float d = a.second->getLink()->distanceFrom(m_agent->getMotion().getProjection2D());
             /* Check mutual visibility/range. */
             if(d <= r && d <= m_range) {
                 if(!m_connected[id]) {
@@ -297,7 +297,7 @@ void AgentLink::step(void)
 
 float AgentLink::distanceFrom(sf::Vector2f p) const
 {
-    sf::Vector2f v = p - m_agent->getMotion().getPosition();
+    sf::Vector2f v = p - m_agent->getMotion().getProjection2D();
     return std::sqrt(v.x * v.x + v.y * v.y);
 }
 

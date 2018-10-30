@@ -79,16 +79,15 @@ void AgentView::displayId(bool d)
 
 void AgentView::setDirection(sf::Vector2f vel)
 {
-    sf::Vector2f v = vel / std::sqrt(vel.x * vel.x + vel.y * vel.y);
     float dir = 0.f;
-    switch(quadrant(v)) {
+    switch(quadrant(vel)) {
         case 1:
         case 2:
-        dir = std::acos(v.x);
+        dir = std::acos(vel.x);
         break;
         case 3:
         case 4:
-        dir = -std::acos(v.x);
+        dir = -std::acos(vel.x);
         break;
     }
     dir *= 180.f / Config::pi;

@@ -6,10 +6,12 @@ add_library(model_test STATIC ${src_list})
 target_link_libraries(model
     common
     scheduler
+    utils
 )
 target_link_libraries(model_test
     common_test
     scheduler_test
+    utils_test
 )
 
 set_target_properties(model_test

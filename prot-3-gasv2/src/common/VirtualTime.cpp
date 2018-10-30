@@ -10,7 +10,7 @@
 
 #include "VirtualTime.hpp"
 
-float VirtualTime::m_vtime = 0.f;
+float VirtualTime::m_vtime = Config::start_epoch;
 
 void VirtualTime::step(void)
 {
