@@ -89,10 +89,14 @@ public:
      **********************************************************************************************/
     sf::Vector2f getProjection2D(void) const;
 
+    static sf::Vector2f getProjection2D(sf::Vector3f p, float t);
+
     /*******************************************************************************************//**
      *  Returns the normalized projection of velocity so as to determine the current direction.
      **********************************************************************************************/
     sf::Vector2f getDirection2D(void);
+
+    double getSMA(void) const { return m_orb_params.sma; }
 
 private:
     /* Motion arguments: */

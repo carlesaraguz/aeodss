@@ -1,0 +1,2 @@
+/usr/bin/ar qc libscheduler.a  CMakeFiles/scheduler.dir/GASChromosome.cpp.o CMakeFiles/scheduler.dir/GAScheduler.cpp.o
+/usr/bin/ranlib libscheduler.a

@@ -30,9 +30,9 @@ public:
     static const unsigned int world_height =  900;          /**< Default window height.         */
     static const unsigned int model_unity_size = 10;        /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents =  1;                /**< Total number of agents.        */
+    static const unsigned int n_agents = 20;                /**< Total number of agents.        */
     static constexpr const float start_epoch = 2451545.0;   /**< Start epoch (in J2000).        */
-    static constexpr const float time_step = 600.f / (3600.f * 24.f); /**< Units of time per step. */ /**  == DEBUG --> equals to 600 seconds. */
+    static constexpr const float time_step = 50.f / (3600.f * 24.f); /**< Units of time per step. */ /**  == DEBUG --> equals to 600 seconds. */
     static constexpr const float max_revisit_time = 2e3;    /**< Units of time.                 */
     static constexpr const float target_revisit_time = 1e3; /**< Units of time.                 */
     static constexpr const float min_payoff = 1e-3f;        /**< Unit-less (payoff RT < target) */

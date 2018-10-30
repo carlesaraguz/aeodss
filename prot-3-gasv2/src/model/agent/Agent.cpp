@@ -82,7 +82,7 @@ void Agent::plan(void)
 {
     /* Schedule activities: */
     float tv_now = VirtualTime::now();
-    bool resources_ok = true;
+    bool resources_ok = false;
     for(auto& r : m_resources) {
         if(r.second->getCapacity() / r.second->getMaxCapacity() < 0.25f) {
             resources_ok = false;
@@ -93,6 +93,9 @@ void Agent::plan(void)
         /* Create a temporal activity (won't be added to the Activities Handler): */
         float t_end = tv_now + Config::agent_planning_window * Config::time_step;
         auto tmp_act = createActivity(tv_now, t_end, m_payload.getSwath());
+        m_environment->addActivity(tmp_act);
+
+        return;
 
         /* Compute and display payoff for the temporal activity object: */
         m_environment->computePayoff(tmp_act, true);
@@ -234,8 +237,8 @@ std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
     /* Find active cells and their times: */
     float t = t0;
     for(auto p = ps.begin() + n_delay; p != ps.begin() + n_delay + n_steps; p++) {
-        sf::Vector2f p2d(p->x, p->y);
-        a_pos[t] = sf::Vector2f(p->x, p->y);
+        sf::Vector2f p2d = AgentMotion::getProjection2D(*p, t);
+        a_pos[t] = p2d;
         auto cell_coords = m_payload.getVisibleCells(swath, p2d);
         for(auto& cit : cell_coords) {
             /* Check whether that cell was already in the list: */

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libutils.a  CMakeFiles/utils.dir/CoordinateSystemUtils.cpp.o CMakeFiles/utils.dir/CoordinateSystemUtilsCoeff.cpp.o CMakeFiles/utils.dir/MathUtils.cpp.o
+/usr/bin/ranlib libutils.a

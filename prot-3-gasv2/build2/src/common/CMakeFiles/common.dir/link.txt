@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcommon.a  CMakeFiles/common.dir/Config.cpp.o CMakeFiles/common.dir/Init.cpp.o CMakeFiles/common.dir/Log.cpp.o CMakeFiles/common.dir/Random.cpp.o CMakeFiles/common.dir/Utils.cpp.o CMakeFiles/common.dir/VirtualTime.cpp.o CMakeFiles/common.dir/WallTime.cpp.o
+/usr/bin/ranlib libcommon.a

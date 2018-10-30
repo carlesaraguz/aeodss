@@ -42,15 +42,15 @@ AgentMotion::AgentMotion(Agent* aptr, sf::Vector3f init_pos, sf::Vector3f init_v
             }
             break;
         case AgentMotionType::LINEAR_INFINITE:
-            Log::err << "[" << m_agent->getId() << "] Constructing AgentMotion with an unsupported motion model: LINEAR_INFINITE.\n";
+            Log::err << "[ TODO ] Constructing AgentMotion with an unsupported motion model: LINEAR_INFINITE.\n";
             throw std::runtime_error("Constructing AgentMotion with unsupported motion model LINEAR_INFINITE.");
             break;
         case AgentMotionType::SINUSOIDAL:
-            Log::err << "[" << m_agent->getId() << "] Constructing AgentMotion with an unsupported motion model: SINUSOIDAL.\n";
+            Log::err << "[ TODO ] Constructing AgentMotion with an unsupported motion model: SINUSOIDAL.\n";
             throw std::runtime_error("Constructing AgentMotion with unsupported motion model SINUSOIDAL.");
             break;
         case AgentMotionType::ORBITAL:
-            Log::err << "[" << m_agent->getId() << "] Constructing AgentMotion with an unsupported motion model: ORBITAL.\n";
+            Log::err << "[ TODO ] Constructing AgentMotion with an unsupported motion model: ORBITAL.\n";
             throw std::runtime_error("Constructing AgentMotion with unsupported motion model ORBITAL.");
             break;
         }
@@ -83,16 +83,16 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
                 m_orb_params.inc  = Random::getUf(70.f, 90.f);
                 m_orb_params.argp = Random::getUf(0.f, 360.f);
                 m_orb_params.raan = Random::getUf(0.f, 360.f);
-                Log::dbg << "Randomly generated orbital parameters:\n";
-                Log::dbg << " - Semi-major axis: " << m_orb_params.sma << " meters (R+ " << m_orb_params.sma - Config::earth_wgs84_a << " meters).\n";
-                Log::dbg << " - Eccentricity: " << m_orb_params.ecc << ".\n";
-                Log::dbg << " - Inclination: " << m_orb_params.inc << " deg.\n";
-                Log::dbg << " - Arg. of perigee: " << m_orb_params.argp << " deg.\n";
-                Log::dbg << " - RAAN: " << m_orb_params.raan << " deg.\n";
+                // Log::dbg << "Randomly generated orbital parameters:\n";
+                // Log::dbg << " - Semi-major axis: " << m_orb_params.sma << " meters (R+ " << m_orb_params.sma - Config::earth_wgs84_a << " meters).\n";
+                // Log::dbg << " - Eccentricity: " << m_orb_params.ecc << ".\n";
+                // Log::dbg << " - Inclination: " << m_orb_params.inc << " deg.\n";
+                // Log::dbg << " - Arg. of perigee: " << m_orb_params.argp << " deg.\n";
+                // Log::dbg << " - RAAN: " << m_orb_params.raan << " deg.\n";
             }
 
             m_orb_params.mean_motion = std::sqrt(Config::earth_mu / std::pow(m_orb_params.sma, 3)); /* In radians/sec. */
-            Log::dbg << "Mean motion: " << m_orb_params.mean_motion << " rad/s.\n";
+            // Log::dbg << "Mean motion: " << m_orb_params.mean_motion << " rad/s.\n";
 
             OrbitalState os;
             os.mean_anomaly = init_mean_an;
@@ -105,10 +105,10 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
             m_position.push_back(getPositionFromOrbital(os));
             m_velocity.push_back(getVelocityFromOrbital(os));
 
-            Log::dbg << "Initial position: "
-                << "p(" << m_position.back().x << ", " << m_position.back().y << ", " << m_position.back().z << ") "
-                << "v(" << m_velocity.back().x << ", " << m_velocity.back().y << ", " << m_velocity.back().z << ") "
-                << "ma = " << os.mean_anomaly << " rad.\n";
+            // Log::dbg << "Initial position: "
+            //     << "p(" << m_position.back().x << ", " << m_position.back().y << ", " << m_position.back().z << ") "
+            //     << "v(" << m_velocity.back().x << ", " << m_velocity.back().y << ", " << m_velocity.back().z << ") "
+            //     << "ma = " << os.mean_anomaly << " rad.\n";
             break;
         }
 }
@@ -176,9 +176,9 @@ std::vector<sf::Vector3f> AgentMotion::propagate(unsigned int nsteps)
 
                         os0 = os;
 
-                        Log::dbg << "Propagation " << i << ": "
-                            << "p(" << m_position.back().x << ", " << m_position.back().y << ", " << m_position.back().z << ") "
-                            << "v(" << m_velocity.back().x << ", " << m_velocity.back().y << ", " << m_velocity.back().z << ")\n";
+                        // Log::dbg << "Propagation " << i << ": "
+                        //     << "p(" << m_position.back().x << ", " << m_position.back().y << ", " << m_position.back().z << ") "
+                        //     << "v(" << m_velocity.back().x << ", " << m_velocity.back().y << ", " << m_velocity.back().z << ")\n";
                     }
                 }
                 break;
@@ -345,17 +345,22 @@ sf::Vector2f AgentMotion::getProjection2D(void) const
             retvec = sf::Vector2f(m_position.front().x, m_position.front().y);
             break;
         case AgentMotionType::ORBITAL:
-            {
-                sf::Vector3f ecef_coord = CoordinateSystemUtils::fromECItoECEF(m_position.front(), VirtualTime::now());
-                sf::Vector3f geo_coord  = CoordinateSystemUtils::fromECEFtoGeographic(ecef_coord);
-                float x = (float)m_world_w * (geo_coord.x + 180.f) / 360.f;
-                float y = (float)m_world_h * (geo_coord.y + 90.f)  / 180.f;
-                retvec = sf::Vector2f(x, y);
-                Log::dbg << "2D projection: p(" << retvec.x << ", " << retvec.y << ")\n";
-            }
+            retvec = getProjection2D(m_position.front(), VirtualTime::now());
+            // Log::dbg << "2D projection: p(" << retvec.x << ", " << retvec.y << ")\n";
             break;
     }
     return retvec;
+}
+
+sf::Vector2f AgentMotion::getProjection2D(sf::Vector3f p, float t)
+{
+    sf::Vector3f ecef_coord = CoordinateSystemUtils::fromECItoECEF(p, t);
+    sf::Vector3f geo_coord  = CoordinateSystemUtils::fromECEFtoGeographic(ecef_coord);
+    /* geo_coord.x = LATITUDE and geo_coord.y = LONGITUDE */
+    return sf::Vector2f(
+        (float)(Config::world_width * (geo_coord.y)  / 360.f) + (Config::world_width / 2),
+        (float)(Config::world_height * (geo_coord.x) / 180.f) + (Config::world_height / 2)
+    );
 }
 
 sf::Vector2f AgentMotion::getDirection2D(void)
@@ -370,8 +375,8 @@ sf::Vector2f AgentMotion::getDirection2D(void)
         case AgentMotionType::ORBITAL:
             {
                 propagate(2);   /* Ensure that there are at least two positions computed: */
-                sf::Vector2f curr = AgentMotion::getProjection2D();
-                sf::Vector2f next = AgentMotion::getProjection2D();
+                sf::Vector2f curr = AgentMotion::getProjection2D(m_position[0], VirtualTime::now());
+                sf::Vector2f next = AgentMotion::getProjection2D(m_position[1], VirtualTime::now() + Config::time_step);
 
                 sf::Vector2f vel = sf::Vector2f(next.x - curr.x, next.y - curr.y) / Config::time_step;
                 sf::Vector2f norm_vel = vel / std::sqrt(vel.x * vel.x + vel.y * vel.y);

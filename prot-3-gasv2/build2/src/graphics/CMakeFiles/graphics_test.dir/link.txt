@@ -1,0 +1,2 @@
+/usr/bin/ar qc libgraphics_test.a  CMakeFiles/graphics_test.dir/ActivityHandlerView.cpp.o CMakeFiles/graphics_test.dir/AgentView.cpp.o CMakeFiles/graphics_test.dir/ColorGradient.cpp.o CMakeFiles/graphics_test.dir/GridView.cpp.o CMakeFiles/graphics_test.dir/HideGraphics.cpp.o CMakeFiles/graphics_test.dir/MultiView.cpp.o CMakeFiles/graphics_test.dir/SegmentView.cpp.o CMakeFiles/graphics_test.dir/ThickLine.cpp.o
+/usr/bin/ranlib libgraphics_test.a
