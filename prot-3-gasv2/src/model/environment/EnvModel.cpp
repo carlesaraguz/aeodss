@@ -65,8 +65,8 @@ void EnvModel::clearView(void)
 
 void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_view)
 {
-    float* t0s;
-    float* t1s;
+    double* t0s;
+    double* t1s;
     float po;
     if(display_in_view && m_payoff_view) {
         clearView();
@@ -107,7 +107,7 @@ bool EnvModel::removeActivity(std::shared_ptr<Activity> act)
     return retval;
 }
 
-void EnvModel::cleanActivities(float t)
+void EnvModel::cleanActivities(double t)
 {
     if(t == -1.f) {
         t = VirtualTime::now();

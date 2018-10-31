@@ -29,13 +29,13 @@ public:
     static FunctionPair f_latency;
 
 private:
-    typedef std::pair<float, float> PFArg0;
-    typedef std::vector<std::vector<std::pair<float, float> > > PFArg1;
+    typedef std::pair<double, double> PFArg0;
+    typedef std::vector<std::vector<std::pair<double, double> > > PFArg1;
     typedef std::vector<std::shared_ptr<Activity> > PFArg2;
-    typedef float CFArg0;
+    typedef double CFArg0;
     typedef std::vector<std::shared_ptr<Activity> > CFArg1;
 
-    static float revisit_time_norm(float rev_time);
+    static double revisit_time_norm(double rev_time);
 };
 
 #endif /* PAYOFF_FUNCTIONS_HPP */

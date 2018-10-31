@@ -78,11 +78,11 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
         case AgentMotionType::ORBITAL:
             if(m_orb_params.sma == -1.0) {
                 /* Earth semi-major axis of WGS84 */
-                m_orb_params.sma  = Random::getUf(500e3f, 900e3f) + Config::earth_wgs84_a;
-                m_orb_params.ecc  = Random::getUf(0.f, 0.02f);
-                m_orb_params.inc  = Random::getUf(70.f, 90.f);
-                m_orb_params.argp = Random::getUf(0.f, 360.f);
-                m_orb_params.raan = Random::getUf(0.f, 360.f);
+                m_orb_params.sma  = (double)Random::getUf(500e3f, 900e3f) + Config::earth_wgs84_a;
+                m_orb_params.ecc  = (double)Random::getUf(0.f, 0.02f);
+                m_orb_params.inc  = (double)Random::getUf(70.f, 90.f);
+                m_orb_params.argp = (double)Random::getUf(0.f, 360.f);
+                m_orb_params.raan = (double)Random::getUf(0.f, 360.f);
                 // Log::dbg << "Randomly generated orbital parameters:\n";
                 // Log::dbg << " - Semi-major axis: " << m_orb_params.sma << " meters (R+ " << m_orb_params.sma - Config::earth_wgs84_a << " meters).\n";
                 // Log::dbg << " - Eccentricity: " << m_orb_params.ecc << ".\n";
@@ -352,14 +352,13 @@ sf::Vector2f AgentMotion::getProjection2D(void) const
     return retvec;
 }
 
-sf::Vector2f AgentMotion::getProjection2D(sf::Vector3f p, float t)
+sf::Vector2f AgentMotion::getProjection2D(sf::Vector3f p, double t)
 {
     sf::Vector3f ecef_coord = CoordinateSystemUtils::fromECItoECEF(p, t);
     sf::Vector3f geo_coord  = CoordinateSystemUtils::fromECEFtoGeographic(ecef_coord);
-    /* geo_coord.x = LATITUDE and geo_coord.y = LONGITUDE */
     return sf::Vector2f(
-        (float)(Config::world_width * (geo_coord.y)  / 360.f) + (Config::world_width / 2),
-        (float)(Config::world_height * (geo_coord.x) / 180.f) + (Config::world_height / 2)
+        (float)(Config::world_width * (geo_coord.y)  / 360.f) + (Config::world_width / 2.f),
+        (float)(Config::world_height * (geo_coord.x) / 180.f) + (Config::world_height / 2.f)
     );
 }
 
@@ -415,13 +414,14 @@ double AgentMotion::transfTrueToEccentric(double true_anomaly) const
 
 double AgentMotion::transfMeanToEccentric(double mean_anomaly) const
 {
-    /* Newton-Raphson numeric method - Implemented later
-     * Fromula: M = E - ecc * std::sin(E)
-     * We are not able to isolate E so we will use numeric methods as we said previously.
-     * f(E) = E - ecc * sin (E) - M
-     * f'(E) = 1 + ecc * std::cos(E)
-     * Starting Value = mean_anomaly
-     * x_i+1 = x_0 - f(x_i) / f'(x_i)
+    /*  NOTE: Newton-Raphson numerical method (see below):
+     *      Formula:
+     *          M = E - ecc * std::sin(E)
+     *      We are not able to isolate E so we will use numeric methods as we said previously.
+     *          f(E) = E - ecc * sin (E) - M
+     *          f'(E) = 1 + ecc * std::cos(E)
+     *      Starting Value = mean_anomaly
+     *          x_i+1 = x_0 - f(x_i) / f'(x_i)
      **/
      double tmp = mean_anomaly;
      double num;

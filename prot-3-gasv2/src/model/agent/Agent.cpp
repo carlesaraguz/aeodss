@@ -81,7 +81,7 @@ void Agent::step(void)
 void Agent::plan(void)
 {
     /* Schedule activities: */
-    float tv_now = VirtualTime::now();
+    double tv_now = VirtualTime::now();
     bool resources_ok = false;
     for(auto& r : m_resources) {
         if(r.second->getCapacity() / r.second->getMaxCapacity() < 0.25f) {
@@ -91,7 +91,7 @@ void Agent::plan(void)
     }
     if(m_activities->pending(m_id) == 0 && resources_ok) {
         /* Create a temporal activity (won't be added to the Activities Handler): */
-        float t_end = tv_now + Config::agent_planning_window * Config::time_step;
+        double t_end = tv_now + Config::agent_planning_window * Config::time_step;
         auto tmp_act = createActivity(tv_now, t_end, m_payload.getSwath());
         m_environment->addActivity(tmp_act);
 
@@ -106,15 +106,15 @@ void Agent::plan(void)
         for(auto& ag : act_gens) {
             acts.push_back(createActivity(ag.t0, ag.t1, m_payload.getSwath()));
         }
-        float ts = acts.front()->getStartTime();
-        float te = acts.back()->getEndTime();
+        double ts = acts.front()->getStartTime();
+        double te = acts.back()->getEndTime();
 
         /* Create scheduler instance: */
         std::map<std::string, std::shared_ptr<const Resource> > rs_cpy_const(m_resources.begin(), m_resources.end());
         GAScheduler scheduler(ts, te, rs_cpy_const);
 
         /* Configure chromosomes: */
-        std::vector<float> t0s;
+        std::vector<double> t0s;
         std::vector<int> steps;
         for(auto& act : acts) {
             t0s.push_back(act->getStartTime());
@@ -209,7 +209,7 @@ bool Agent::operator!=(const Agent& ra)
     return !(*this == ra);
 }
 
-std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
+std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float swath)
 {
     if(t0 >= t1 || t0 < VirtualTime::now()) {
         Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: " << t0 << ", " << t1 << " ["
@@ -226,7 +226,7 @@ std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
         throw std::runtime_error("Error creating activity (2)");
     }
 
-    std::map<float, sf::Vector2f> a_pos;
+    std::map<double, sf::Vector2f> a_pos;
     std::vector<ActivityCell> a_cells;
 
     struct default_lut_idx {
@@ -235,7 +235,7 @@ std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
     std::map<int, std::map<int, default_lut_idx> > a_cells_lut;
 
     /* Find active cells and their times: */
-    float t = t0;
+    double t = t0;
     for(auto p = ps.begin() + n_delay; p != ps.begin() + n_delay + n_steps; p++) {
         sf::Vector2f p2d = AgentMotion::getProjection2D(*p, t);
         a_pos[t] = p2d;
@@ -246,11 +246,11 @@ std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
             if(idx != -1) {
                 if(a_cells[idx].ready) {
                     /* Was added but T1 was already set. Create a new pair T0 and T1. */
-                    float* prev_t0s = a_cells[idx].t0s;
-                    float* prev_t1s = a_cells[idx].t1s;
+                    double* prev_t0s = a_cells[idx].t0s;
+                    double* prev_t1s = a_cells[idx].t1s;
                     int new_size = a_cells[idx].nts + 1;
-                    a_cells[idx].t0s = new float[new_size];
-                    a_cells[idx].t1s = new float[new_size];
+                    a_cells[idx].t0s = new double[new_size];
+                    a_cells[idx].t1s = new double[new_size];
                     for(unsigned int i = 0; i < a_cells[idx].nts; i++) {
                         a_cells[idx].t0s[i] = prev_t0s[i];
                         a_cells[idx].t1s[i] = prev_t1s[i];
@@ -268,8 +268,8 @@ std::shared_ptr<Activity> Agent::createActivity(float t0, float t1, float swath)
                 ActivityCell cell;
                 cell.x  = cit.x;
                 cell.y  = cit.y;
-                cell.t0s = new float[1];
-                cell.t1s = new float[1];
+                cell.t0s = new double[1];
+                cell.t1s = new double[1];
                 cell.nts = 1;
                 cell.t0s[0] = t;
                 cell.t1s[0] = t;

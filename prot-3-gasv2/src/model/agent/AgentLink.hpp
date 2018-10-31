@@ -54,8 +54,8 @@ public:
 private:
     struct Transfer {
         std::shared_ptr<Activity> msg;
-        float t_start;
-        float t_end;
+        double t_start;
+        double t_end;
         bool finished;
         unsigned int id;
 

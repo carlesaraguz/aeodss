@@ -30,8 +30,8 @@ struct EnvModelInfo {
 };
 
 struct ActivityGen {
-    float t0;
-    float t1;
+    double t0;
+    double t1;
     unsigned int steps;
     std::vector<sf::Vector2i> c_coord;
     std::vector<float> c_payoffs;
@@ -104,7 +104,7 @@ public:
      *  Cells are cleaned for time `t`. If this is not provided (or is equal to -1), the current
      *  virtual time will be used.
      **********************************************************************************************/
-    void cleanActivities(float t = -1.f);
+    void cleanActivities(double t = -1.f);
 
     EnvModelInfo getEnvModelInfo(void) const { return { m_model_h, m_model_w, m_ratio_w, m_ratio_h }; }
     unsigned int getModelWidth(void) const { return m_model_w; }

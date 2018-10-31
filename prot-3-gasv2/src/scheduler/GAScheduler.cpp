@@ -12,7 +12,7 @@
 
 CREATE_LOGGER(GAScheduler)
 
-GAScheduler::GAScheduler(float t0, float t1, std::map<std::string, std::shared_ptr<const Resource> > res)
+GAScheduler::GAScheduler(double t0, double t1, std::map<std::string, std::shared_ptr<const Resource> > res)
     : m_tstart(t0)
     , m_tend(t1)
     , m_resources_init(res)
@@ -69,7 +69,7 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
     return do_continue;
 }
 
-std::vector<std::pair<float, float> > GAScheduler::schedule(void)
+std::vector<std::pair<double, double> > GAScheduler::schedule(void)
 {
     if(m_population.size() == 0) {
         Log::err << "Cannot start scheduling before population has been spawned.\n";
@@ -144,10 +144,10 @@ std::vector<std::pair<float, float> > GAScheduler::schedule(void)
          **/
     }
 
-    std::vector<std::pair<float, float> > retvec;
+    std::vector<std::pair<double, double> > retvec;
     if(best.valid) {
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
-        float t0, t1;
+        double t0, t1;
         bool bflag = false;
         for(unsigned int i = 0; i < best.alleles.size(); i++) {
             if(best.alleles[i] && !bflag) {
@@ -176,7 +176,7 @@ std::vector<std::pair<float, float> > GAScheduler::schedule(void)
     return retvec;
 }
 
-void GAScheduler::setChromosomeInfo(std::vector<float> t0s, std::vector<int> s, const std::map<std::string, float>& cs)
+void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s, const std::map<std::string, float>& cs)
 {
     if(m_population.size() > 0) {
         std::vector<GASChromosome> other;

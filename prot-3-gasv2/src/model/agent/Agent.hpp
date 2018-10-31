@@ -74,7 +74,7 @@ private:
     std::string m_id;
     bool m_display_resources;
 
-    std::shared_ptr<Activity> createActivity(float t0, float t1, float swath);
+    std::shared_ptr<Activity> createActivity(double t0, double t1, float swath);
     void initializeResources(void);
 
     void plan(void);

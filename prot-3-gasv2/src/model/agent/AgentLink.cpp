@@ -256,7 +256,7 @@ void AgentLink::step(void)
 {
     if(m_enabled) {
         /* Start new transfers: */
-        float t = VirtualTime::now();
+        double t = VirtualTime::now();
         for(auto& txq : m_tx_queue) {
             if(txq.second.size() > 0) {
                 auto& first_transfer = txq.second.front();
@@ -264,7 +264,7 @@ void AgentLink::step(void)
                     /* This starts this transfer locally. */
                     first_transfer.t_start = t;
                     first_transfer.finished = false;
-                    first_transfer.t_end = t + (Config::activity_size / m_datarate);
+                    first_transfer.t_end = t + (double)(Config::activity_size / m_datarate);
                     m_other_agents[txq.first]->getLink()->startTransfer(getAgentId(), first_transfer);
                 } else {
                     /* This transfer was already started. */

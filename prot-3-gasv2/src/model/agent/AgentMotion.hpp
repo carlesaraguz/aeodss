@@ -53,7 +53,7 @@ public:
     /*******************************************************************************************//**
      *  TODO
      **********************************************************************************************/
-    AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams orb_pars = {-1.f, -1.f, -1.f, -1.f, -1.f, -1.f});
+    AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams orb_pars = {-1.0, -1.0, -1.0, -1.0, -1.0, -1.0});
 
     /*******************************************************************************************//**
      *  Computes the new position and velocity of one single step in any type of motion and updates
@@ -89,13 +89,16 @@ public:
      **********************************************************************************************/
     sf::Vector2f getProjection2D(void) const;
 
-    static sf::Vector2f getProjection2D(sf::Vector3f p, float t);
+    static sf::Vector2f getProjection2D(sf::Vector3f p, double t);
 
     /*******************************************************************************************//**
      *  Returns the normalized projection of velocity so as to determine the current direction.
      **********************************************************************************************/
     sf::Vector2f getDirection2D(void);
 
+    /*******************************************************************************************//**
+     *  Getter for the semi-major axis.
+     **********************************************************************************************/
     double getSMA(void) const { return m_orb_params.sma; }
 
 private:
@@ -108,10 +111,10 @@ private:
 
     /* Orbital attributes for AgentMotionType::ORBITAL: */
     struct OrbitalState {
-        float mean_anomaly;
-        float ecc_anomaly;
-        float true_anomaly;
-        float radius;
+        double mean_anomaly;
+        double ecc_anomaly;
+        double true_anomaly;
+        double radius;
     };
     OrbitalParams m_orb_params;
     std::vector<OrbitalState> m_orbital_state;

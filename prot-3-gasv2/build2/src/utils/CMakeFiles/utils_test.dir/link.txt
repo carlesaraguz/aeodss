@@ -1,2 +1,0 @@
-/usr/bin/ar qc libutils_test.a  CMakeFiles/utils_test.dir/CoordinateSystemUtils.cpp.o CMakeFiles/utils_test.dir/CoordinateSystemUtilsCoeff.cpp.o CMakeFiles/utils_test.dir/MathUtils.cpp.o
-/usr/bin/ranlib libutils_test.a

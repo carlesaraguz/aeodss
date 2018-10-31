@@ -19,10 +19,10 @@ class VirtualTime
 public:
     static void step(void);
     static std::string getTimeStr(void);
-    static float now(void) { return m_vtime; }
+    static double now(void) { return m_vtime; }
 
 private:
-    static float m_vtime;
+    static double m_vtime;
 };
 
 #endif /* VIRTUAL_TIME_HPP */

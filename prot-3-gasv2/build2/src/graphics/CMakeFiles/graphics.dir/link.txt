@@ -1,2 +1,0 @@
-/usr/bin/ar qc libgraphics.a  CMakeFiles/graphics.dir/ActivityHandlerView.cpp.o CMakeFiles/graphics.dir/AgentView.cpp.o CMakeFiles/graphics.dir/ColorGradient.cpp.o CMakeFiles/graphics.dir/GridView.cpp.o CMakeFiles/graphics.dir/HideGraphics.cpp.o CMakeFiles/graphics.dir/MultiView.cpp.o CMakeFiles/graphics.dir/SegmentView.cpp.o CMakeFiles/graphics.dir/ThickLine.cpp.o
-/usr/bin/ranlib libgraphics.a
