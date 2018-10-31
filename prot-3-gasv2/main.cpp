@@ -55,28 +55,36 @@ int main(int /* argc */, char** /* argv */)
     world->addAgent(agents);
 
     /* Create multi-views: ---------------------------------------------------------------------- */
-    std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
-    MultiView mv1, mv2, mv3, mv4;
-    mv1.setViews(avs);
-    mv2.addViewToBack(agents[0]->getEnvironment());
-    mv2.addViewToBack(std::static_pointer_cast<const HasView>(agents[0]->getActivityHandler()));
-    mv2.addViewToBack(avs[0]);
-    mv3.addViewToBack(world);
-    for(auto& av : avs) {
-        mv3.addViewToBack(av);
-    }
-    mv4.addViewToBack(world);
+    // std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
+    // MultiView mv1, mv2, mv3, mv4;
+    // mv1.setViews(avs);
+    // mv2.addViewToBack(agents[0]->getEnvironment());
+    // mv2.addViewToBack(std::static_pointer_cast<const HasView>(agents[0]->getActivityHandler()));
+    // mv2.addViewToBack(avs[0]);
+    // mv3.addViewToBack(world);
+    // for(auto& av : avs) {
+    //     mv3.addViewToBack(av);
+    // }
+    // mv4.addViewToBack(world);
+    //
+    // mv1.setScale(0.5f, 0.5f);
+    // mv2.setScale(0.5f, 0.5f);
+    // mv3.setScale(0.5f, 0.5f);
+    // mv4.setScale(0.5f, 0.5f);
+    // mv2.setPosition(Config::win_width / 2.f, 0.f);
+    // mv3.setPosition(0.f, Config::win_height / 2.f);
+    // mv4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
 
-    mv1.setScale(0.5f, 0.5f);
-    mv2.setScale(0.5f, 0.5f);
-    mv3.setScale(0.5f, 0.5f);
-    mv4.setScale(0.5f, 0.5f);
-    mv2.setPosition(Config::win_width / 2.f, 0.f);
-    mv3.setPosition(0.f, Config::win_height / 2.f);
-    mv4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
+    std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
+    MultiView mv;
+    mv.setViews(avs);
+    mv.addViewToBack(world);
+    for(int i = 0; i < agents.size(); i++) {
+        mv.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
+        mv.addViewToBack(avs[i]);
+    }
 
     int draw_it = 0;
-
     while(window.isOpen()) {
         /* Event loop: -------------------------------------------------------------------------- */
         handleEvents(window);
@@ -95,22 +103,23 @@ int main(int /* argc */, char** /* argv */)
         }
 
         /* Pre-draw loop: ----------------------------------------------------------------------- */
-        mv1.drawViews();
-        mv2.drawViews();
+        // mv1.drawViews();
+        // mv2.drawViews();
         if(draw_it % 10 == 0) {
             draw_it = 0;
             world->display(World::Layer::REVISIT_TIME_ACTUAL);
-            mv3.drawViews();
-            world->display(World::Layer::REVISIT_TIME_BEST);
-            mv4.drawViews();
+            mv.drawViews();
+            // world->display(World::Layer::REVISIT_TIME_BEST);
+            // mv4.drawViews();
         }
 
         /* Draw loop: --------------------------------------------------------------------------- */
         window.clear();
-        window.draw(mv1);
-        window.draw(mv2);
-        window.draw(mv3);
-        window.draw(mv4);
+        window.draw(mv);
+        // window.draw(mv1);
+        // window.draw(mv2);
+        // window.draw(mv3);
+        // window.draw(mv4);
         window.display();
         draw_it++;
     }
