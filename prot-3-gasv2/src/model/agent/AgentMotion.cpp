@@ -80,7 +80,7 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
                 /* Earth semi-major axis of WGS84 */
                 m_orb_params.sma  = (double)Random::getUf(500e3f, 900e3f) + Config::earth_wgs84_a;
                 m_orb_params.ecc  = (double)Random::getUf(0.f, 0.02f);
-                m_orb_params.inc  = (double)Random::getUf(70.f, 90.f);
+                m_orb_params.inc  = (double)Random::getUf(35.f, 87.f);
                 m_orb_params.argp = (double)Random::getUf(0.f, 360.f);
                 m_orb_params.raan = (double)Random::getUf(0.f, 360.f);
                 // Log::dbg << "Randomly generated orbital parameters:\n";

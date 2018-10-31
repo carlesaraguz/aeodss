@@ -123,13 +123,15 @@ void EnvModel::cleanActivities(double t)
 
 std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> tmp_act)
 {
-    Log::dbg << "[" << m_agent->getId() << "] Generating potential activities in the range t = [" << tmp_act->getStartTime() << ", " << tmp_act->getEndTime() << "].\n";
+    Log::dbg << "[" << m_agent->getId() << "] Generating potential activities in the range t = ["
+        << std::fixed << std::setprecision(6) << tmp_act->getStartTime() << ", "
+        << tmp_act->getEndTime() << std::defaultfloat << "].\n";
     std::vector<ActivityGen> retval;
 
     /* Iterate in time steps, to generate new activities: */
-    float tstart = tmp_act->getStartTime();
-    float tend = tmp_act->getEndTime();
-    float t, t0 = 0.f, t1;
+    double tstart = tmp_act->getStartTime();
+    double tend = tmp_act->getEndTime();
+    double t, t0 = 0.f, t1;
     bool bflag = false;
     std::unordered_set<sf::Vector2i, Vector2iHash> selected_cells;
     for(unsigned int s = 0; tstart + s * Config::time_step <= tend; s++) {
@@ -157,8 +159,9 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
             t1 = t;
             bflag = false;
             if(t1 > t0 && selected_cells.size() > 0) {
-                // Log::dbg << "[" << m_agent->getId() << "] - Activity #" << retval.size() << ", T start = " << t0 << ", end = " << t1
-                //     << ", Cell count: " << selected_cells.size() << ".\n";
+                Log::dbg << "[" << m_agent->getId() << "] - Activity #" << retval.size() << ", T start = "
+                    << std::fixed << std::setprecision(6) << t0 << ", end = " << t1
+                    << ", Cell count: " << selected_cells.size() << std::defaultfloat << ".\n";
                 std::vector<sf::Vector2i> vec_selected_cells(selected_cells.begin(), selected_cells.end());
                 std::vector<float> vec_payoffs;
                 for(auto& vsc : vec_selected_cells) {

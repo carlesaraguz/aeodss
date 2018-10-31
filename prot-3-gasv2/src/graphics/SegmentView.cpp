@@ -53,19 +53,28 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, std::string str)
     c.a = 180;
 
     /* Lines: trajectory of the segment. */
-    Log::err << "**** pos size: " << m_positions.size() << "\n";
-    Log::err << "**** x: " << m_positions.front().x <<  "\n";
-
     for(unsigned int i = 1; i < m_positions.size(); i++) {
-        if((m_positions[i - 1].x <= 0.f && m_positions[i - 1].y <= 0.f) || (m_positions[i].x <= 0.f && m_positions[i].y <= 0.f)) {
-            Log::err << "Segment view error: found a potential inconsistency in position {" << i << "}\n";
-            Log::err << "***** x: " << m_positions[i - 1].x << " y: " << m_positions[i - 1].y << "\n";
+        auto p0 = m_positions[i - 1];
+        auto p1 = m_positions[i];
+        if( (p0.x < 0.f && p0.y < 0.f) ||
+            (p1.x < 0.f && p1.y < 0.f) ||
+            (p0.x > Config::world_width && p0.y > Config::world_height) ||
+            (p1.x > Config::world_width && p1.y > Config::world_height)
+        ) {
+            Log::err << "Segment view error: found a potential inconsistency in position {" << i << "} -> "
+                << "(" << m_positions[i].x << ", " << m_positions[i].y << ")\n";
             m_error = true;
         }
-        ThickLine tline(m_positions[i - 1], m_positions[i]);
-        tline.setColor(c);
-        tline.setThickness(2.f);
-        m_lines.push_back(tline);
+        auto dvec = p1 - p0;
+        float dist = std::sqrt(dvec.x * dvec.x + dvec.y * dvec.y);
+        if(dist > (3.0 / 4.0) * Config::world_width) {
+            /* This line possibly crosses all screen length, skipping: */
+        } else {
+            ThickLine tline(p0, p1);
+            tline.setColor(c);
+            tline.setThickness(2.f);
+            m_lines.push_back(tline);
+        }
     }
 
     float circle_radius = 7.f;

@@ -103,7 +103,6 @@ std::vector<std::pair<double, double> > GAScheduler::schedule(void)
     for(unsigned int i = 0; i < m_population.size(); i++) {
         computeFitness(m_population[i]);
     }
-
     while(iterate(g, best)) {
         /* Repopulate in case we lost too many invalid options. */
         while(m_population.size() < Config::ga_population_size) {
@@ -143,13 +142,13 @@ std::vector<std::pair<double, double> > GAScheduler::schedule(void)
          *  prev_best_valid = best.valid;
          **/
     }
-
     std::vector<std::pair<double, double> > retvec;
     if(best.valid) {
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
         double t0, t1;
         bool bflag = false;
         for(unsigned int i = 0; i < best.alleles.size(); i++) {
+            Log::dbg << "PACO3 " << i << "\n";
             if(best.alleles[i] && !bflag) {
                 /* Start a new activity: */
                 t0 = m_individual_info[i].t_start;
@@ -451,9 +450,9 @@ void GAScheduler::debug(void) const
 {
     Log::dbg << "GA Scheduler, debug info:\n";
     Log::dbg << "Costs: " << m_costs.size() << ".\n";
-    for(auto c : m_costs) {
-        Log::dbg << "# \'" << c.first << "\': " << c.second << ".\n";
-    }
+    // for(auto c : m_costs) {
+    //     Log::dbg << "# \'" << c.first << "\': " << c.second << ".\n";
+    // }
     Log::dbg << "Activities: " << m_individual_info.size() << ".\n";
     int count = 0;
     float cost;
@@ -462,11 +461,11 @@ void GAScheduler::debug(void) const
         for(auto& c : m_costs) {
             cost += c.second * Config::time_step * ind_info.t_steps;
         }
-        Log::dbg << "# " << count++
+        Log::dbg << "# " << count++ << std::fixed << std::setprecision(6)
             << ": Tstart(" << ind_info.t_start
             << "). Steps(" << ind_info.t_steps
             << "). AgPO(" << ind_info.ag_payoff
             << "). Cost(" << cost
-            << "). Result: " << ind_info.ag_payoff / cost << ".\n";
+            << "). Result: " << ind_info.ag_payoff / cost << std::defaultfloat << ".\n";
     }
 }

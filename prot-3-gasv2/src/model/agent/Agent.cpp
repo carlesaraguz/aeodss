@@ -82,29 +82,46 @@ void Agent::plan(void)
 {
     /* Schedule activities: */
     double tv_now = VirtualTime::now();
-    bool resources_ok = false;
+    bool resources_ok = true;
     for(auto& r : m_resources) {
         if(r.second->getCapacity() / r.second->getMaxCapacity() < 0.25f) {
             resources_ok = false;
             break;
         }
     }
-    if(m_activities->pending(m_id) == 0 && resources_ok) {
+    if(m_activities->pending(m_id) == 0 && m_current_activity == nullptr && resources_ok) {
         /* Create a temporal activity (won't be added to the Activities Handler): */
         double t_end = tv_now + Config::agent_planning_window * Config::time_step;
         auto tmp_act = createActivity(tv_now, t_end, m_payload.getSwath());
-        m_environment->addActivity(tmp_act);
 
-        return;
 
         /* Compute and display payoff for the temporal activity object: */
         m_environment->computePayoff(tmp_act, true);
+
+        /* DEBUG ================================================================================ */
+        double debug_tstart = tv_now + Random::getUi(10, 100) * Config::time_step;
+        double debug_tend   = debug_tstart + Random::getUi(100, 500) * Config::time_step;
+        if(debug_tend > t_end) {
+            debug_tend = t_end;
+            if(debug_tstart > debug_tend) {
+                return;
+            }
+        }
+        auto new_act = createActivity(debug_tstart, debug_tend, m_payload.getSwath());
+        m_activities->add(new_act);
+        m_environment->addActivity(new_act);
+        return;
+        /* ====================================================================================== */
 
         /* Based on previously computed payoff, generate potential activities: */
         auto act_gens = m_environment->generateActivities(tmp_act);
         std::vector<std::shared_ptr<Activity> > acts;
         for(auto& ag : act_gens) {
-            acts.push_back(createActivity(ag.t0, ag.t1, m_payload.getSwath()));
+            if(ag.t0 < ag.t1) {
+                acts.push_back(createActivity(ag.t0, ag.t1, m_payload.getSwath()));
+            } else {
+                Log::warn << "[" << m_id << "] Was trying to create an activity where tstart >= tend (1). Skipping.\n";
+            }
         }
         double ts = acts.front()->getStartTime();
         double te = acts.back()->getEndTime();
@@ -127,16 +144,20 @@ void Agent::plan(void)
             scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, Aggregate::SUM_VALUE);
         }
 
-        /* scheduler.debug(); */
+        scheduler.debug();
 
         /* Run the scheduler: */
         auto result = scheduler.schedule();
 
         /* Store the result: */
         for(auto& setimes : result) {
-            auto new_act = createActivity(setimes.first, setimes.second, m_payload.getSwath());
-            m_activities->add(new_act);
-            m_environment->addActivity(new_act);
+            if(setimes.first < setimes.second) {
+                auto new_act = createActivity(setimes.first, setimes.second, m_payload.getSwath());
+                m_activities->add(new_act);
+                m_environment->addActivity(new_act);
+            } else {
+                Log::warn << "[" << m_id << "] Was trying to create an activity where tstart >= tend (2). Skipping.\n";
+            }
         }
     }
 }
@@ -212,7 +233,8 @@ bool Agent::operator!=(const Agent& ra)
 std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float swath)
 {
     if(t0 >= t1 || t0 < VirtualTime::now()) {
-        Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: " << t0 << ", " << t1 << " ["
+        Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: "
+            << std::fixed << std::setprecision(6) << t0 << ", " << t1 << std::defaultfloat << " ["
             << (int)(t0 >= t1) << "|" << (int)(t0 < VirtualTime::now()) << "]\n";
         throw std::runtime_error("Error creating activity (1)");
     }
