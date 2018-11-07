@@ -25,20 +25,24 @@ public:
         COVERAGE_BEST = 0,
         COVERAGE_ACTUAL,
         REVISIT_TIME_BEST,
-        REVISIT_TIME_ACTUAL
+        REVISIT_TIME_ACTUAL,
+        OVERLAPPING_ACTUAL,
+        OVERLAPPING_WORST  /* NOTE n_layers (!) */
     };
 
     World(void);
+    ~World(void);
 
     void addAgent(std::shared_ptr<Agent> aptr);
     void addAgent(std::vector<std::shared_ptr<Agent> > aptrs);
     void step(void) override;
     void display(Layer l);
     const GridView& getView(void) const override { return m_self_view; }
+    void report(void);
 
     static unsigned int getWidth(void) { return m_width; }
     static unsigned int getHeight(void) { return m_height; }
-    static const unsigned int n_layers = 4;
+    static const unsigned int n_layers = 6;
 
 private:
     struct WorldCell {
@@ -53,6 +57,21 @@ private:
 
     void updateLayer(Layer l, int x, int y, bool active);
     void updateAllLayers(int x, int y, bool active);
+
+    /* DEBUG ==================================================================================== */
+    float m_mean_best_revisit_time;
+    float m_min_best_revisit_time;
+    float m_max_best_revisit_time;
+    float m_mean_actual_revisit_time;
+    float m_min_actual_revisit_time;
+    float m_max_actual_revisit_time;
+    float m_mean_overlapping;
+    float m_max_overlapping;
+    float m_worst_overlapping;
+    float m_mean_best_coverage;
+    float m_mean_actual_coverage;
+    std::ofstream m_report_file;
+    /* ========================================================================================== */
 };
 
 #endif /* WORLD_HPP */

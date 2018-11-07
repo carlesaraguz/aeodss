@@ -30,7 +30,7 @@ public:
     static const unsigned int world_height =  900;          /**< Default window height.         */
     static const unsigned int model_unity_size = 10;        /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents = 20;                /**< Total number of agents.        */
+    static const unsigned int n_agents =  5;                /**< Total number of agents.        */
     static constexpr const float time_step = 1.f;           /**< Units of time per step.        */
     static constexpr const float max_revisit_time = 2e3;    /**< Units of time.                 */
     static constexpr const float target_revisit_time = 1e3; /**< Units of time.                 */
@@ -38,13 +38,13 @@ public:
     static constexpr const float max_payoff = 1.f;          /**< Unit-less (payoff RT > max.)   */
 
     /* Agent parametrization: */
-    static constexpr const float agent_swath_min = 99.9f; //  70.f;   /**< Minimum swath for agents.      */
-    static constexpr const float agent_swath_max = 100.f; // 132.f;   /**< Maximum swath for agents.      */
+    static constexpr const float agent_swath_min = 100.f; //  70.f;   /**< Minimum swath for agents.      */
+    static constexpr const float agent_swath_max = 200.f; // 132.f;   /**< Maximum swath for agents.      */
     static constexpr const float agent_range_min = 50.f;    /**< Minimum range for agents.      */
     static constexpr const float agent_range_max = 90.f;    /**< Maximum range for agents.      */
     static constexpr const float agent_datarate_min = 0.1f; /**< Minimum range for agents.      */
     static constexpr const float agent_datarate_max = 0.2f; /**< Maximum range for agents.      */
-    static constexpr const float agent_speed =  4.f;        /**< Distance per time unit.        */
+    static constexpr const float agent_speed = 10.f;        /**< Distance per time unit.        */
     static const unsigned int agent_planning_window = 3.5e2;  /**< Steps.                         */
     static constexpr const float activity_size = 0.01f;     /**< Size of a single agent msg.    */
     static const AgentMotionType motion_model = AgentMotionType::LINEAR_BOUNCE;
