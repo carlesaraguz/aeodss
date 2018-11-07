@@ -160,15 +160,19 @@ std::vector<std::pair<float, float> > GAScheduler::schedule(void)
                 t1 += m_individual_info[i].t_steps * Config::time_step;
             } else if(!best.alleles[i] && bflag) {
                 /* Record the activity: */
-                retvec.push_back(std::make_pair(t0, t1));
-                Log::dbg << " * Activity " << (retvec.size() - 1) << ": [" << t0 << ", " << t1 << ").\n";
+                if(t0 < t1) {
+                    retvec.push_back(std::make_pair(t0, t1));
+                    Log::dbg << " * Activity " << (retvec.size() - 1) << ": [" << t0 << ", " << t1 << ").\n";
+                }
                 bflag = false;
             }
         }
         if(bflag) {
             /* Record the last activity: */
-            retvec.push_back(std::make_pair(t0, t1));
-            Log::dbg << " * Activity " << (retvec.size() - 1) << ": [" << t0 << ", " << t1 << ").\n";
+            if(t0 < t1) {
+                retvec.push_back(std::make_pair(t0, t1));
+                Log::dbg << " * Activity " << (retvec.size() - 1) << ": [" << t0 << ", " << t1 << ").\n";
+            }
         }
     } else {
         Log::warn << "GA Scheduler completed after " << g << " iterations, but could not find a solution.\n";

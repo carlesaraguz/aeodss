@@ -62,10 +62,11 @@ int main(int /* argc */, char** /* argv */)
     mv2.addViewToBack(std::static_pointer_cast<const HasView>(agents[0]->getActivityHandler()));
     mv2.addViewToBack(avs[0]);
     mv3.addViewToBack(world);
+    mv4.addViewToBack(world);
     for(auto& av : avs) {
         mv3.addViewToBack(av);
+        mv4.addViewToBack(av);
     }
-    mv4.addViewToBack(world);
 
     mv1.setScale(0.5f, 0.5f);
     mv2.setScale(0.5f, 0.5f);
@@ -97,12 +98,17 @@ int main(int /* argc */, char** /* argv */)
         /* Pre-draw loop: ----------------------------------------------------------------------- */
         mv1.drawViews();
         mv2.drawViews();
-        if(draw_it % 10 == 0) {
-            draw_it = 0;
+        if(draw_it % 5 == 0) {
+            // draw_it = 0;
             world->display(World::Layer::REVISIT_TIME_ACTUAL);
             mv3.drawViews();
-            world->display(World::Layer::REVISIT_TIME_BEST);
+            world->display(World::Layer::OVERLAPPING_ACTUAL);
             mv4.drawViews();
+            world->display(World::Layer::OVERLAPPING_WORST);
+            world->display(World::Layer::REVISIT_TIME_BEST);
+            world->display(World::Layer::COVERAGE_BEST);
+            world->display(World::Layer::COVERAGE_ACTUAL);
+            world->report();
         }
 
         /* Draw loop: --------------------------------------------------------------------------- */
