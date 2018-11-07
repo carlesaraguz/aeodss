@@ -25,7 +25,7 @@ int main(int /* argc */, char** /* argv */)
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 0;
-    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Prototype", sf::Style::Titlebar | sf::Style::Close, settings);
+    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Autonomous Nano-Satellite Swarm", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(60);
     /*  NOTE:
      *  Update mechanism should be changed to something user controlled and rely upon sf::Clock and
@@ -45,6 +45,8 @@ int main(int /* argc */, char** /* argv */)
     /* Configure agents: ------------------------------------------------------------------------ */
     for(auto a : agents) {
         a->getLink()->setAgents(agents);
+        a->displayActivities(ActivityDisplayType::ALL);
+        a->showResources(true);
     }
     agents[0]->displayActivities(ActivityDisplayType::ALL);
     agents[0]->showResources(true);
@@ -76,13 +78,21 @@ int main(int /* argc */, char** /* argv */)
     // mv4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
 
     std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
-    MultiView mv;
-    mv.setViews(avs);
-    mv.addViewToBack(world);
-    for(int i = 0; i < agents.size(); i++) {
-        mv.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
-        mv.addViewToBack(avs[i]);
+    MultiView mv_world;
+    mv_world.addViewToBack(world);
+    for(unsigned int i = 0; i < agents.size(); i++) {
+        // mv_world.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
+        mv_world.addViewToBack(avs[i]);
     }
+
+    /* Add some background: */
+    sf::Texture texture;
+    if(!texture.loadFromFile(Config::root_path + "res/equirectangular_map.png")) {
+        Log::err << "Failed to load texture\n";
+    }
+    sf::Sprite sprite;
+    sprite.setTexture(texture);
+    sprite.setColor(sf::Color(255, 255, 255, 128)); // half transparent
 
     int draw_it = 0;
     while(window.isOpen()) {
@@ -107,15 +117,16 @@ int main(int /* argc */, char** /* argv */)
         // mv2.drawViews();
         if(draw_it % 10 == 0) {
             draw_it = 0;
-            world->display(World::Layer::REVISIT_TIME_ACTUAL);
-            mv.drawViews();
-            // world->display(World::Layer::REVISIT_TIME_BEST);
+            // world->display(World::Layer::REVISIT_TIME_ACTUAL);
+            world->display(World::Layer::REVISIT_TIME_BEST);
+            mv_world.drawViews();
             // mv4.drawViews();
         }
 
         /* Draw loop: --------------------------------------------------------------------------- */
         window.clear();
-        window.draw(mv);
+        window.draw(mv_world);
+        window.draw(sprite);
         // window.draw(mv1);
         // window.draw(mv2);
         // window.draw(mv3);

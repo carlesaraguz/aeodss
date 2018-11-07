@@ -17,7 +17,7 @@ unsigned int World::m_width = Config::world_width;
 unsigned int World::m_height = Config::world_height;
 
 World::World(void)
-    : m_self_view(m_width, m_height, 1.f, 1.f)
+    : m_self_view(m_width, m_height, 1.f, 1.f, Config::color_gradient_rainbow.getColorAt(0.f))
 {
     m_cells.reserve(m_width);
     for(unsigned int i = 0; i < m_width; i++) {
@@ -28,7 +28,7 @@ World::World(void)
             /* Initialize values for each layer: */
             layers[(int)Layer::COVERAGE_BEST].value = 0.f;
             layers[(int)Layer::COVERAGE_ACTUAL].value = 0.f;
-            layers[(int)Layer::REVISIT_TIME_BEST].value = Config::max_revisit_time; 
+            layers[(int)Layer::REVISIT_TIME_BEST].value = Config::max_revisit_time;
             layers[(int)Layer::REVISIT_TIME_ACTUAL].value = Config::max_revisit_time;
             row.push_back(layers);
         }

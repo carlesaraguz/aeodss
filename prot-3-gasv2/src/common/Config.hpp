@@ -30,11 +30,11 @@ public:
     static const unsigned int world_height =  900;          /**< Default window height.         */
     static const unsigned int model_unity_size = 10;        /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents = 20;                /**< Total number of agents.        */
+    static const unsigned int n_agents =  1;                /**< Total number of agents.        */
     static constexpr const float start_epoch = 2451545.f;   /**< Start epoch (in J2000).        */
     static constexpr const float time_step = 10.f / (3600.f * 24.f); /**< Units of time per step. */ /**  == DEBUG --> equals to 60 seconds. */
-    static constexpr const float max_revisit_time = 0.5f;    /**< Units of time.                 */
-    static constexpr const float target_revisit_time = 0.16f;/**< Units of time.                 */
+    static constexpr const float max_revisit_time = 0.7f;    /**< Units of time.                 */
+    static constexpr const float target_revisit_time = 0.2f; /**< Units of time.                 */
     static constexpr const float min_payoff = 1e-3f;        /**< Unit-less (payoff RT < target) */
     static constexpr const float max_payoff = 1.f;          /**< Unit-less (payoff RT > max.)   */
 
@@ -75,6 +75,7 @@ public:
     static ColorGradient color_gradient_rgb;
     static ColorGradient color_gradient_rbg;
     static ColorGradient color_gradient_krbg;
+    static ColorGradient color_gradient_rainbow;
     static ColorGradient color_gradient_1;
     static ColorGradient color_gradient_blue;
     static const unsigned int fnt_size = 24;

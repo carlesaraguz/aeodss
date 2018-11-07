@@ -18,7 +18,7 @@
 class GridView : public HideGraphics, public sf::Drawable
 {
 public:
-    GridView(int w, int h, float cw, float ch, sf::Color init_color = sf::Color::White);
+    GridView(int w, int h, float cw, float ch, sf::Color init_color = sf::Color::Black);
 
     void setColorGradient(const ColorGradient& cg) { m_color_gradient = cg; }
     void setValue(int x, int y, float v);

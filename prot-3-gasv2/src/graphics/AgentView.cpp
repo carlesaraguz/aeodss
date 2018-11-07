@@ -50,7 +50,9 @@ void AgentView::setFootprint(std::vector<sf::Vector2f> footprint)
     for(int i = 1; i < (int)footprint.size(); i++) {
         ThickLine tl(footprint[i - 1], footprint[i]);
         tl.setThickness(2.f);
-        tl.setColor(Config::color_dark_green);
+        // tl.setColor(Config::color_dark_green);
+        tl.setColor(Config::color_orange);
+        // tl.setColor(sf::Color::White);
         m_footprint.push_back(tl);
     }
 }

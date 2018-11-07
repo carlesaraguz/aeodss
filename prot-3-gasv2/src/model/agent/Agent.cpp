@@ -100,7 +100,7 @@ void Agent::plan(void)
 
         /* DEBUG ================================================================================ */
         double debug_tstart = tv_now + Random::getUi(10, 100) * Config::time_step;
-        double debug_tend   = debug_tstart + Random::getUi(100, 500) * Config::time_step;
+        double debug_tend   = debug_tstart + Random::getUi(100, 300) * Config::time_step;
         if(debug_tend > t_end) {
             debug_tend = t_end;
             if(debug_tstart > debug_tend) {

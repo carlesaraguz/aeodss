@@ -19,6 +19,7 @@ sf::Color Config::color_dark_green;
 ColorGradient Config::color_gradient_rgb;
 ColorGradient Config::color_gradient_rbg;
 ColorGradient Config::color_gradient_krbg;
+ColorGradient Config::color_gradient_rainbow;
 ColorGradient Config::color_gradient_1;
 ColorGradient Config::color_gradient_blue;
 unsigned int Config::ga_crossover_points = 5;
