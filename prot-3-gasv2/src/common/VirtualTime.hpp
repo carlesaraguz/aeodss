@@ -18,7 +18,7 @@ class VirtualTime
 {
 public:
     static void step(void);
-    static std::string getTimeStr(void);
+    static std::string toString(double t = -1.0);
     static double now(void) { return m_vtime; }
 
 private:

@@ -87,7 +87,15 @@ void LogStream::conditionalPrintHeader(void)
         m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " ";
 
         if(Config::motion_model == AgentMotionType::ORBITAL) {
-            m_out << std::setw(10) << std::setprecision(8) << std::fixed << VirtualTime::now() - Config::start_epoch;
+            double julian_days = VirtualTime::now() - Config::start_epoch;
+            int sec  = (int)(julian_days * 60 * 60 * 24) % 60;
+            int min  = (int)(julian_days * 60 * 24) % 60;
+            int hour = (int)(julian_days * 24) % 24;
+            int days = (int)julian_days;
+            m_out << std::setw(3) << days << "d "
+                << std::setw(2) << std::setfill('0') << hour << ":"
+                << std::setw(2) << std::setfill('0') << min  << ":"
+                << std::setw(2) << std::setfill('0') << sec;
         } else {
             m_out << std::setw(7) << std::setprecision(1) << std::fixed << VirtualTime::now();
         }
