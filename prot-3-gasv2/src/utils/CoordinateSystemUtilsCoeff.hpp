@@ -1,27 +1,21 @@
-/***************************************************************************************************
-*  File:        CoordinateSystemUtilsCoeff.hpp                                                     *
-*  Authors:     Carles Araguz (CA), <carles.araguz@upc.edu>                                        *
-*               Joan Adrià Ruiz de Azúa (JARA), <joan.adria@tsc.upc.edu>                           *
-*  Creation:    2017-may-23                                                                        *
-*  Description: Coefficients for the obtainment of rotation matrices to convert ECI<->ECEF.        *
-*                                                                                                  *
-*  This file is part of a project developed by Nano-Satellite and Payload Laboratory (NanoSat Lab) *
-*  at Technical University of Catalonia - UPC BarcelonaTech.                                       *
-* ------------------------------------------------------------------------------------------------ *
-*  Changelog:                                                                                      *
-*  v#   Date            Author      Description                                                    *
-*  0.1  2017-may-23     CA          Creation.                                                      *
-*  0.2  2018-jan-26     JARA        Changed name from ECICoordinatesCoeff                          *
-*  0.3  2018-feb-12     JARA        Included polar motion perturbations                            *
-***************************************************************************************************/
+/***********************************************************************************************//**
+ *  Coefficients for ECI<->ECEF transformations in CoordinateSystemUtils.
+ *  @class      CoordinateSystemUtilsCoeff
+ *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
+ *              Joan Adrià Ruiz de Azúa (JARA), <joan.adria@tsc.upc.edu>
+ *  @note       Ported from dss-sim and adapted to support sf::Vector3f.
+ *  @date       2018-may-23
+ *  @version    0.3
+ *  @copyright  This file is part of a project developed at Nano-Satellite and Payload Laboratory
+ *              (NanoSat Lab), Technical University of Catalonia - UPC BarcelonaTech.
+ **************************************************************************************************/
 
-#ifndef __COORDINATE_SYSTEM_UTILS_COEFF_HPP__
-#define __COORDINATE_SYSTEM_UTILS_COEFF_HPP__
+#ifndef COORDINATE_SYSTEM_UTILS_COEFF_HPP
+#define COORDINATE_SYSTEM_UTILS_COEFF_HPP
 
+#include "prot.hpp"
 #include "MathUtils.hpp"
 #include <tuple>
-#include <math.h>
-#include "Config.hpp"
 
 #define ECI_ECEF_COEFF_COUNT    106
 #define IERS_DATABASE_COUNT     1460

@@ -1,19 +1,15 @@
-/***************************************************************************************************
-*  File:        CoordinateSystemUtils.cpp                                                          *
-*  Authors:     Carles Araguz (CA), <carles.araguz@upc.edu>                                        *
-*               Joan Adrià Ruiz de Azúa (JARA). <joan.adria@tsc.upc.edu>                           *
-*  Creation:    2018-jan-26                                                                        *
-*  Description: Class that implements different mechanisms to parse between space coordinate       *
-*               frames                                                                             *
-*                                                                                                  *
-*  This file is part of a project developed by Nano-Satellite and Payload Laboratory (NanoSat Lab) *
-*  at Technical University of Catalonia - UPC BarcelonaTech.                                       *
-* ------------------------------------------------------------------------------------------------ *
-*  Changelog:                                                                                      *
-*  v#   Date            Author  Description                                                        *
-*  0.0  2017-may-23     CA      Implementation of ECI to ECEF methods in ECICoordonates.cpp        *
-*  0.1  2018-jan-26     JARA    Creation.                                                          *
-***************************************************************************************************/
+/***********************************************************************************************//**
+ *  Utilities to handle and transform coordinates from on frame or reference to antoher.
+ *  @class      CoordinateSystemUtils
+ *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
+ *              Joan Adrià Ruiz de Azúa (JARA), <joan.adria@tsc.upc.edu>
+ *  @note       Ported from dss-sim and adapted to support sf::Vector3f.
+ *  @date       2018-jan-26
+ *  @version    0.2
+ *  @copyright  This file is part of a project developed at Nano-Satellite and Payload Laboratory
+ *              (NanoSat Lab), Technical University of Catalonia - UPC BarcelonaTech.
+ **************************************************************************************************/
+
 #include "CoordinateSystemUtils.hpp"
 
 sf::Vector3f CoordinateSystemUtils::fromECItoECEF(sf::Vector3f coord, double jd)
