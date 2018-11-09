@@ -54,6 +54,7 @@ EnvModel::EnvModel(Agent* aptr, unsigned int mw, unsigned int mh)
 void EnvModel::buildView(void)
 {
     m_payoff_view = std::make_shared<GridView>(m_model_w, m_model_h, Config::model_unity_size, Config::model_unity_size);
+    m_payoff_view->setColorGradient(Config::color_gradient_krbg);
 }
 
 void EnvModel::clearView(void)
@@ -123,9 +124,11 @@ void EnvModel::cleanActivities(double t)
 
 std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> tmp_act)
 {
+    double duration = tmp_act->getEndTime() - tmp_act->getStartTime();
     Log::dbg << "[" << m_agent->getId() << "] Generating potential activities in the range t = ["
-        << std::fixed << std::setprecision(6) << tmp_act->getStartTime() << ", "
-        << tmp_act->getEndTime() << std::defaultfloat << "].\n";
+        << VirtualTime::toString(tmp_act->getStartTime()) << ", "
+        << VirtualTime::toString(tmp_act->getEndTime()) << "] ==> Duration: "
+        << VirtualTime::toString(duration, false) << ".\n";
     std::vector<ActivityGen> retval;
 
     /* Iterate in time steps, to generate new activities: */
@@ -159,9 +162,11 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
             t1 = t;
             bflag = false;
             if(t1 > t0 && selected_cells.size() > 0) {
-                Log::dbg << "[" << m_agent->getId() << "] - Activity #" << retval.size() << ", T start = "
-                    << std::fixed << std::setprecision(6) << t0 << ", end = " << t1
-                    << ", Cell count: " << selected_cells.size() << std::defaultfloat << ".\n";
+                /*  DEBUG with:
+                 *  Log::dbg << "[" << m_agent->getId() << "] Activity #" << retval.size() << ", T start = "
+                 *      << std::setw(16) << VirtualTime::toString(t0) << ", end = " << std::setw(16) << VirtualTime::toString(t1)
+                 *      << ", duration = " << VirtualTime::toString(t1 - t0, false) << ". Cell count: " << selected_cells.size() << std::defaultfloat << ".\n";
+                 **/
                 std::vector<sf::Vector2i> vec_selected_cells(selected_cells.begin(), selected_cells.end());
                 std::vector<float> vec_payoffs;
                 for(auto& vsc : vec_selected_cells) {

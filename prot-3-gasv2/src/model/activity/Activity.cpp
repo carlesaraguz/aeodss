@@ -209,7 +209,7 @@ std::ostream& operator<<(std::ostream& os, const Activity& act)
     os << "{Activity " << act.m_agent_id << ":" << act.m_id << "; ";
     if(act.m_ready) {
         os << std::fixed << std::setprecision(2);
-        os << "S:" << act.getStartTime() << " E:" << act.getEndTime() << ", ";
+        os << "S:" << VirtualTime::toString(act.getStartTime()) << " E:" << VirtualTime::toString(act.getEndTime()) << ", ";
         os << "traj:" << act.m_trajectory.size() << " points";
     } else {
         os << "not ready";

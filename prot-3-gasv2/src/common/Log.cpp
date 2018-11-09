@@ -86,7 +86,7 @@ void LogStream::conditionalPrintHeader(void)
             << WallTime::getTimeStr();
         m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " ";
 
-        if(Config::motion_model == AgentMotionType::ORBITAL) {
+        if(Config::time_type == TimeValueType::JULIAN_DAYS) {
             double julian_days = VirtualTime::now() - Config::start_epoch;
             int sec  = (int)(julian_days * 60 * 60 * 24) % 60;
             int min  = (int)(julian_days * 60 * 24) % 60;

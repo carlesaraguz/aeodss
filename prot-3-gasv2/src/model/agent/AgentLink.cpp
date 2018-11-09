@@ -298,7 +298,7 @@ void AgentLink::step(void)
 float AgentLink::distanceFrom(sf::Vector2f p) const
 {
     sf::Vector2f v = p - m_agent->getMotion().getProjection2D();
-    return std::sqrt(v.x * v.x + v.y * v.y);
+    return MathUtils::norm(v);
 }
 
 int AgentLink::scheduleSend(Activity a, std::string aid, std::function<void(int)> on_sent, std::function<void(int)> on_failure)

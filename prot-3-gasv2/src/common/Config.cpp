@@ -24,3 +24,4 @@ ColorGradient Config::color_gradient_1;
 ColorGradient Config::color_gradient_blue;
 unsigned int Config::ga_crossover_points = 5;
 std::string Config::root_path;
+TimeValueType Config::time_type;

@@ -76,6 +76,9 @@ std::vector<std::pair<double, double> > GAScheduler::schedule(void)
         throw std::runtime_error("GA Scheduler failed to start because population is not ready.");
     }
 
+    if(m_individual_info.size() < 2) {
+        Log::err << "GA Scheduler is configured with chromosomes of length " << m_individual_info.size() << ".\n";
+    }
     /* Initialize control variables: */
     GASChromosome best(m_individual_info.size());  /* Randomly initializes. */
     unsigned int g = 0;
@@ -145,10 +148,9 @@ std::vector<std::pair<double, double> > GAScheduler::schedule(void)
     std::vector<std::pair<double, double> > retvec;
     if(best.valid) {
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
-        double t0, t1;
+        double t0 = -1.0, t1 = -1.0;
         bool bflag = false;
         for(unsigned int i = 0; i < best.alleles.size(); i++) {
-            Log::dbg << "PACO3 " << i << "\n";
             if(best.alleles[i] && !bflag) {
                 /* Start a new activity: */
                 t0 = m_individual_info[i].t_start;
@@ -160,14 +162,14 @@ std::vector<std::pair<double, double> > GAScheduler::schedule(void)
             } else if(!best.alleles[i] && bflag) {
                 /* Record the activity: */
                 retvec.push_back(std::make_pair(t0, t1));
-                Log::dbg << " * Activity " << (retvec.size() - 1) << ": [" << t0 << ", " << t1 << ").\n";
+                Log::dbg << " # Activity " << (retvec.size() - 1) << ": [" << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1) << ").\n";
                 bflag = false;
             }
         }
         if(bflag) {
             /* Record the last activity: */
             retvec.push_back(std::make_pair(t0, t1));
-            Log::dbg << " * Activity " << (retvec.size() - 1) << ": [" << t0 << ", " << t1 << ").\n";
+            Log::dbg << " # Activity " << (retvec.size() - 1) << ": [" << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1) << ").\n";
         }
     } else {
         Log::warn << "GA Scheduler completed after " << g << " iterations, but could not find a solution.\n";
@@ -450,10 +452,12 @@ void GAScheduler::debug(void) const
 {
     Log::dbg << "GA Scheduler, debug info:\n";
     Log::dbg << "Costs: " << m_costs.size() << ".\n";
-    // for(auto c : m_costs) {
-    //     Log::dbg << "# \'" << c.first << "\': " << c.second << ".\n";
-    // }
-    Log::dbg << "Activities: " << m_individual_info.size() << ".\n";
+
+    if(m_individual_info.size() < 2) {
+        Log::warn << "Activities: " << m_individual_info.size() << ".\n";
+    } else {
+        Log::dbg << "Activities: " << m_individual_info.size() << ".\n";
+    }
     int count = 0;
     float cost;
     for(auto& ind_info : m_individual_info) {
@@ -461,11 +465,11 @@ void GAScheduler::debug(void) const
         for(auto& c : m_costs) {
             cost += c.second * Config::time_step * ind_info.t_steps;
         }
-        Log::dbg << "# " << count++ << std::fixed << std::setprecision(6)
-            << ": Tstart(" << ind_info.t_start
-            << "). Steps(" << ind_info.t_steps
-            << "). AgPO(" << ind_info.ag_payoff
-            << "). Cost(" << cost
+        Log::dbg << "# " << count++
+            << ": Tstart(" << VirtualTime::toString(ind_info.t_start)
+            << "). Steps(" << std::setw(5) << std::setfill('0') << ind_info.t_steps << std::setfill(' ')
+            << "). AgPO(" << std::fixed << std::setprecision(1) << std::setw(6) << ind_info.ag_payoff
+            << "). Cost(" << std::setprecision(4) << std::setw(8) <<  cost
             << "). Result: " << ind_info.ag_payoff / cost << std::defaultfloat << ".\n";
     }
 }

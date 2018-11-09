@@ -19,27 +19,30 @@ void VirtualTime::step(void)
     m_vtime += Config::time_step;
 }
 
-std::string VirtualTime::toString(double t)
+std::string VirtualTime::toString(double t, bool is_absolute_time)
 {
     std::stringstream ss;
     std::string retval;
 
     if(t == -1.0) {
         t = m_vtime;
+        is_absolute_time = true;
     }
-    if(Config::motion_model == AgentMotionType::ORBITAL) {
-        std::stringstream ss;
-        t -= Config::start_epoch;
-        int sec  = (int)(t * 60 * 60 * 24) % 60;
+
+    if(Config::time_type == TimeValueType::JULIAN_DAYS) {
+        if(is_absolute_time) {
+            t -= Config::start_epoch;
+        }
+        double sec = std::fmod(t * 60.0 * 60.0 * 24.0, 60.0);
         int min  = (int)(t * 60 * 24) % 60;
         int hour = (int)(t * 24) % 24;
         int days = (int)t;
-        ss << days << "d "
+        ss << "\'" << days << "d"
             << std::setw(2) << std::setfill('0') << hour << ":"
             << std::setw(2) << std::setfill('0') << min  << ":"
-            << std::setw(2) << std::setfill('0') << sec;
+            << std::fixed << std::setprecision(3) << std::setw(6) << std::setfill('0') << sec << "\'";
     } else {
-        ss << m_vtime;
+        ss << std::fixed << std::setw(3) << m_vtime;
     }
     retval = ss.str();
     return retval;

@@ -22,7 +22,7 @@ ThickLine::ThickLine(const sf::Vector2f& p1, const sf::Vector2f& p2)
 void ThickLine::build(void)
 {
     sf::Vector2f dir = m_p2 - m_p1;
-    sf::Vector2f udir = dir / std::sqrt(dir.x * dir.x + dir.y * dir.y);
+    sf::Vector2f udir = MathUtils::makeUnitary(dir);
     sf::Vector2f v(-udir.y, udir.x);
 
     sf::Vector2f offset = (m_thickness / 2.f) * v;

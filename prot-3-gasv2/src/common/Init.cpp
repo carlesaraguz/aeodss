@@ -16,6 +16,12 @@ void Init::doInit(void)
 {
     LogStream::setLogLevel(LogStream::Level::DEBUG);
 
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        Config::time_type = TimeValueType::JULIAN_DAYS;
+    } else {
+        Config::time_type = TimeValueType::ARBITRARY;
+    }
+
     Random::doInit();
 
     Config::fnt_monospace.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf");
@@ -58,10 +64,10 @@ void Init::doInit(void)
     Config::color_gradient_blue.setGradient(gradient);
     gradient.clear();
 
-    // if(Config::ga_crossover_points > Config::max_tasks - 1) {
-    //     Config::ga_crossover_points = Random::getUi(1, Config::max_tasks - 1);
-    //     std::cerr << "GA Scheduler: crossover points changed to " << Config::ga_crossover_points << ".\n";
-    // }
+    if(Config::ga_crossover_points > Config::max_tasks - 1) {
+        Config::ga_crossover_points = Random::getUi(1, Config::max_tasks - 1);
+        Log::warn << "GA Scheduler: crossover points changed to " << Config::ga_crossover_points << ".\n";
+    }
 
     Config::root_path = getRootPath();
     Log::dbg << "Process root path: " << Config::root_path << "\n";

@@ -119,6 +119,48 @@ public:
      *  @return      seconds of time resulting [seconds]
      **********************************************************************************************/
     static double degToSecTime(double d);
+
+    /*******************************************************************************************//**
+     *  Computes the magnitude of a 2D vector (SFML).
+     *  @param      v       Input 2D vector.
+     **********************************************************************************************/
+    template <typename T>
+    static T norm(const sf::Vector2<T>& v);
+
+    /*******************************************************************************************//**
+     *  Computes the magnitude of a 3D vector (SFML).
+     *  @param      v       Input 3D vector.
+     **********************************************************************************************/
+    template <typename T>
+    static T norm(const sf::Vector3<T>& v);
+
+    /*******************************************************************************************//**
+     *  Computes the unitary vector in the direction of `v`.
+     *  @tparam     Vec     An SFML vector (either sf::Vector2<T> or sf::Vector3<T>).
+     *  @param      v       Vector to get direction from.
+     **********************************************************************************************/
+    template <class Vec>
+    static Vec makeUnitary(const Vec& v);
 };
+
+template <typename T>
+T MathUtils::norm(const sf::Vector2<T>& v)
+{
+    return std::sqrt(v.x * v.x + v.y * v.y);
+}
+
+template <typename T>
+T MathUtils::norm(const sf::Vector3<T>& v)
+{
+    return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+template <class Vec>
+Vec MathUtils::makeUnitary(const Vec& v)
+{
+    return v / norm(v);
+}
+
+
 
 #endif  /* MATH_UTILS_HPP */

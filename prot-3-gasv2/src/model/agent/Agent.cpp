@@ -98,6 +98,7 @@ void Agent::plan(void)
         /* Compute and display payoff for the temporal activity object: */
         m_environment->computePayoff(tmp_act, true);
 
+        #if 0
         /* DEBUG ================================================================================ */
         double debug_tstart = tv_now + Random::getUi(10, 100) * Config::time_step;
         double debug_tend   = debug_tstart + Random::getUi(100, 300) * Config::time_step;
@@ -112,6 +113,7 @@ void Agent::plan(void)
         m_environment->addActivity(new_act);
         return;
         /* ====================================================================================== */
+        #endif
 
         /* Based on previously computed payoff, generate potential activities: */
         auto act_gens = m_environment->generateActivities(tmp_act);
@@ -144,8 +146,6 @@ void Agent::plan(void)
             scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, Aggregate::SUM_VALUE);
         }
 
-        scheduler.debug();
-
         /* Run the scheduler: */
         auto result = scheduler.schedule();
 
@@ -170,7 +170,7 @@ void Agent::execute(void)
         if(m_current_activity->getEndTime() <= VirtualTime::now()) {
             /* This activity has to end. */
             Log::dbg << "Agent " << m_id << " is ending activity " << m_current_activity->getId()
-                << ", T = [" << m_current_activity->getStartTime() << ", " << m_current_activity->getEndTime() << ").\n";
+                << ", T = [" << VirtualTime::toString(m_current_activity->getStartTime()) << ", " << VirtualTime::toString(m_current_activity->getEndTime()) << ").\n";
             m_payload.disable();
             for(auto& r : m_resources) {
                 // Log::warn << "Removing a resource rate: \'" << r.first << "\'.\n";

@@ -30,7 +30,7 @@ public:
     static const unsigned int world_height =  900;          /**< Default window height.         */
     static const unsigned int model_unity_size = 10;        /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents =  1;                /**< Total number of agents.        */
+    static const unsigned int n_agents =  4;                /**< Total number of agents.        */
     static constexpr const float start_epoch = 2451545.f;   /**< Start epoch (in J2000).        */
     static constexpr const float time_step = 10.f / (3600.f * 24.f); /**< Units of time per step. */ /**  == DEBUG --> equals to 60 seconds. */
     static constexpr const float max_revisit_time = 0.7f;    /**< Units of time.                 */
@@ -55,11 +55,12 @@ public:
     static const unsigned int agent_planning_window = 3.5e2;  /**< Steps.                         */
     static constexpr const float activity_size = 0.01f;     /**< Size of a single agent msg.    */
     static const AgentMotionType motion_model = AgentMotionType::ORBITAL;
+    static TimeValueType time_type;
     /* Resource consumptions and capacities: */
     /* -- Energy: */
-    static constexpr const float agent_energy_generation_rate = -850.f;
-    static constexpr const float instrument_energy_min = 764.f;
-    static constexpr const float instrument_energy_max = 864.f;
+    static constexpr const float agent_energy_generation_rate = -764.f;
+    static constexpr const float instrument_energy_min = 900.f;
+    static constexpr const float instrument_energy_max = 1200.f;
     static constexpr const float link_tx_energy_rate = 0.5f;
     static constexpr const float link_rx_energy_rate = 0.05f;
     /* -- Storage: */
@@ -82,7 +83,7 @@ public:
 
     /* Scheduling hard constraints: */
     static const unsigned int max_tasks = 20;
-    static constexpr const float max_task_duration = 20.f;
+    static constexpr const double max_task_duration = 300.0 * 1.0 / 86400.0;    /* 5 min. in JD */
     static constexpr const float task_startup_cost = 1.f;
 
     /* Genetic Algorithm configuration: */

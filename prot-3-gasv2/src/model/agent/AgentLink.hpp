@@ -12,6 +12,7 @@
 #define AGENT_LINK_HPP
 
 #include "prot.hpp"
+#include "MathUtils.hpp"
 #include "Activity.hpp"
 #include "VirtualTime.hpp"
 

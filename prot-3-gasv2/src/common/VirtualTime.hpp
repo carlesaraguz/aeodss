@@ -18,7 +18,7 @@ class VirtualTime
 {
 public:
     static void step(void);
-    static std::string toString(double t = -1.0);
+    static std::string toString(double t = -1.0, bool is_absolute_time = true);
     static double now(void) { return m_vtime; }
 
 private:

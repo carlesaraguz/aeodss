@@ -12,6 +12,7 @@
 #define THICK_LINE_HPP
 
 #include "prot.hpp"
+#include "MathUtils.hpp"
 
 class ThickLine : public sf::Drawable, public sf::Transformable
 {
