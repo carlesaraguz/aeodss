@@ -16,6 +16,7 @@
 #include "EnvModel.hpp"
 #include "Instrument.hpp"
 #include "Random.hpp"
+#include "MathUtils.hpp"
 
 /*  NOTE: For this preliminary version, this instrument will be assumed to be a 2-dimensional
  *  capturing device where its swath corresponds to the diameter of the circle that defines its
@@ -46,6 +47,7 @@ public:
     float getResourceRate(std::string rname) const override;
     std::map<std::string, float> getResourceRates(void) const;
     float getSwath(void) const { return m_swath; }
+    sf::Vector3f getPosition(void) const { return m_position; }
 
 private:
     EnvModelInfo m_env_info;
@@ -59,5 +61,8 @@ private:
         std::function<void(unsigned int, unsigned int)> f_true = [](unsigned int, unsigned int) { },
         std::function<void(unsigned int, unsigned int)> f_false = [](unsigned int, unsigned int) { }) const;
 };
+
+#include "AgentMotion.hpp"
+
 
 #endif /* INSTRUMENT_HPP */

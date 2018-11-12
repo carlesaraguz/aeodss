@@ -56,7 +56,11 @@ void Agent::initializeResources(void)
 void Agent::step(void)
 {
     m_motion.step();
-    m_payload.setPosition(m_motion.getProjection2D());
+    if(AgentMotionType::ORBITAL == Config::motion_model) {
+        m_payload.setPosition(m_motion.getPosition());
+    } else {
+        m_payload.setPosition(m_motion.getProjection2D());
+    }
 
     plan();
     execute();

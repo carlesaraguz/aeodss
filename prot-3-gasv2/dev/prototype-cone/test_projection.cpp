@@ -1,8 +1,7 @@
 #include <iostream>
 #include <cmath>
 
- #define N 3
- #define N_POINTS 20
+#define N_POINTS 20
 
 std::vector<sf::Vector2f> getFootprint(void) const
 {
@@ -79,11 +78,8 @@ std::vector<sf::Vector2f> getFootprint(void) const
         sf::Vector2f prev = positions.back();
 
         if(north_included) {
-            if(prev_pos < proj){
-                float border_y = (prev.y - proj.y) / 2;
-            } else {
-                float border_y = (proj.y - prev.y) / 2;
-            }
+
+            float border_y = std::abs(prev.y - proj.y) / 2;
 
             if(prev.x > proj.x) {
                 positions.push_back(sf::Vector2f(Config::world_width, border_y));
@@ -99,11 +95,8 @@ std::vector<sf::Vector2f> getFootprint(void) const
         }
 
         if(south_included) {
-            if(prev_pos < proj){
-                float border_y = (prev.y - proj.y) / 2;
-            } else {
-                float border_y = (proj.y - prev.y) / 2;
-            }
+
+            float border_y = std::abs(prev.y - proj.y) / 2;
 
             if(prev.x > proj.x) {
                 positions.push_back(sf::Vector2f(Config::world_width, border_y));
@@ -118,7 +111,33 @@ std::vector<sf::Vector2f> getFootprint(void) const
             }
         }
 
-        if()
+        bool is_splitted = false;
+
+        float x_distance = std::abs(proj.x - prev.x);
+
+        if(x_distance > Config::world_width / 2) {
+            is_splitted = true;
+        }
+
+        if(is_splitted){
+            /* Compute border point */
+            float border_y = std::abs(prev.y - proj.y) / 2;
+
+            if(prev.x > proj.x) {
+                positions.push_back(sf::Vector2f(Config::world_width, border_y));
+                positions.push_back(sf::Vector2f(Config::world_width, 0));
+                positions.push_back(sf::Vector2f(0, 0));
+                positions.push_back(sf::Vector2f(0, border_y));
+            } else {
+                positions.push_back(sf::Vector2f(0, border_y));
+                positions.push_back(sf::Vector2f(0, world_height));
+                positions.push_back(sf::Vector2f(Config::world_width, world_height));
+                positions.push_back(sf::Vector2f(Config::world_width, border_y));
+            }
+        }
+        if(proj.y != Config::world_height || proj.y != 0){
+            positions.push_back(proj);
+        }
     }
 
     return positions;

@@ -166,7 +166,9 @@ std::vector<sf::Vector3f> AgentMotion::propagate(unsigned int nsteps)
                 }
                 break;
             default:
-                /* Does nothing. */
+                {
+                    /* Does nothing. */
+                }
                 break;
         }
         return m_position;
