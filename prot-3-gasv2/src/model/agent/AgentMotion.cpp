@@ -19,6 +19,7 @@ AgentMotion::AgentMotion(Agent* aptr, sf::Vector3f init_pos, sf::Vector3f init_v
 {
     switch(Config::motion_model) {
         case AgentMotionType::LINEAR_BOUNCE:
+        case AgentMotionType::LINEAR_INFINITE:
             {
                 if(init_pos == sf::Vector3f(-1.f, -1.f, -1.f)) {
                     init_pos = sf::Vector3f(
@@ -41,17 +42,13 @@ AgentMotion::AgentMotion(Agent* aptr, sf::Vector3f init_pos, sf::Vector3f init_v
                 m_orbital_state.push_back({});
             }
             break;
-        case AgentMotionType::LINEAR_INFINITE:
-            Log::err << "Constructing AgentMotion with an unsupported motion model: LINEAR_INFINITE.\n";
-            throw std::runtime_error("Constructing AgentMotion with unsupported motion model LINEAR_INFINITE.");
-            break;
         case AgentMotionType::SINUSOIDAL:
             Log::err << "Constructing AgentMotion with an unsupported motion model: SINUSOIDAL.\n";
             throw std::runtime_error("Constructing AgentMotion with unsupported motion model SINUSOIDAL.");
             break;
         case AgentMotionType::ORBITAL:
-            Log::err << "Constructing AgentMotion with an unsupported motion model: ORBITAL.\n";
-            throw std::runtime_error("Constructing AgentMotion with unsupported motion model ORBITAL.");
+            Log::err << "Creating AgentMotion with a wrong constructor. Agent motion model is set to 3-d/ORBITAL, but the constructor is for 2-d.\n";
+            throw std::runtime_error("Creating AgentMotion with wrong constructor. Agent motion model is set to ORBITAL.");
             break;
         }
 }
@@ -64,16 +61,10 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
 {
     switch(Config::motion_model) {
         case AgentMotionType::LINEAR_BOUNCE:
-            Log::err << "[" << m_agent->getId() << "] Unimplemented motion model LINEAR_BOUNCE.\n";
-            throw std::runtime_error("Unimplemented motion model.");
-            break;
         case AgentMotionType::LINEAR_INFINITE:
-            Log::err << "[" << m_agent->getId() << "] Unimplemented motion model LINEAR_INFINITE.\n";
-            throw std::runtime_error("Unimplemented motion model.");
-            break;
         case AgentMotionType::SINUSOIDAL:
-            Log::err << "[" << m_agent->getId() << "] Unimplemented motion model SINUSOIDAL.\n";
-            throw std::runtime_error("Unimplemented motion model.");
+            Log::err << "Creating AgentMotion with a wrong constructor. Agent motion model is set to 2-d, but the constructor is for 3-d/ORBITAL.\n";
+            throw std::runtime_error("Creating AgentMotion with wrong constructor. Agent motion model is *not* set to ORBITAL.");
             break;
         case AgentMotionType::ORBITAL:
             if(m_orb_params.sma == -1.0) {
@@ -166,9 +157,7 @@ std::vector<sf::Vector3f> AgentMotion::propagate(unsigned int nsteps)
                 }
                 break;
             default:
-                {
-                    /* Does nothing. */
-                }
+                /* Does nothing. */
                 break;
         }
         return m_position;

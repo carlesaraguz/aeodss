@@ -12,16 +12,21 @@
 
 CREATE_LOGGER(Agent)
 
-Agent::Agent(std::string id, sf::Vector3f init_pos, sf::Vector3f init_vel)
+Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     : m_id(id)
     , m_self_view(id)
-    , m_motion(this, init_pos, init_vel)
+    , m_motion(this, {init_pos.x, init_pos.y, 0.f}, {init_vel.x, init_vel.y, 0.f})
     , m_environment(std::make_shared<EnvModel>(this, (Config::world_width / Config::model_unity_size), (Config::world_height / Config::model_unity_size)))
     , m_link(std::make_shared<AgentLink>(this))
     , m_activities(std::make_shared<ActivityHandler>(this))
     , m_current_activity(nullptr)
     , m_display_resources(false)
 {
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n"
+        Log::err << "The world is modelled in 3-d (i.e. `motion_model` is set to AgentMotionType::ORBITAL). Use a different constructor.\n";
+        throw std::runtime_error("Wrong Agent constructor");
+    }
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getProjection2D());
     m_activities->setAgentId(m_id);
@@ -38,6 +43,11 @@ Agent::Agent(std::string id)
     , m_current_activity(nullptr)
     , m_display_resources(false)
 {
+    if(Config::motion_model != AgentMotionType::ORBITAL) {
+        Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n"
+        Log::err << "The world is modelled in 2-d (i.e. `motion_model` is not set to AgentMotionType::ORBITAL). Use a different constructor.\n";
+        throw std::runtime_error("Wrong Agent constructor");
+    }
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getProjection2D());
     m_activities->setAgentId(m_id);
@@ -56,11 +66,7 @@ void Agent::initializeResources(void)
 void Agent::step(void)
 {
     m_motion.step();
-    if(AgentMotionType::ORBITAL == Config::motion_model) {
-        m_payload.setPosition(m_motion.getPosition());
-    } else {
-        m_payload.setPosition(m_motion.getProjection2D());
-    }
+    m_payload.setPosition(m_motion.getPosition());
 
     plan();
     execute();

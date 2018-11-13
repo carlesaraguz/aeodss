@@ -37,10 +37,7 @@ public:
     void disable(void);
     bool isEnabled(void) const { return m_enabled; }
     void setDimensions(EnvModelInfo emi) override { m_env_info = emi; }
-    void setPosition(sf::Vector2f p) override { setPosition(sf::Vector3f(p.x, p.y, 0.f)); }
     void setPosition(sf::Vector3f p) override { m_position = p; }
-    void setVelocity(sf::Vector2f v) override { setVelocity(sf::Vector3f(v.x, v.y, 0.f)); }
-    void setVelocity(sf::Vector3f) override { /* Does nothing. TODO Preliminary version. */ }
     std::vector<sf::Vector2i> getVisibleCells(bool world_cells = false) const override;
     std::vector<sf::Vector2i> getVisibleCells(float swath, sf::Vector2f position) const;
     std::vector<sf::Vector2f> getFootprint(void) const override;
