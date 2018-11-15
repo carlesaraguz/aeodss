@@ -2,8 +2,9 @@
  *  An agent in the world.
  *  @class      Agent
  *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
- *  @date       2018-mar-22
- *  @version    0.1
+ *              Marc Closa (MC), marc.closa.tarres@alu-etsetb.upc.edu
+ *  @date       2018-nov-15
+ *  @version    0.2
  *  @copyright  This file is part of a project developed at Nano-Satellite and Payload Laboratory
  *              (NanoSat Lab), Technical University of Catalonia - UPC BarcelonaTech.
  **************************************************************************************************/
