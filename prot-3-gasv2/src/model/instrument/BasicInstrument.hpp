@@ -40,6 +40,15 @@ public:
     void setPosition(sf::Vector3f p) override { m_position = p; }
     std::vector<sf::Vector2i> getVisibleCells(bool world_cells = false) const override;
     std::vector<sf::Vector2i> getVisibleCells(float swath, sf::Vector2f position) const;
+
+    /*******************************************************************************************//**
+     *  Computes the footprint of the instrument from the instrument apperture and ECI Coordinates.
+     *  Positions given are alredy pojected in the equirectangular map. The computation principles
+     *  are taken from the intersection of 2 spheres an from there, using some trigonometry,
+     *  we are able to compute the needed points of the footprint.
+     *  For more accurate information, you can visit:
+     *  https://math.stackexchange.com/questions/73237/parametric-equation-of-a-circle-in-3d-space
+     **********************************************************************************************/
     std::vector<sf::Vector2f> getFootprint(void) const override;
     float getResourceRate(std::string rname) const override;
     std::map<std::string, float> getResourceRates(void) const;

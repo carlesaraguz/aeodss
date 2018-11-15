@@ -46,12 +46,16 @@ class AgentMotion : public TimeStep
 {
 public:
     /*******************************************************************************************//**
-     *  TODO
+     *  Specific constructor of AgentMotion implemented when LINEAR_BOUNCE motion type is chosen.
+     *  Position and velocity are randomly generated using an uniform pdf value generator.
      **********************************************************************************************/
     AgentMotion(Agent* aptr, sf::Vector3f init_pos = {-1.f, -1.f, -1.f}, sf::Vector3f init_vel = {0.f, 0.f, 0.f});
 
     /*******************************************************************************************//**
-     *  TODO
+     *  Specific constructor of AgentMotion implemented when ORBITAL motion type is chosen.
+     *  Orbital parameters are initialized randomly (with some restrictions taking into account
+     *  the agent follows a LEO orbit), then computes all anomalies (True, Mean and Eccentric) and
+     *  finally position (in ECI Coordinates) and instantanious velocity are computed.
      **********************************************************************************************/
     AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams orb_pars = {-1.0, -1.0, -1.0, -1.0, -1.0, -1.0});
 
@@ -62,7 +66,15 @@ public:
     void step(void) override;
 
     /*******************************************************************************************//**
-     *  TODO
+     *  Generates a vector of nsteps positions. If there is no position in the vector, propagates
+     *  nsteps. If there is alredy a certain number of positions, it propagates nsteps - #positions.
+     *  It returns a vector of 3D positions of nsteps length.
+     *  If motion model is:
+     *      - 2D MOTION MODEL (LINEAR_BOUNCE, LINEAR_INFINITE, SINUSOIDAL):
+     *        It returns a vector of 3D positions where X,Y are the current positions in the
+     *        enviroment whereas Z always is equal to 0.
+     *      - 3D MOTION MODEL (ORBITAL):
+     *        It returns a vector of 3D positions in ECI Coordinates.
      **********************************************************************************************/
     std::vector<sf::Vector3f> propagate(unsigned int nsteps);
 
@@ -90,7 +102,8 @@ public:
     sf::Vector2f getProjection2D(void) const;
 
     /*******************************************************************************************//**
-     *  TODO
+     *  Returns the equirectangular projection from a given ECI Coordinates in a determined instant
+     *  in Julian Date.
      **********************************************************************************************/
     static sf::Vector2f getProjection2D(sf::Vector3f p, double t);
 
@@ -140,13 +153,15 @@ private:
     double getRadiusLength(double true_an) const;
 
     /*******************************************************************************************//**
-     *  TODO
-     *  https://space.stackexchange.com/q/14095/22532
+     *  Computes the instantanious velocity vectors (X, Y, Z) and returns it.
+     *  The formulae used are taken from:
+     *      https://space.stackexchange.com/q/14095/22532
      **********************************************************************************************/
     sf::Vector3f getVelocityFromOrbital(OrbitalState os) const;
 
     /*******************************************************************************************//**
-     *  TODO
+     *  Computes and returns the agent position in ECI Coordinate system from a particular
+     *  orbital state.
      **********************************************************************************************/
     sf::Vector3f getPositionFromOrbital(OrbitalState os) const;
 

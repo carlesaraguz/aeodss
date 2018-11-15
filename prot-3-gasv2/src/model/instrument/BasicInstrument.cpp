@@ -178,10 +178,8 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
 
         case AgentMotionType::ORBITAL:
             {
-                float R = 6371000.f;
+                float R = Config::earth_radius;
                 sf::Vector3f p = getPosition();
-
-                std::cout << "X: " << p.x << ", Y:" << p.y << ", Z: " << p.z << '\n';
 
                 float aperture = MathUtils::degToRad(getSwath());
 
@@ -197,6 +195,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 float footprint_radius = r * std::sin(aperture / 2);
 
                 float c_len = R * cos(alpha);
+                
                 /* Computation of cross product */
                 sf::Vector3f p_n = p / h;
                 sf::Vector3f v = sf::Vector3f(p_n.x, p_n.y, p_n.z);
@@ -246,10 +245,6 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 } else if(distance_to_south < footprint_radius) {
                     south_included = true;
                 }
-
-                std::cout << "Dist. to north: " << distance_to_north << '\n';
-                std::cout << "Dist. to south: " << distance_to_south << '\n';
-                std::cout << "Footprint radius: " << footprint_radius << '\n';
 
                 /* Core no passa abans d'aquí. */
 

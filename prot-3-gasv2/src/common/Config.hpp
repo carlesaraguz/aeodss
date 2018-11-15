@@ -43,6 +43,7 @@ public:
     static constexpr const double earth_wgs84_b = 6356752.314245;   /**< Semi-minor axis of WGS84 ellipsoid (in meters). */
     static constexpr const double earth_wgs84_e = 0.08181919;       /**< Eccentricity of WGS84 ellipsoid. */
     static constexpr const double earth_mu = 3.986004419 * std::pow(10, 14); /**< Earth's gravitational constant. */
+    static constexpr const double earth_radius = 6371000.0;         /**< Earth radius in meters. */
 
     /* Agent parametrization: */
     static constexpr const float agent_swath_min =  70.f;   /**< Minimum swath for agents.      */
