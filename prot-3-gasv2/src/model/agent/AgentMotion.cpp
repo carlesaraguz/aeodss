@@ -136,7 +136,8 @@ std::vector<sf::Vector3f> AgentMotion::propagate(unsigned int nsteps)
                     sf::Vector3f v0 = m_velocity.back();
                     sf::Vector3f p, v;
                     for(unsigned int i = 0; i < count; i++) {
-                        sf::Vector3f dp = v0 * Config::time_step;
+                        sf::Vector3<double> dp_double = sf::Vector3<double>(v0.x, v0.y, v0.z) * Config::time_step;
+                        sf::Vector3f dp(dp_double.x, dp_double.y, dp_double.z);
                         move(p0, v0, dp, p, v);
                         m_position.push_back(sf::Vector3f(p.x, p.y, 0));
                         m_velocity.push_back(sf::Vector3f(v.x, v.y, 0));
@@ -277,7 +278,7 @@ bool AgentMotion::inBounds(const sf::Vector2f& p) const
 
 sf::Vector3f AgentMotion::getPositionFromOrbital(OrbitalState os) const
 {
-    return CoordinateSystemUtils::fromOrbitaltoECI(
+    return CoordinateSystemUtils::fromOrbitalToECI(
         os.radius,
         os.true_anomaly,
         m_orb_params.raan,
@@ -338,11 +339,11 @@ sf::Vector2f AgentMotion::getProjection2D(void) const
 
 sf::Vector2f AgentMotion::getProjection2D(sf::Vector3f p, double t)
 {
-    sf::Vector3f ecef_coord = CoordinateSystemUtils::fromECItoECEF(p, t);
-    sf::Vector3f geo_coord  = CoordinateSystemUtils::fromECEFtoGeographic(ecef_coord);
+    sf::Vector3f ecef_coord = CoordinateSystemUtils::fromECIToECEF(p, t);
+    sf::Vector3f geo_coord  = CoordinateSystemUtils::fromECEFToGeographic(ecef_coord); /* lat(x), lng(y), h(z). */
     return sf::Vector2f(
-        (float)(Config::world_width * (geo_coord.y)  / 360.f) + (Config::world_width / 2.f),
-        (float)(Config::world_height * (geo_coord.x) / 180.f) + (Config::world_height / 2.f)
+        (float)( Config::world_width * ( geo_coord.y) / 360.f) + (World::getWidth() / 2.f),
+        (float)(Config::world_height * (-geo_coord.x) / 180.f) + (World::getHeight() / 2.f)
     );
 }
 
@@ -358,10 +359,10 @@ sf::Vector2f AgentMotion::getDirection2D(void)
         case AgentMotionType::ORBITAL:
             {
                 propagate(2);   /* Ensure that there are at least two positions computed: */
-                sf::Vector2f curr = AgentMotion::getProjection2D(m_position[0], VirtualTime::now());
-                sf::Vector2f next = AgentMotion::getProjection2D(m_position[1], VirtualTime::now() + Config::time_step);
+                sf::Vector2f curr = getProjection2D(m_position[0], VirtualTime::now());
+                sf::Vector2f next = getProjection2D(m_position[1], VirtualTime::now() + Config::time_step);
 
-                sf::Vector2f vel = sf::Vector2f(next.x - curr.x, next.y - curr.y) / Config::time_step;
+                sf::Vector2f vel = (next - curr) / (float)Config::time_step;
                 retvec = MathUtils::makeUnitary(vel);
             }
             break;

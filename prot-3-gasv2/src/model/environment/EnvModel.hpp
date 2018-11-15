@@ -114,6 +114,7 @@ public:
     std::vector<sf::Vector2i> getWorldCells(unsigned int x, unsigned int y) const;
     std::vector<sf::Vector2i> getWorldCells(sf::Vector2i model_cell) const;
     std::vector<sf::Vector2i> getWorldCells(std::vector<sf::Vector2i> model_cells) const;
+    const std::vector<std::vector<sf::Vector3f> >& getPositionLUT(void) const { return m_world_positions; }
     template <class T>
     sf::Vector2<T> toWorldCoordinates(sf::Vector2<T> model_coord) const;
     template <class T>
@@ -131,8 +132,9 @@ private:
     unsigned int m_world_w;     /* Real world magnitude (here in pixels.) */
     float m_ratio_w;            /* Unit width in [world-pixel / model-unit].  */
     float m_ratio_h;            /* Unit height in [world-pixel / model-unit]. */
-    std::vector<std::vector<EnvCell> > m_cells;
-    std::shared_ptr<GridView> m_payoff_view;
+    std::vector<std::vector<EnvCell> > m_cells;                 /**< Cells in which the environment is tesselated. */
+    std::shared_ptr<GridView> m_payoff_view;                    /**< Environment graphical representation (payoff values). */
+    std::vector<std::vector<sf::Vector3f> > m_world_positions;  /**< Look-up table of cell 3D coordinates (ECEF) in the world. */
 };
 
 template <class T>

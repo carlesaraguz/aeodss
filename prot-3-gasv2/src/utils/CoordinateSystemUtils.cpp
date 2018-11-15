@@ -12,8 +12,11 @@
 
 #include "CoordinateSystemUtils.hpp"
 
-sf::Vector3f CoordinateSystemUtils::fromECItoECEF(sf::Vector3f coord, double jd)
+CREATE_LOGGER(CoordinateSystemUtils)
+
+sf::Vector3f CoordinateSystemUtils::fromECIToECEF(sf::Vector3f coord, double jd)
 {
+    gsl_error_handler_t* old_gsl_error_handler = gsl_set_error_handler(&CoordinateSystemUtils::GSLErrorHandler); /* Install new handler. */
     /*  This conversion is based upon "Appendix - Transformation of ECI (CIS, EPOCH J2000.0)
      *  coordinates to WGS84 (CTS, ECEF) coordinates", from the National Geospatial-Intelligence
      *  Agency, available on-line at:
@@ -59,15 +62,84 @@ sf::Vector3f CoordinateSystemUtils::fromECItoECEF(sf::Vector3f coord, double jd)
     gsl_matrix_free(abc_mat);
     gsl_matrix_free(abcd_mat);
 
+    gsl_set_error_handler(old_gsl_error_handler); /* Restore the original handler. */
+
     return sf::Vector3f(x, y, z);
 }
 
-sf::Vector3f CoordinateSystemUtils::fromECItoGeographic(sf::Vector3f coord, double jd)
+sf::Vector3f CoordinateSystemUtils::fromECEFToECI(sf::Vector3f coord, double jd)
 {
-    return fromECEFtoGeographic(fromECItoECEF(coord, jd));
+    gsl_error_handler_t* old_gsl_error_handler = gsl_set_error_handler(&CoordinateSystemUtils::GSLErrorHandler); /* Install new handler. */
+    /*  This conversion is based upon "Appendix - Transformation of ECI (CIS, EPOCH J2000.0)
+     *  coordinates to WGS84 (CTS, ECEF) coordinates", from the National Geospatial-Intelligence
+     *  Agency, available on-line at:
+     *      http://earth-info.nga.mil/GandG/publications/tr8350.2/tr8350.2-a/Appendix.pdf
+     **/
+    double eps, d_psi;
+    gsl_matrix* precession_mat = CoordinateSystemUtils::getPrecessionMatrix(jd);               /* D: 3x3 rotation matrix. */
+    gsl_matrix* nutation_mat   = CoordinateSystemUtils::getNutationMatrix(jd, &eps, &d_psi);   /* C: 3x3 rotation matrix. */
+    gsl_matrix* sideral_mat    = CoordinateSystemUtils::getSideralMatrix(jd, eps, d_psi);      /* B: 3x3 rotation matrix. */
+    gsl_matrix* polar_mat      = getPolarMotionMatrix(jd);                                     /* A: 3x3 rotation matrix. */
+
+    /* ECI to ECEF transformation:
+     *  ECEF <- A·B·C·D·ECI  ∴  ECI <- [A·B·C·D]^(-1) · ECEF
+     **/
+    gsl_vector* ecef_vec    = gsl_vector_alloc(3);
+    gsl_vector* eci_vec     = gsl_vector_alloc(3);
+    gsl_matrix* ab_mat      = gsl_matrix_alloc(3, 3);
+    gsl_matrix* abc_mat     = gsl_matrix_alloc(3, 3);
+    gsl_matrix* abcd_mat    = gsl_matrix_alloc(3, 3);
+    gsl_matrix* inv_bcd_mat = gsl_matrix_alloc(3, 3);
+    gsl_permutation* perm   = gsl_permutation_alloc(3);
+    int signum;
+
+    /* Compute ABCD */
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, polar_mat, sideral_mat, 0.0, ab_mat);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, ab_mat, nutation_mat, 0.0, abc_mat);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, abc_mat, precession_mat, 0.0, abcd_mat);
+
+    gsl_vector_set(ecef_vec, 0, coord.x);    /* Initialize ECEF vector.  */
+    gsl_vector_set(ecef_vec, 1, coord.y);    /* ...                      */
+    gsl_vector_set(ecef_vec, 2, coord.z);    /* ...                      */
+    gsl_vector_set_zero(eci_vec);           /* Initialize ECI vector.   */
+    gsl_linalg_LU_decomp(abcd_mat, perm, &signum);
+    gsl_linalg_LU_solve(abcd_mat, perm, ecef_vec, eci_vec);
+    /*  The previous solver actually inverts the matrix. Although the same result could be obtained
+     *  by using the inverse function (see the lines below), this method is said to be more
+     *  efficient and reliable.
+     *      gsl_linalg_LU_invert(bcd_mat, perm, inv_bcd_mat);
+     *      gsl_blas_dgemv(CblasNoTrans, 1.0, inv_bcd_mat, ecef_vec, 0.0, eci_vec);
+     *
+     *  Ref.: https://www.gnu.org/software/gsl/manual/html_node/LU-Decomposition.html#LU-Decomposition
+     **/
+
+    /* Save result in the class' attributes: */
+    double x = gsl_vector_get(eci_vec, 0);
+    double y = gsl_vector_get(eci_vec, 1);
+    double z = gsl_vector_get(eci_vec, 2);
+
+    gsl_permutation_free(perm);
+    gsl_vector_free(ecef_vec);
+    gsl_vector_free(eci_vec);
+    gsl_matrix_free(precession_mat);
+    gsl_matrix_free(nutation_mat);
+    gsl_matrix_free(sideral_mat);
+    gsl_matrix_free(ab_mat);
+    gsl_matrix_free(abc_mat);
+    gsl_matrix_free(abcd_mat);
+    gsl_matrix_free(inv_bcd_mat);
+
+    gsl_set_error_handler(old_gsl_error_handler); /* Restore the original handler. */
+
+    return sf::Vector3f(x, y, z);
 }
 
-sf::Vector3f CoordinateSystemUtils::fromECEFtoGeographic(sf::Vector3f coord)
+sf::Vector3f CoordinateSystemUtils::fromECIToGeographic(sf::Vector3f coord, double jd)
+{
+    return fromECEFToGeographic(fromECIToECEF(coord, jd));
+}
+
+sf::Vector3f CoordinateSystemUtils::fromECEFToGeographic(sf::Vector3f coord)
 {
     /* The conversion from ECEF to Geographic coordinates is performed using the Ferrari's
      * conversion. In particular, the following algorithm implement the five steps defined by
@@ -99,7 +171,7 @@ sf::Vector3f CoordinateSystemUtils::fromECEFtoGeographic(sf::Vector3f coord)
     return sf::Vector3f(MathUtils::radToDeg(lat), MathUtils::radToDeg(lon), h);
 }
 
-sf::Vector3f CoordinateSystemUtils::fromOrbitaltoECI(
+sf::Vector3f CoordinateSystemUtils::fromOrbitalToECI(
     double radius,
     double true_anomaly,
     double right_asc,
@@ -124,7 +196,7 @@ sf::Vector3f CoordinateSystemUtils::fromOrbitaltoECI(
     return sf::Vector3f(x, y, z);
 }
 
-sf::Vector3f CoordinateSystemUtils::fromOrbitaltoECEF(
+sf::Vector3f CoordinateSystemUtils::fromOrbitalToECEF(
     double radius,
     double true_anomaly,
     double jd,
@@ -133,10 +205,10 @@ sf::Vector3f CoordinateSystemUtils::fromOrbitaltoECEF(
     double inclination
 )
 {
-    return fromECItoECEF(fromOrbitaltoECI(radius, true_anomaly, right_asc, arg_perigee, inclination), jd);
+    return fromECIToECEF(fromOrbitalToECI(radius, true_anomaly, right_asc, arg_perigee, inclination), jd);
 }
 
-sf::Vector3f CoordinateSystemUtils::fromOrbitaltoGeographic(
+sf::Vector3f CoordinateSystemUtils::fromOrbitalToGeographic(
     double radius,
     double true_anomaly,
     double jd,
@@ -145,7 +217,27 @@ sf::Vector3f CoordinateSystemUtils::fromOrbitaltoGeographic(
     double inclination
 )
 {
-    return fromECItoGeographic(fromOrbitaltoECI(radius, true_anomaly, right_asc, arg_perigee, inclination), jd);
+    return fromECIToGeographic(fromOrbitalToECI(radius, true_anomaly, right_asc, arg_perigee, inclination), jd);
+}
+
+sf::Vector3f CoordinateSystemUtils::fromGeographicToECI(sf::Vector3f coord, double jd)
+{
+    return fromECEFToECI(fromGeographicToECEF(coord), jd);
+}
+
+sf::Vector3f CoordinateSystemUtils::fromGeographicToECEF(sf::Vector3f coord)
+{
+    double lat_rad = MathUtils::degToRad(coord.x);
+    double long_rad = MathUtils::degToRad(coord.y);
+    /* n    : Radius of the Earth depending on the latitude. In particular, using the WGS84 model
+     *        the radius is corrected depending on the latitude.
+     **/
+    double n = 1 - std::pow(Config::earth_wgs84_e * std::sin(lat_rad), 2);
+    n = Config::earth_wgs84_a / std::sqrt(n);
+    double rx = (n + coord.z) * std::cos(lat_rad) * std::cos(long_rad);
+    double ry = (n + coord.z)  * std::cos(lat_rad) * std::sin(long_rad);
+    double rz = (n * (1 - std::pow(Config::earth_wgs84_e, 2)) + coord.z) * std::sin(lat_rad);
+    return sf::Vector3f(rx, ry, rz);
 }
 
 
@@ -372,4 +464,10 @@ gsl_matrix * CoordinateSystemUtils::getGSLMatrixFromPtr(double * ptr, size_t i, 
         }
     }
     return ret;
+}
+
+void CoordinateSystemUtils::GSLErrorHandler(const char* reason, const char* file, int line, int gsl_errno)
+{
+    Log::err << "GNU Scientific Library error [" << gsl_errno << "]: "
+        << reason << " (in " << file << ":" << line << ", from CoordinateSystemUtils.cpp)\n";
 }

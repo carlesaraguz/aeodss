@@ -39,15 +39,32 @@ EnvModel::EnvModel(Agent* aptr, unsigned int mw, unsigned int mh)
     }
 
     m_cells.reserve(m_model_w);
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        m_world_positions.reserve(m_model_w);
+    }
+    float lat, lng;
     for(unsigned int i = 0; i < m_model_w; i++) {
-        std::vector<EnvCell> row;
-        row.reserve(m_model_h);
+        std::vector<EnvCell> column;
+        std::vector<sf::Vector3f> column_lut;
+        column.reserve(m_model_h);
+        if(Config::motion_model == AgentMotionType::ORBITAL) {
+            column_lut.reserve(m_model_h);
+        }
         for(unsigned int j = 0; j < m_model_h; j++) {
             EnvCell c(i, j);
             c.pushPayoffFunc(PayoffFunctions::f_revisit_time_backwards);
-            row.push_back(c);
+            column.push_back(c);
+            if(Config::motion_model == AgentMotionType::ORBITAL) {
+                lng =   (360.f * (i * m_ratio_w) / World::getWidth()) - 180.f;
+                lat = -((180.f * (j * m_ratio_h) / World::getHeight()) - 90.f);
+                auto position_ecef = CoordinateSystemUtils::fromGeographicToECEF(sf::Vector3f(lat, lng, 0.f));
+                column_lut.push_back(position_ecef);
+            }
         }
-        m_cells.push_back(row);
+        m_cells.push_back(column);
+        if(Config::motion_model == AgentMotionType::ORBITAL) {
+            m_world_positions.push_back(column_lut);
+        }
     }
 }
 

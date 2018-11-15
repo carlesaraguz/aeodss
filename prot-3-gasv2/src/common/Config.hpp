@@ -30,9 +30,9 @@ public:
     static const unsigned int world_height =  900;          /**< Default window height.         */
     static const unsigned int model_unity_size = 10;        /**< Size of the model unity.       */
     static const unsigned int agent_size = 14;              /**< Size of an agent view.         */
-    static const unsigned int n_agents =  4;                /**< Total number of agents.        */
-    static constexpr const float start_epoch = 2451545.f;   /**< Start epoch (in J2000).        */
-    static constexpr const float time_step = 10.f / (3600.f * 24.f); /**< Units of time per step. */ /**  == DEBUG --> equals to 60 seconds. */
+    static const unsigned int n_agents =  5;                /**< Total number of agents.        */
+    static constexpr const double start_epoch = 2451545.0;  /**< Start epoch (in J2000).        */
+    static constexpr const double time_step = 10.0 / 86400.0; /**< Units of time per step. */
     static constexpr const float max_revisit_time = 0.7f;    /**< Units of time.                 */
     static constexpr const float target_revisit_time = 0.2f; /**< Units of time.                 */
     static constexpr const float min_payoff = 1e-3f;        /**< Unit-less (payoff RT < target) */
@@ -42,18 +42,17 @@ public:
     static constexpr const double earth_wgs84_a = 6378137.0;        /**< Semi-major axis of WGS84 ellipsoid (in meters). */
     static constexpr const double earth_wgs84_b = 6356752.314245;   /**< Semi-minor axis of WGS84 ellipsoid (in meters). */
     static constexpr const double earth_wgs84_e = 0.08181919;       /**< Eccentricity of WGS84 ellipsoid. */
-    static constexpr const double earth_mu = 3.986004419 * std::pow(10, 14); /**< Earth's gravitational constant. */
-    static constexpr const double earth_radius = 6371000.0;         /**< Earth radius in meters. */
+    static constexpr const double earth_mu = 3.986004419e14;        /**< Earth's gravitational constant. */
 
     /* Agent parametrization: */
-    static constexpr const float agent_swath_min =  70.f;   /**< Minimum swath for agents.      */
-    static constexpr const float agent_swath_max = 132.f;   /**< Maximum swath for agents.      */
-    static constexpr const float agent_range_min = 50.f;    /**< Minimum range for agents.      */
-    static constexpr const float agent_range_max = 90.f;    /**< Maximum range for agents.      */
-    static constexpr const float agent_datarate_min = 0.1f; /**< Minimum range for agents.      */
-    static constexpr const float agent_datarate_max = 0.2f; /**< Maximum range for agents.      */
+    static constexpr const float agent_aperture_min = 60.f; /**< Min. aperture for instruments. */
+    static constexpr const float agent_aperture_max = 120.f;/**< Max. aperture for instruments. */
+    static constexpr const float agent_range_min = 50.f;    /**< Minimum range for links.       */
+    static constexpr const float agent_range_max = 90.f;    /**< Maximum range for links.       */
+    static constexpr const float agent_datarate_min = 0.1f; /**< Minimum range for links.       */
+    static constexpr const float agent_datarate_max = 0.2f; /**< Maximum range for links.       */
     static constexpr const float agent_speed =  4.f;        /**< Distance per time unit.        */
-    static const unsigned int agent_planning_window = 3.5e2;  /**< Steps.                         */
+    static const unsigned int agent_planning_window = 1080; /**< Steps. 540 ~= 1 orbit.         */
     static constexpr const float activity_size = 0.01f;     /**< Size of a single agent msg.    */
     static const AgentMotionType motion_model = AgentMotionType::ORBITAL;
     static TimeValueType time_type;
@@ -83,12 +82,11 @@ public:
     static const unsigned int fnt_size = 24;
 
     /* Scheduling hard constraints: */
-    static const unsigned int max_tasks = 20;
-    static constexpr const double max_task_duration = 300.0 * 1.0 / 86400.0;    /* 5 min. in JD */
+    static const unsigned int max_tasks = 25;
+    static constexpr const double max_task_duration = 7.0 * 60.0 / 86400.0;    /* 7 min. in JD */
     static constexpr const float task_startup_cost = 1.f;
 
     /* Genetic Algorithm configuration: */
-    static const unsigned int ga_max_activities = 30;
     static const unsigned int ga_generations = 10000;
     static const unsigned int ga_timeout = 1000;
     static constexpr const float ga_min_improvement_rate = 0.01f;

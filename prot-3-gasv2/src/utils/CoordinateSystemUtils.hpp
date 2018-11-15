@@ -52,22 +52,52 @@ public:
      *  @param coord     Coordinates in ECI frame to be transformed
      *  @param jd        Current Julian Days of the transformation [days]
      **********************************************************************************************/
-    static sf::Vector3f fromECItoECEF(sf::Vector3f coord, double jd);
+    static sf::Vector3f fromECIToECEF(sf::Vector3f coord, double jd);
+
+    /*******************************************************************************************//**
+     *  Transformation from ECEF to ECI. This conversion is based upon "Appendix - Transformation
+     *  of ECI (CIS, EPOCH J2000.0) coordinates to WGS84 (CTS, ECEF) coordinates", from the
+     *  National Geospatial-Intelligence Agency, available
+     *  [on-line](http://earth-info.nga.mil/GandG/publications/tr8350.2/tr8350.2-a/Appendix.pdf).
+     *  @param  coord   Coordinates in ECEF frame to be transformed
+     *  @param  jd      Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static sf::Vector3f fromECEFToECI(sf::Vector3f coord, double jd);
 
     /*******************************************************************************************//**
      *  Transformation from ECI to Geographic. This conversion uses an intermediate transformation
      *  from ECI to ECEF, and then from ECEF to Geographic.
-     *  @param coord     Coordinates in ECI frame to be transformed
-     *  @param jd        Current Julian Days of the transformation [days]
+     *  @param  coord   Coordinates in ECI frame to be transformed
+     *  @param  jd      Current Julian Days of the transformation [days]
+     *  @return         Geographic coordinates (x == lat, y == lng, z == h)
      **********************************************************************************************/
-    static sf::Vector3f fromECItoGeographic(sf::Vector3f coord, double jd);
+    static sf::Vector3f fromECIToGeographic(sf::Vector3f coord, double jd);
 
     /*******************************************************************************************//**
      *  Transformation from ECEF to Geographic. This conversion is based on the [Ferrari's solution
      *  using the Zhu formulation](https://en.wikipedia.org/wiki/Geographic_coordinate_conversion)
-     *  @param coord     Coordinates in ECEF frame to be transformed
+     *  @param coord    Coordinates in ECEF frame to be transformed
+     *  @return         Geographic coordinates (x == lat, y == lng, z == h)
      **********************************************************************************************/
-    static sf::Vector3f fromECEFtoGeographic(sf::Vector3f coord);
+    static sf::Vector3f fromECEFToGeographic(sf::Vector3f coord);
+
+    /*******************************************************************************************//**
+     *  Transformation from Geographic to ECI. This conversion uses an intermediate transformation
+     *  from Geographic to ECEF, and then from ECEF to ECI.
+     *  @param coord        Coordinates in Geographic frame to be transformed (x == lat, y == lng,
+     *                      z == height)
+     *  @param jd           Current Julian Days of the transformation [days]
+     **********************************************************************************************/
+    static sf::Vector3f fromGeographicToECI(sf::Vector3f coord, double jd);
+
+    /*******************************************************************************************//**
+     *  Transformation from Geographic to ECEF. This conversion is based upon the latitude and
+     *  longitude definitions, and it uses the [Earth ellipsoid World Geodetic System (WGS84) model]
+     *  (https://en.wikipedia.org/wiki/World_Geodetic_System#A_new_World_Geodetic_System:_WGS_84).
+     *  @param coord        Coordinates in Geographic frame to be transformed (x == lat, y == lng,
+     *                      z == height)
+     **********************************************************************************************/
+    static sf::Vector3f fromGeographicToECEF(sf::Vector3f coord);
 
     /*******************************************************************************************//**
      *  Transformation from Orbital to ECI. This conversion is based upon the kepler orbital
@@ -80,7 +110,7 @@ public:
      *  @param arg_perigee   Argument of periapsis of the orbit [º]
      *  @param inclination   Inclination of the orbit [º]
      **********************************************************************************************/
-    static sf::Vector3f fromOrbitaltoECI(
+    static sf::Vector3f fromOrbitalToECI(
         double radius,
         double true_anomaly,
         double right_asc,
@@ -98,7 +128,7 @@ public:
      *  @param arg_perigee   Argument of periapsis of the orbit [º]
      *  @param inclination   Inclination of the orbit [º]
      **********************************************************************************************/
-    static sf::Vector3f fromOrbitaltoECEF(
+    static sf::Vector3f fromOrbitalToECEF(
         double radius,
         double true_anomaly,
         double jd,
@@ -117,7 +147,7 @@ public:
      *  @param arg_perigee   Argument of periapsis of the orbit [º]
      *  @param inclination   Inclination of the orbit [º]
      **********************************************************************************************/
-    static sf::Vector3f fromOrbitaltoGeographic(
+    static sf::Vector3f fromOrbitalToGeographic(
         double radius,
         double true_anomaly,
         double jd,
@@ -185,6 +215,15 @@ private:
      *  @param jd        Current Julian Days of the transformation [days]
      **********************************************************************************************/
     static gsl_matrix* getPolarMotionMatrix(double jd);
+
+    /*******************************************************************************************//**
+     *  Internal handler to manage errors using GSL libraries.
+     *  @param  reason      Error description.
+     *  @param  file        File name in which has the error.
+     *  @param  line        Line which has the error.
+     *  @param  gsl_errno   Type of error from the gsl library.
+     **********************************************************************************************/
+    static void GSLErrorHandler(const char* reason, const char* file, int line, int gsl_errno);
 };
 
 #endif  /* COORDINATE_SYSTEM_UTILS_HPP */

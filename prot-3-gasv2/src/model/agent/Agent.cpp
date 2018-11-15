@@ -23,12 +23,12 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_display_resources(false)
 {
     if(Config::motion_model == AgentMotionType::ORBITAL) {
-        Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n"
+        Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n";
         Log::err << "The world is modelled in 3-d (i.e. `motion_model` is set to AgentMotionType::ORBITAL). Use a different constructor.\n";
         throw std::runtime_error("Wrong Agent constructor");
     }
     m_payload.setDimensions(m_environment->getEnvModelInfo());
-    m_payload.setPosition(m_motion.getProjection2D());
+    m_payload.setPosition(m_motion.getPosition());
     m_activities->setAgentId(m_id);
     initializeResources();
 }
@@ -44,12 +44,12 @@ Agent::Agent(std::string id)
     , m_display_resources(false)
 {
     if(Config::motion_model != AgentMotionType::ORBITAL) {
-        Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n"
+        Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
         Log::err << "The world is modelled in 2-d (i.e. `motion_model` is not set to AgentMotionType::ORBITAL). Use a different constructor.\n";
         throw std::runtime_error("Wrong Agent constructor");
     }
     m_payload.setDimensions(m_environment->getEnvModelInfo());
-    m_payload.setPosition(m_motion.getProjection2D());
+    m_payload.setPosition(m_motion.getPosition());
     m_activities->setAgentId(m_id);
     initializeResources();
 }
@@ -102,7 +102,7 @@ void Agent::plan(void)
     if(m_activities->pending(m_id) == 0 && m_current_activity == nullptr && resources_ok) {
         /* Create a temporal activity (won't be added to the Activities Handler): */
         double t_end = tv_now + Config::agent_planning_window * Config::time_step;
-        auto tmp_act = createActivity(tv_now, t_end, m_payload.getSwath());
+        auto tmp_act = createActivity(tv_now, t_end, m_payload.getAperture());
 
 
         /* Compute and display payoff for the temporal activity object: */
@@ -118,7 +118,7 @@ void Agent::plan(void)
                 return;
             }
         }
-        auto new_act = createActivity(debug_tstart, debug_tend, m_payload.getSwath());
+        auto new_act = createActivity(debug_tstart, debug_tend, m_payload.getAperture());
         m_activities->add(new_act);
         m_environment->addActivity(new_act);
         return;
@@ -130,7 +130,7 @@ void Agent::plan(void)
         std::vector<std::shared_ptr<Activity> > acts;
         for(auto& ag : act_gens) {
             if(ag.t0 < ag.t1) {
-                acts.push_back(createActivity(ag.t0, ag.t1, m_payload.getSwath()));
+                acts.push_back(createActivity(ag.t0, ag.t1, m_payload.getAperture()));
             } else {
                 Log::warn << "[" << m_id << "] Was trying to create an activity where tstart >= tend (1). Skipping.\n";
             }
@@ -162,7 +162,7 @@ void Agent::plan(void)
         /* Store the result: */
         for(auto& setimes : result) {
             if(setimes.first < setimes.second) {
-                auto new_act = createActivity(setimes.first, setimes.second, m_payload.getSwath());
+                auto new_act = createActivity(setimes.first, setimes.second, m_payload.getAperture());
                 m_activities->add(new_act);
                 m_environment->addActivity(new_act);
             } else {
@@ -180,7 +180,8 @@ void Agent::execute(void)
         if(m_current_activity->getEndTime() <= VirtualTime::now()) {
             /* This activity has to end. */
             Log::dbg << "Agent " << m_id << " is ending activity " << m_current_activity->getId()
-                << ", T = [" << VirtualTime::toString(m_current_activity->getStartTime()) << ", " << VirtualTime::toString(m_current_activity->getEndTime()) << ").\n";
+                << ", T = [" << VirtualTime::toString(m_current_activity->getStartTime())
+                << ", " << VirtualTime::toString(m_current_activity->getEndTime()) << ").\n";
             m_payload.disable();
             for(auto& r : m_resources) {
                 // Log::warn << "Removing a resource rate: \'" << r.first << "\'.\n";
@@ -225,9 +226,9 @@ void Agent::showResources(bool d)
     m_display_resources = d;
 }
 
-std::vector<sf::Vector2i> Agent::getWorldFootprint(void) const
+std::vector<sf::Vector2i> Agent::getWorldFootprint(const std::vector<std::vector<sf::Vector3f> >& /* lut */) const
 {
-    return m_payload.getVisibleCells(true);
+    return {}; /* m_payload.getVisibleCells(lut, true); */
 }
 
 bool Agent::operator==(const Agent& ra)
@@ -240,7 +241,7 @@ bool Agent::operator!=(const Agent& ra)
     return !(*this == ra);
 }
 
-std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float swath)
+std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float aperture)
 {
     if(t0 >= t1 || t0 < VirtualTime::now()) {
         Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: "
@@ -271,7 +272,19 @@ std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float swat
     for(auto p = ps.begin() + n_delay; p != ps.begin() + n_delay + n_steps; p++) {
         sf::Vector2f p2d = AgentMotion::getProjection2D(*p, t);
         a_pos[t] = p2d;
-        auto cell_coords = m_payload.getVisibleCells(swath, p2d);
+        std::vector<sf::Vector2i> cell_coords;
+        if(Config::motion_model == AgentMotionType::ORBITAL) {
+            cell_coords = m_payload.getVisibleCells(
+                m_environment->getPositionLUT(),                /* Look-up table. */
+                m_payload.getSlantRangeAt(aperture / 2.f, *p),  /* Distance is the slant range. */
+                *p,                                             /* 3-d position in ECI frame. */
+                false,                                          /* `false` = model cells. */
+                t                                               /* CUrrent time in JD. */
+            );
+        } else {
+            /* For 2-d motion models swath actually equals to the aperture. */
+            cell_coords = m_payload.getVisibleCells(m_environment->getPositionLUT(), aperture, p2d, false);
+        }
         for(auto& cit : cell_coords) {
             /* Check whether that cell was already in the list: */
             int idx = a_cells_lut[cit.x][cit.y].v;
