@@ -6,7 +6,7 @@
 #include "BasicInstrument.hpp"
 #include "prot.hpp"
 
-CREATE_LOGGER(test_BasicInstrument)
+// CREATE_LOGGER(test_BasicInstrument)
 
 
 namespace
@@ -14,7 +14,6 @@ namespace
     TEST(BasicInstrumentTest, testBasicInstrument)
     {
         /* Here goes the test */
-        BasicInstrument *i = new BasicInstrument(); 
     }
 }
 
