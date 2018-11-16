@@ -5,7 +5,7 @@ project(prot-3)
 set(CMAKE_CXX_STANDARD 11)          # C++11 Standard.
 set(CMAKE_CXX_STANDARD_REQUIRED ON) # Force required standard.
 set(CMAKE_CXX_EXTENSIONS ON)        # Enable compiler extensions (gnu++11).
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-reorder -O2 -pthread -fopenmp")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-reorder -pthread -fopenmp")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
@@ -57,7 +57,7 @@ target_link_libraries(prot-3
     model
     graphics
     common
-    # scheduler
+    scheduler
 )
 
 set_target_properties(prot-3

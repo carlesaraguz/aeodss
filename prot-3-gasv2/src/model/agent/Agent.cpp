@@ -226,9 +226,9 @@ void Agent::showResources(bool d)
     m_display_resources = d;
 }
 
-std::vector<sf::Vector2i> Agent::getWorldFootprint(const std::vector<std::vector<sf::Vector3f> >& /* lut */) const
+std::vector<sf::Vector2i> Agent::getWorldFootprint(const std::vector<std::vector<sf::Vector3f> >& lut) const
 {
-    return {}; /* m_payload.getVisibleCells(lut, true); */
+    return m_payload.getVisibleCells(lut, true);
 }
 
 bool Agent::operator==(const Agent& ra)
@@ -283,7 +283,7 @@ std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float aper
             );
         } else {
             /* For 2-d motion models swath actually equals to the aperture. */
-            cell_coords = m_payload.getVisibleCells(m_environment->getPositionLUT(), aperture, p2d, false);
+            cell_coords = m_payload.getVisibleCells(aperture, p2d, false);
         }
         for(auto& cit : cell_coords) {
             /* Check whether that cell was already in the list: */

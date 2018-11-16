@@ -5,11 +5,14 @@ add_library(model_test STATIC ${src_list})
 
 target_link_libraries(model
     common
+    graphics
     scheduler
     utils
 )
+
 target_link_libraries(model_test
     common_test
+    graphics_test
     scheduler_test
     utils_test
 )
