@@ -2,8 +2,9 @@
  *  Conical, nadir-pointing instrument.
  *  @class      BasicInstrument
  *  @authors    Carles Araguz (CA), carles.araguz@upc.edu
- *  @date       2018-sep-10
- *  @version    0.1
+ *              Marc Closa (MC), marc.closa.tarres@alu-etsetb.upc.edu
+ *  @date       2018-nov-15
+ *  @version    0.2
  *  @copyright  This file is part of a project developed by Nano-Satellite and Payload Laboratory
  *              (NanoSat Lab) at Technical University of Catalonia - UPC BarcelonaTech.
  **************************************************************************************************/
@@ -352,155 +353,150 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
 
         case AgentMotionType::ORBITAL:
             {
-                // n_points = 20;
-                // float R = Config::earth_wgs84_a;
-                // sf::Vector3f p = m_position;
-                //
-                // float aperture = MathUtils::degToRad(getSwath());
-                //
-                // float h = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-                //
-                // float lambda = Config::pi - std::asin((h / R) * std::sin(aperture / 2));
-                // float alpha  = Config::pi - lambda - aperture / 2;
-                // float r = R * std::sin(alpha) / std::sin(aperture / 2);
-                //
-                // /* Also can be used:
-                //  * float footprint_radius = R * std::sin(alpha);
-                //  **/
-                // float footprint_radius = r * std::sin(aperture / 2);
-                //
-                // float c_len = R * cos(alpha);
-                //
-                // /* Computation of cross product */
-                // sf::Vector3f p_n = p / h;
-                // sf::Vector3f v = sf::Vector3f(p_n.x, p_n.y, p_n.z);
-                // sf::Vector3f c = v * c_len;
-                //
-                // /* When v = [1 0 0], a will be a = [0 0 0] using our perpendicular vector generator method.
-                //  * For this reason, we check that v = [1 0 0] and in this case we force a = [0 1 0] that is
-                //  * always perpendicular to v. And then, we generate b with the cross product.
-                //  **/
-                //
-                // sf::Vector3f a = sf::Vector3f();
-                //
-                // if(v == sf::Vector3f(1, 0, 0)) {
-                //     a = sf::Vector3f(0, 1, 0);
-                // } else {
-                //     a = sf::Vector3f(0, v.z, -v.y);
-                // }
-                //
-                // a = a / std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
-                // sf::Vector3f b = sf::Vector3f();
-                //
-                // b.x = v.y * a.z - v.z * a.y;
-                // b.y = v.x * a.z - v.z * a.x;
-                // b.z = v.x * a.y - v.y * a.x;
-                //
-                // b = b / std::sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
-                //
-                //
-                // float step = 2.f * Config::pi / (float)n_points;
-                //
-                // std::vector<sf::Vector2f> positions;
-                //
-                // sf::Vector3f n_pole = sf::Vector3f(0, 0, R);
-                // sf::Vector3f s_pole = sf::Vector3f(0, 0, -R);
-                //
-                //
-                // bool north_included = false;
-                // bool south_included = false;
-                //
-                // float distance_to_north = std::sqrt((c.x - n_pole.x) * (c.x - n_pole.x) + (c.y - n_pole.y) * (c.y - n_pole.y)
-                //     + (c.z - n_pole.z) * (c.z - n_pole.z));
-                // float distance_to_south = std::sqrt((c.x - s_pole.x) * (c.x - s_pole.x) + (c.y - s_pole.y) * (c.y - s_pole.y)
-                //         + (c.z - s_pole.z) * (c.z - s_pole.z));
-                //
-                // if(distance_to_north < footprint_radius) {
-                //     north_included = true;
-                // } else if(distance_to_south < footprint_radius) {
-                //     south_included = true;
-                // }
-                //
-                // /* Core no passa abans d'aquí. */
-                //
-                // for(float th = 0; th < n_points; th += step) {
-                //     float footprint_x = c.x + footprint_radius * std::cos(th) * a.x + footprint_radius * std::sin(th) * b.x;
-                //     float footprint_y = c.z + footprint_radius * std::cos(th) * a.y + footprint_radius * std::sin(th) * b.y;
-                //     float footprint_z = c.z + footprint_radius * std::cos(th) * a.z + footprint_radius * std::sin(th) * b.z;
-                //
-                //     sf::Vector3f fp_pos = sf::Vector3f(footprint_x, footprint_y, footprint_z);
-                //     sf::Vector2f proj   = AgentMotion::getProjection2D(fp_pos, VirtualTime::now());
-                //
-                //     sf::Vector2f prev = sf::Vector2f();
-                //
-                //     if (positions.size() > 0) {
-                //         prev = positions.back();
-                //     }
-                //
-                //     if(north_included) {
-                //
-                //         float border_y = std::abs(prev.y - proj.y) / 2;
-                //
-                //         if(prev.x > proj.x) {
-                //             positions.push_back(sf::Vector2f(Config::world_width, border_y));
-                //             positions.push_back(sf::Vector2f(Config::world_width, Config::world_height));
-                //             positions.push_back(sf::Vector2f(0, Config::world_height));
-                //             positions.push_back(sf::Vector2f(0, border_y));
-                //         } else {
-                //             positions.push_back(sf::Vector2f(0, border_y));
-                //             positions.push_back(sf::Vector2f(0, Config::world_height));
-                //             positions.push_back(sf::Vector2f(Config::world_width, Config::world_height));
-                //             positions.push_back(sf::Vector2f(Config::world_width, border_y));
-                //         }
-                //     }
-                //
-                //     if(south_included) {
-                //
-                //         float border_y = std::abs(prev.y - proj.y) / 2;
-                //
-                //         if(prev.x > proj.x) {
-                //             positions.push_back(sf::Vector2f(Config::world_width, border_y));
-                //             positions.push_back(sf::Vector2f(Config::world_width, 0));
-                //             positions.push_back(sf::Vector2f(0, 0));
-                //             positions.push_back(sf::Vector2f(0, border_y));
-                //         } else {
-                //             positions.push_back(sf::Vector2f(0, border_y));
-                //             positions.push_back(sf::Vector2f(0, 0));
-                //             positions.push_back(sf::Vector2f(Config::world_width, 0));
-                //             positions.push_back(sf::Vector2f(Config::world_width, border_y));
-                //         }
-                //     }
-                //
-                //     bool is_splitted = false;
-                //
-                //     float x_distance = std::abs(proj.x - prev.x);
-                //
-                //     if(x_distance > Config::world_width / 2) {
-                //         is_splitted = true;
-                //     }
-                //
-                //     if(is_splitted){
-                //         /* Compute border point */
-                //         float border_y = std::abs(prev.y - proj.y) / 2;
-                //
-                //         if(prev.x > proj.x) {
-                //             positions.push_back(sf::Vector2f(Config::world_width, border_y));
-                //             positions.push_back(sf::Vector2f(Config::world_width, 0));
-                //             positions.push_back(sf::Vector2f(0, 0));
-                //             positions.push_back(sf::Vector2f(0, border_y));
-                //         } else {
-                //             positions.push_back(sf::Vector2f(0, border_y));
-                //             positions.push_back(sf::Vector2f(0, Config::world_height));
-                //             positions.push_back(sf::Vector2f(Config::world_width, Config::world_height));
-                //             positions.push_back(sf::Vector2f(Config::world_width, border_y));
-                //         }
-                //     }
-                //     if(proj.y != Config::world_height || proj.y != 0){
-                //         positions.push_back(proj);
-                //     }
-                // }
-                //
-                // return positions;
+                n_points = 20;
+                float R = Config::earth_wgs84_a;
+                sf::Vector3f p = m_position;
+
+                float aperture = MathUtils::degToRad(getSwath());
+
+                float h = MathUtils::norm(p);
+
+                float lambda = Config::pi - std::asin((h / R) * std::sin(aperture / 2));
+                float alpha  = Config::pi - lambda - aperture / 2;
+                float r = R * std::sin(alpha) / std::sin(aperture / 2);
+
+                /* Also can be used:
+                 * float footprint_radius = R * std::sin(alpha);
+                 **/
+                float footprint_radius = r * std::sin(aperture / 2);
+
+                float c_len = R * cos(alpha);
+
+                /* Computation of cross product */
+                sf::Vector3f p_n = p / h;
+                sf::Vector3f v = sf::Vector3f(p_n.x, p_n.y, p_n.z);
+                sf::Vector3f c = v * c_len;
+
+                /* When v = [1 0 0], a will be a = [0 0 0] using our perpendicular vector generator method.
+                 * For this reason, we check that v = [1 0 0] and in this case we force a = [0 1 0] that is
+                 * always perpendicular to v. And then, we generate b with the cross product.
+                 **/
+
+                // sf::Vector3f a = sf::Vector3f(v.z, v.z, (-v.x - v.y));
+                sf::Vector3f a = sf::Vector3f(0, v.z, -v.y);
+                a = MathUtils::makeUnitary(a);
+
+                if(a == sf::Vector3f(0, 0, 0)) {
+                    // a = sf::Vector3f((-v.y - v.z), v.x, v.x);
+                    a = sf::Vector3f(0, 1, 0);
+                }
+
+                sf::Vector3f b = sf::Vector3f();
+
+                b.x = v.y * a.z - v.z * a.y;
+                b.y = v.x * a.z - v.z * a.x;
+                b.z = v.x * a.y - v.y * a.x;
+
+                b = MathUtils::makeUnitary(b);
+
+                float step = 2.f * Config::pi / (float)n_points;
+
+                std::vector<sf::Vector2f> positions;
+
+                sf::Vector3f n_pole = sf::Vector3f(0, 0, R);
+                sf::Vector3f s_pole = sf::Vector3f(0, 0, -R);
+
+                bool north_included = false;
+                bool south_included = false;
+
+                float distance_to_north = std::sqrt((c.x - n_pole.x) * (c.x - n_pole.x) + (c.y - n_pole.y) * (c.y - n_pole.y)
+                    + (c.z - n_pole.z) * (c.z - n_pole.z));
+                float distance_to_south = std::sqrt((c.x - s_pole.x) * (c.x - s_pole.x) + (c.y - s_pole.y) * (c.y - s_pole.y)
+                        + (c.z - s_pole.z) * (c.z - s_pole.z));
+
+                if(distance_to_north < footprint_radius) {
+                    north_included = true;
+                } else if(distance_to_south < footprint_radius) {
+                    south_included = true;
+                }
+
+                for(float th = 0; th < n_points; th += step) {
+                    float footprint_x = c.x + footprint_radius * std::cos(th) * a.x + footprint_radius * std::sin(th) * b.x;
+                    float footprint_y = c.z + footprint_radius * std::cos(th) * a.y + footprint_radius * std::sin(th) * b.y;
+                    float footprint_z = c.z + footprint_radius * std::cos(th) * a.z + footprint_radius * std::sin(th) * b.z;
+
+                    sf::Vector3f fp_pos = sf::Vector3f(footprint_x, footprint_y, footprint_z);
+                    sf::Vector2f proj   = AgentMotion::getProjection2D(fp_pos, VirtualTime::now());
+                    sf::Vector2f p_proj = AgentMotion::getProjection2D(p, VirtualTime::now());
+
+                    // std::cout << "X: " << fp_pos.x << "; Y: " << fp_pos.y << "; Z: " << fp_pos.z << '\n';
+                    std::cout << "X: " << proj.x << "; Y: " << proj.y <<'\n';
+                    proj = p_proj - proj;
+                    sf::Vector2f prev = sf::Vector2f();
+
+                    if (positions.size() > 0) {
+                        prev = positions.back();
+                    }
+                    north_included = false;
+                    if(north_included) {
+                        float border_y = std::abs(prev.y - proj.y);
+
+                        if(prev.x > proj.x) {
+                            positions.push_back(sf::Vector2f(Config::world_width, border_y));
+                            positions.push_back(sf::Vector2f(Config::world_width, 0));
+                            positions.push_back(sf::Vector2f(0, 0));
+                            positions.push_back(sf::Vector2f(0, border_y));
+                        } else {
+                            positions.push_back(sf::Vector2f(0, border_y));
+                            positions.push_back(sf::Vector2f(0, 0));
+                            positions.push_back(sf::Vector2f(Config::world_width, 0));
+                            positions.push_back(sf::Vector2f(Config::world_width, border_y));
+                        }
+                    }
+                    south_included = false;
+                    if(south_included) {
+                        float border_y = std::abs(prev.y - proj.y) / 2;
+
+                        if(prev.x > proj.x) {
+                            positions.push_back(sf::Vector2f(Config::world_width, border_y));
+                            positions.push_back(sf::Vector2f(Config::world_width, Config::world_height));
+                            positions.push_back(sf::Vector2f(0, Config::world_height));
+                            positions.push_back(sf::Vector2f(0, border_y));
+                        } else {
+                            positions.push_back(sf::Vector2f(0, border_y));
+                            positions.push_back(sf::Vector2f(0, Config::world_height));
+                            positions.push_back(sf::Vector2f(Config::world_width, Config::world_height));
+                            positions.push_back(sf::Vector2f(Config::world_width, border_y));
+                        }
+                    }
+
+                    bool is_splitted = false;
+
+                    float x_distance = std::abs(proj.x - prev.x);
+
+                    if(x_distance > Config::world_width / 2) {
+                        is_splitted = true;
+                    }
+                    is_splitted = false;
+                    if(is_splitted){
+                        /* Compute border point */
+                        float border_y = std::abs(prev.y - proj.y);
+
+                        if(prev.x > proj.x) {
+                            positions.push_back(sf::Vector2f(Config::world_width, border_y));
+                            positions.push_back(sf::Vector2f(Config::world_width, Config::world_height));
+                            positions.push_back(sf::Vector2f(0, Config::world_height));
+                            positions.push_back(sf::Vector2f(0, border_y));
+                        } else {
+                            positions.push_back(sf::Vector2f(0, border_y));
+                            positions.push_back(sf::Vector2f(0, 0));
+                            positions.push_back(sf::Vector2f(Config::world_width, 0));
+                            positions.push_back(sf::Vector2f(Config::world_width, border_y));
+                        }
+                    }
+                    positions.push_back(proj);
+                }
+                return positions;
             }
             break;
     }

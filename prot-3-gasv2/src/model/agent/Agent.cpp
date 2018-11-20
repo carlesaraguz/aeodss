@@ -109,7 +109,7 @@ void Agent::plan(void)
         /* Compute and display payoff for the temporal activity object: */
         m_environment->computePayoff(tmp_act, true);
 
-        #if 0
+        #if 1
         /* DEBUG ================================================================================ */
         double debug_tstart = tv_now + Random::getUi(10, 100) * Config::time_step;
         double debug_tend   = debug_tstart + Random::getUi(100, 300) * Config::time_step;
