@@ -350,7 +350,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 }
             }
             break;
-
+#######
         case AgentMotionType::ORBITAL:
             {
                 n_points = 20;
@@ -377,7 +377,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
 
                 sf::Vector3f b;
                 b.x = u.y * a.z - u.z * a.y;
-                b.y = u.x * a.z - u.z * a.x;
+                b.y = u.z * a.x - u.x * a.z;
                 b.z = u.x * a.y - u.y * a.x;
                 b = MathUtils::makeUnitary(b);
 
@@ -405,7 +405,6 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
 
                     // proj = p_proj - proj;
                     // sf::Vector2f prev = sf::Vector2f();
-                    //
                     // if (positions.size() > 0) {
                     //     prev = positions.back();
                     // }
@@ -425,6 +424,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                     //         footprint.push_back(sf::Vector2f(Config::world_width, border_y));
                     //     }
                     // }
+                    //
                     // south_included = false;
                     // if(south_included) {
                     //     float border_y = std::abs(prev.y - proj.y) / 2;
@@ -468,6 +468,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                     // }
                     // footprint.push_back(proj);
                 }
+                return footprint;
             }
             break;
     }
