@@ -350,7 +350,6 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 }
             }
             break;
-#######
         case AgentMotionType::ORBITAL:
             {
                 n_points = 20;
