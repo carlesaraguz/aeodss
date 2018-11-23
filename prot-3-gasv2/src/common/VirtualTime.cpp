@@ -12,11 +12,18 @@
 
 CREATE_LOGGER(VirtualTime)
 
-double VirtualTime::m_vtime = Config::start_epoch;
+double VirtualTime::m_vtime;
+bool VirtualTime::m_initialized = false;
 
 void VirtualTime::step(void)
 {
     m_vtime += Config::time_step;
+}
+
+void VirtualTime::init(double t)
+{
+    m_vtime = t;
+    m_initialized = true;
 }
 
 std::string VirtualTime::toString(double t, bool is_absolute_time)
@@ -31,7 +38,12 @@ std::string VirtualTime::toString(double t, bool is_absolute_time)
 
     if(Config::time_type == TimeValueType::JULIAN_DAYS) {
         if(is_absolute_time) {
-            t -= Config::start_epoch;
+            if(!m_initialized) {
+                ss << "\'?d??:??:??\'";
+                return ss.str();
+            } else {
+                t -= Config::start_epoch;
+            }
         }
         double sec = std::fmod(t * 60.0 * 60.0 * 24.0, 60.0);
         int min  = (int)(t * 60 * 24) % 60;
@@ -42,7 +54,7 @@ std::string VirtualTime::toString(double t, bool is_absolute_time)
             << std::setw(2) << std::setfill('0') << min  << ":"
             << std::fixed << std::setprecision(3) << std::setw(6) << std::setfill('0') << sec << "\'";
     } else {
-        ss << std::fixed << std::setw(3) << m_vtime;
+        ss << std::fixed << std::setprecision(3) << m_vtime;
     }
     retval = ss.str();
     return retval;

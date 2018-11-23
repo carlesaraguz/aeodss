@@ -19,9 +19,11 @@ void handleEvents(sf::RenderWindow& w);
 
 bool play = true;
 
-int main(int /* argc */, char** /* argv */)
+int main(int argc, char** argv)
 {
     Init::doInit();
+    Config::loadCmdArgs(argc, argv);
+    std::exit(0);
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 0;

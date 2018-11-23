@@ -79,11 +79,11 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
         case AgentMotionType::ORBITAL:
             if(m_orb_params.sma == -1.0) {
                 /* Earth semi-major axis of WGS84 */
-                m_orb_params.sma  = (double)Random::getUf(500e3f, 900e3f) + Config::earth_wgs84_a;
-                m_orb_params.ecc  = (double)Random::getUf(0.f, 0.02f);
-                m_orb_params.inc  = (double)Random::getUf(35.f, 87.f);
-                m_orb_params.argp = (double)Random::getUf(0.f, 360.f);
-                m_orb_params.raan = (double)Random::getUf(0.f, 360.f);
+                m_orb_params.sma  = (double)Random::getUf(Config::orbp_sma_min, Config::orbp_sma_max);
+                m_orb_params.ecc  = (double)Random::getUf(0.f, Config::orbp_ecc_max);
+                m_orb_params.inc  = (double)Random::getUf(Config::orbp_inc_min, Config::orbp_inc_max);
+                m_orb_params.argp = (double)Random::getUf(Config::orbp_argp_min, Config::orbp_argp_max);
+                m_orb_params.raan = (double)Random::getUf(Config::orbp_raan_min, Config::orbp_raan_max);
             }
 
             m_orb_params.mean_motion = std::sqrt(Config::earth_mu / std::pow(m_orb_params.sma, 3)); /* In radians/sec. */

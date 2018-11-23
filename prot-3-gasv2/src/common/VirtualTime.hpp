@@ -20,8 +20,11 @@ public:
     static void step(void);
     static std::string toString(double t = -1.0, bool is_absolute_time = true);
     static double now(void) { return m_vtime; }
+    static void init(double t);
+    static bool isInit(void) { return m_initialized; }
 
 private:
+    static bool m_initialized;
     static double m_vtime;
 };
 

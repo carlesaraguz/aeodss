@@ -21,6 +21,13 @@ find_package(GSL REQUIRED)
 include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 link_libraries(${GSL_LIBRARIES})
 
+# -- YAML C++:
+find_package(yaml-cpp 0.5.2 REQUIRED)
+#   NOTE: The line below causes error in compilation (headers not found) and may not be necessary
+#   if YAML-CPP has been installed from packages (libyaml-cpp-dev).
+#   include_directories(SYSTEM ${YAML_CPP_INCLUDE_DIR})
+link_libraries(${YAML_CPP_LIBRARIES})
+
 # -- GoogleTest
 find_package(GTest)
 if(GTEST_FOUND)

@@ -1,0 +1,70 @@
+version: 1
+system:
+    n_agents: 10
+    time:
+        type: julian_days   # julian_days, seconds or arbitrary
+        sec: 10             # Time step seconds in julian_days or seconds mode.
+        min: 0              # Time step minutes in julian_days mode.
+        hour: 0             # Time step hours in julian_days mode.
+        days: 0             # Time step days in julian_days mode.
+        start_epoch: 2451545.0  # Start epoch in julian_days mode.
+
+# -- Graphics and user interface configuration: ----------------------------------------------------
+graphics:
+    win_width: 1800
+    win_height: 900
+    agent_size: 14
+    font_size: 14
+
+# -- Environment model configuration: --------------------------------------------------------------
+environment:
+    model_unity_size: 10
+    world_width: 1800
+    world_height: 900
+    max_revisit_time: 0.7
+    target_revisit_time: 0.2
+    min_payoff: 1e-3
+    max_payoff: 1
+
+# -- Agent configuration: --------------------------------------------------------------------------
+agent:
+    energy_generation: -764     # Energy generation rate.
+    # Instrument parameters:
+    instrument:
+        aperture: [60, 120]     # Degrees [min, max] or single value.
+        energy: [900, 1200]     # Energy consumption rate [min, max] or single value.
+        storage: 0.01           # Storage consumption rate [min, max] or single value.
+    # Agent communication parameters:
+    link:
+        range: [50, 90]         # Distance units (world pixels or meters), [min, max] or single value.
+        datarate: [0.1, 0.2]    # Datarate [min, max] or value.
+        energy_tx: 0.5          # Energy consumption rate.
+        energy_rx: 0.05         # Energy consumption rate.
+    # Agent motion model:
+    motion:
+        type: orbital           # orbital, linear_bounce, linear_infinite or sinusoidal.
+        # ---- Orbital (3D) motion:
+        altitude: [500, 900]    # Orbital height in kilometers [min, max] or single value.
+        max_ecc: 0.02           # Max. eccentricity.
+        inc: [35, 87]           # Inclination in degrees, [min, max] or single value.
+        argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
+        raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
+    activity:
+        size: 0.01                  # Amount of information to transmit.
+    planning_window: 1080           # Time-steps.
+    max_tasks: 25                   # Max. tasks to generate.
+    max_task_duration: 4.861111e-3  # 7 min. (in JD)
+    ga_scheduler:                   # Genetic Algorithm Scheduler paramaters.
+        generations: 10000          # Max. number of iterations in the search.
+        timeout: 1000               # Timeout (in iterations) as # of iterations without improvement.
+        min_improvement_rate: 0.01  # Minimum improvement rate.
+        population_size: 500        # Number of individuals in the population.
+        mutation_rate: 0.2          # Mutation probability for each chromosome's allele.
+        crossover:                  # Crossover operator options:
+            type: multiple          # multiple, single, or uniform.
+            n_points: 5             # Crossover points in multiple mode.
+        parent_sel:                 # Parent selection operator options:
+            type: tournament        # tournament, fitness_proportionate, elitist or stochastic_universal
+            k: 2                    # tournament K constant.
+        environ_sel:                # Environment selection operator options:
+            type: elitist           # elitist, truncation, or generational.
