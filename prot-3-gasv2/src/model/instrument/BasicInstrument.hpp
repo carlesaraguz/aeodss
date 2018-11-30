@@ -124,7 +124,10 @@ public:
         bool world_cells = false) const override;
 
     /*******************************************************************************************//**
-     *  TODO
+     *  Computes the current instrument footprint projected on an equirectangular map according
+     *  to the instrument aperture and position in a particular instant. It returns a vector of
+     *  2D (X, Y) positions of each point of the foorprint perimeter. This function is sensitive
+     *  to latitude so it projects properly the circular footprint obtained on a sphere.
      **********************************************************************************************/
     std::vector<sf::Vector2f> getFootprint(void) const override;
 
