@@ -173,6 +173,11 @@ public:
      **********************************************************************************************/
     float getSlantRangeAt(float deg, sf::Vector3f p) const override;
 
+    /*******************************************************************************************//**
+     *  Getter for the instrument position in ECI coordinates.
+     **********************************************************************************************/
+    sf::Vector3f getPosition(void) const { return m_position; }
+
 private:
     EnvModelInfo m_env_info;    /**< Information about the environment model size. */
     float m_swath;              /**< Instrument swath, in pixels (2D) or meters (3D). */

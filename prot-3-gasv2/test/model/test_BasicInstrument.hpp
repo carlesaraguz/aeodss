@@ -8,13 +8,12 @@
 #include "Init.hpp"
 #include "MultiView.hpp"
 #include "Agent.hpp"
+#include "Config.hpp"
 // CREATE_LOGGER(test_BasicInstrument)
 
 
 namespace
 {
-    int test_width  = 1366;
-    int test_height = 768;
     unsigned int n_agents = 1;
     bool play = true;
 
@@ -48,7 +47,7 @@ namespace
         // Init::doInit();
         sf::ContextSettings settings;
         settings.antialiasingLevel = 0;
-        sf::RenderWindow window(sf::VideoMode(test_width, test_height), "BasicInstrument Test Window", sf::Style::Titlebar | sf::Style::Close, settings);
+        sf::RenderWindow window(sf::VideoMode(Config::world_width, Config::world_height), "BasicInstrument Test Window", sf::Style::Titlebar | sf::Style::Close, settings);
         window.setFramerateLimit(60);
 
         /* Create agents: --------------------------------------------------------------------------- */
@@ -103,8 +102,8 @@ namespace
         *  - (,,);
         **/
 
-        sf::Vector3f north_pole = sf::Vector3f(0.f, 0.f, 6978137.f);
-        sf::Vector3f equator    = sf::Vector3f(6978137.f, 0.f, 0.f);
+        sf::Vector3f north_pole = sf::Vector3f(739445.f,2038920.f,5998930.f);
+        sf::Vector3f equator    = sf::Vector3f(6978137.f, 1.f, 1.f);
         // sf::Vector3f random     = sf::Vector3f();
 
         bi1->setPosition(north_pole);
@@ -112,8 +111,25 @@ namespace
         bi2->setPosition(equator);
         // std::cout << "X: " << bi2->getProjection2D().x << "Y: " << bi2->getProjection2D() <<  '\n';
 
+        ASSERT_EQ(bi1->getPosition(), north_pole);
+        ASSERT_EQ(bi2->getPosition(), equator);
+
         std::vector<sf::Vector2f> fp_1 = bi1->getFootprint();
         std::vector<sf::Vector2f> fp_2 = bi2->getFootprint();
+
+        std::cout << "FP1 size: " << fp_1.size() << '\n';
+        std::cout << "FP2 size: " << fp_2.size() << '\n';
+
+        // std::cout << '\n'<< "NORTH POLE FP:" << '\n';
+        // for(auto& fp_point: fp_1) {
+        //     std::cout << "X: " << fp_point.x << "Y: "<< fp_point.y << '\n';
+        // }
+
+        // std::cout << '\n' << "EQUATOR FP:" << '\n';
+        // for(auto& fp_point: fp_2) {
+        //     std::cout << "X: " << fp_point.x << " | Y: "<< fp_point.y << '\n';
+        // }
+
 
         std::vector<ThickLine> footprint;
         // std::cout << "Size " << fp_1.size() << '\n';

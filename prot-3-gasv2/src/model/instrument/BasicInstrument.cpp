@@ -356,7 +356,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 float h = MathUtils::norm(m_position);
                 float lambda = Config::pi - std::asin((h / Config::earth_wgs84_a) * std::sin(ang_rad));
                 float alpha  = Config::pi - lambda - ang_rad;
-                float c_len = Config::earth_wgs84_a * std::cos(alpha);
+                float c_len  = Config::earth_wgs84_a * std::cos(alpha);
 
                 float r = getSlantRangeAt(m_aperture / 2.f, m_position);
                 float footprint_radius = r * std::sin(ang_rad);
@@ -389,6 +389,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 bool south_included = MathUtils::norm(s_pole - m_position) <= footprint_radius;
 
                 auto p_proj = AgentMotion::getProjection2D(m_position, VirtualTime::now());
+
                 if((p_proj.y < 225.f && p_proj.y > 180.f) || (p_proj.y < 720.f && p_proj.y > 675.f)) {
                     n_points = 50;
                 } else if(p_proj.y < 180.f || p_proj.y > 720.f) {
@@ -396,14 +397,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 } else {
                     n_points = 20;
                 }
-                // auto c_proj = AgentMotion::getProjection2D(c, VirtualTime::now()) - p_proj;
-                // footprint.push_back(c_proj + sf::Vector2f( 20.f,   0.f));
-                // footprint.push_back(c_proj + sf::Vector2f(  0.f,  20.f));
-                // footprint.push_back(c_proj + sf::Vector2f(-20.f,   0.f));
-                // footprint.push_back(c_proj + sf::Vector2f(  0.f, -20.f));
-                // footprint.push_back(c_proj + sf::Vector2f( 20.f,   0.f));
-
-                /* +- 20 pixels added to ensure that lines do not appear at enviornment */
+                
                 sf::Vector2f top_left  = sf::Vector2f(-p_proj.x, -p_proj.y);
                 sf::Vector2f top_right = sf::Vector2f(-p_proj.x + Config::world_width, -p_proj.y);
                 sf::Vector2f bot_left  = sf::Vector2f(-p_proj.x, -p_proj.y + Config::world_height);
