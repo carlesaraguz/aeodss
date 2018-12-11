@@ -9,6 +9,7 @@
 #include "MultiView.hpp"
 #include "Agent.hpp"
 #include "Config.hpp"
+#include "Random.hpp"
 // CREATE_LOGGER(test_BasicInstrument)
 
 
@@ -82,57 +83,99 @@ namespace
 
         /* Here, view enviornment is created and configured */
         /* For tests, we will suppose that apperture is a fixed value. */
-        float aperture = 80.f;
+        float aperture = 100.f;
         BasicInstrument *bi1 = new BasicInstrument(aperture);
         BasicInstrument *bi2 = new BasicInstrument(aperture);
-        EXPECT_EQ(aperture, bi1->getAperture());
-        EXPECT_EQ(aperture, bi2->getAperture());
-        // BasicInstrument *bi3 = new BasicInstrument(aperture);
+        BasicInstrument *bi3 = new BasicInstrument(aperture);
+        BasicInstrument *bi4 = new BasicInstrument(aperture);
+        ASSERT_EQ(aperture, bi1->getAperture());
+        ASSERT_EQ(aperture, bi2->getAperture());
+        ASSERT_EQ(aperture, bi3->getAperture());
+        ASSERT_EQ(aperture, bi4->getAperture());
 
         /* Some critical positions must be ckecked in order to verify the proper behaviour
-        * of our functions. The points will be (Writen in ECI coordinates):
-        * (Same altitude in m in each point = R_E + 600000 =  6378137.0 + 600000.0 = 6978137.0)
+        * of our functions. The points will be (Writen in LLA coordinates):
+        * (Same altitude in m in each point = 600000m)
         * NORTH POLE / SOUTH POLE:
-        *  - (0, 0, 6978137.0) / (0, 0, -6978137.0)
+        *  - (0.f, 90.f, 600000) / (0.f, -90.f, 600000.f)
         *
         * EQUATOR POINT (ON X AXIS):
-        *  - (6978137.0, 0, 0)
+        *  - (0.f, 0.f, 600000.f)
         *
-        * RANDOM POINT:
-        *  - (,,);
+        * SPLITTED AND DEFORMED POINT:
+        *  - (75.f, 165.f, 600000.f);
+        * RANDOM POINT
         **/
 
-        sf::Vector3f north_pole = sf::Vector3f(739445.f,2038920.f,5998930.f);
-        sf::Vector3f equator    = sf::Vector3f(6978137.f, 1.f, 1.f);
-        // sf::Vector3f random     = sf::Vector3f();
+        float lat = Random::getUf(-90.f, 90.f);
+        float lon = Random::getUf(-180.f, 180.f);
 
-        bi1->setPosition(north_pole);
-        // std::cout << "X: " << bi1->getProjection2D().x << "Y: " << bi1->getProjection2D() <<  '\n';
-        bi2->setPosition(equator);
-        // std::cout << "X: " << bi2->getProjection2D().x << "Y: " << bi2->getProjection2D() <<  '\n';
+        std::cout << "Lat: " << lat << "| Lon: " << lon << '\n';
 
-        ASSERT_EQ(bi1->getPosition(), north_pole);
-        ASSERT_EQ(bi2->getPosition(), equator);
+        sf::Vector3f north_pole = sf::Vector3f(90.f, 0.f, 600000); /* In geographic coordinates */
+        sf::Vector3f equator    = sf::Vector3f(0.f, 0.f, 600000);  /* In geographic coordinates */
+        sf::Vector3f split      = sf::Vector3f(75.7067, 165.199, 600000.f); /* In geographic coordinates */
+        sf::Vector3f random     = sf::Vector3f(lat, lon, 600000.f);
+
+        sf::Vector3f north_pole_eci = CoordinateSystemUtils::fromGeographicToECI(north_pole, VirtualTime::now());
+        sf::Vector3f equator_eci    = CoordinateSystemUtils::fromGeographicToECI(equator, VirtualTime::now());
+        sf::Vector3f split_eci      = CoordinateSystemUtils::fromGeographicToECI(split, VirtualTime::now());
+        sf::Vector3f random_eci     = CoordinateSystemUtils::fromGeographicToECI(random, VirtualTime::now());
+        bi1->setPosition(north_pole_eci);
+        bi2->setPosition(equator_eci);
+        bi3->setPosition(split_eci);
+        bi4->setPosition(random_eci);
+
+        ASSERT_EQ(bi1->getPosition(), north_pole_eci);
+        ASSERT_EQ(bi2->getPosition(), equator_eci);
+        ASSERT_EQ(bi3->getPosition(), split_eci);
+        ASSERT_EQ(bi4->getPosition(), random_eci);
+
+        std::cout << "AGENT 1 POSITION:" << '\n';
+        std::cout << "X: " << bi1->getPosition().x << " Y: " << bi1->getPosition().y << " Z: " << bi1->getPosition().z << '\n';
+        std::cout << "AGENT 2 POSITION:" << '\n';
+        std::cout << "X: " << bi2->getPosition().x << " Y: " << bi2->getPosition().y << " Z: " << bi2->getPosition().z << '\n';
+        std::cout << "AGENT 3 POSITION:" << '\n';
+        std::cout << "X: " << bi3->getPosition().x << " Y: " << bi3->getPosition().y << " Z: " << bi3->getPosition().z << '\n';
+        std::cout << "AGENT 3 POSITION:" << '\n';
+        std::cout << "X: " << bi4->getPosition().x << " Y: " << bi4->getPosition().y << " Z: " << bi4->getPosition().z << '\n';
+
+        sf::Vector2f p_pos1 = AgentMotion::getProjection2D(bi1->getPosition(), VirtualTime::now());
+        sf::Vector2f p_pos2 = AgentMotion::getProjection2D(bi2->getPosition(), VirtualTime::now());
+        sf::Vector2f p_pos3 = AgentMotion::getProjection2D(bi3->getPosition(), VirtualTime::now());
+        sf::Vector2f p_pos4 = AgentMotion::getProjection2D(bi4->getPosition(), VirtualTime::now());
+
+        std::cout << "AGENT 1 PROJECTION:" << '\n';
+        std::cout << "X: " << p_pos1.x << " Y: " << p_pos1.y << '\n';
+        std::cout << "AGENT 2 PROJECTION:" << '\n';
+        std::cout << "X: " << p_pos2.x << " Y: " << p_pos2.y << '\n';
+        std::cout << "AGENT 3 PROJECTION:" << '\n';
+        std::cout << "X: " << p_pos3.x << " Y: " << p_pos3.y << '\n';
+        std::cout << "AGENT 4 PROJECTION:" << '\n';
+        std::cout << "X: " << p_pos4.x << " Y: " << p_pos4.y << '\n';
 
         std::vector<sf::Vector2f> fp_1 = bi1->getFootprint();
         std::vector<sf::Vector2f> fp_2 = bi2->getFootprint();
+        std::vector<sf::Vector2f> fp_3 = bi3->getFootprint();
+        std::vector<sf::Vector2f> fp_4 = bi4->getFootprint();
 
-        std::cout << "FP1 size: " << fp_1.size() << '\n';
-        std::cout << "FP2 size: " << fp_2.size() << '\n';
+        for(unsigned int i = 0; i < fp_1.size(); i++) {
+            fp_1[i] += p_pos1;
+        }
 
-        // std::cout << '\n'<< "NORTH POLE FP:" << '\n';
-        // for(auto& fp_point: fp_1) {
-        //     std::cout << "X: " << fp_point.x << "Y: "<< fp_point.y << '\n';
-        // }
+        for(unsigned int i = 0; i < fp_2.size(); i++) {
+            fp_2[i] += p_pos2;
+        }
 
-        // std::cout << '\n' << "EQUATOR FP:" << '\n';
-        // for(auto& fp_point: fp_2) {
-        //     std::cout << "X: " << fp_point.x << " | Y: "<< fp_point.y << '\n';
-        // }
+        for(unsigned int i = 0; i < fp_3.size(); i++) {
+            fp_3[i] += p_pos3;
+        }
 
+        for(unsigned int i = 0; i < fp_4.size(); i++) {
+            fp_4[i] += p_pos4;
+        }
 
         std::vector<ThickLine> footprint;
-        // std::cout << "Size " << fp_1.size() << '\n';
 
         for(int i = 1; i < (int)fp_1.size(); i++) {
             ThickLine tl(fp_1[i - 1], fp_1[i]);
@@ -146,29 +189,12 @@ namespace
             window.draw(f_line);
         }
 
-        // mv1.setViews(footprint);
-
-        // sf::ConvexShape triangle1, triangle2, triangle3;
-        // triangle1.setPoint(0, sf::Vector2f(Config::agent_size, 0.f));
-        // triangle1.setPoint(2, sf::Vector2f(
-        //     Config::agent_size * std::cos(-2.f * Config::pi / 3.0),
-        //     Config::agent_size * std::sin(-2.f * Config::pi / 3.0) * 0.5f
-        // ));
-        // triangle1.setPoint(1, sf::Vector2f(
-        //     Config::agent_size * std::cos(2.0 * Config::pi / 3.0),
-        //     Config::agent_size * std::sin(2.0 * Config::pi / 3.0) * 0.5f
-        // ));
-        // triangle1.setFillColor(sf::Color::Cyan);
-        // triangle1.setOutlineColor(sf::Color::Transparent);
-        //
-        // window.draw(triangle1);
-
         footprint.clear();
         for(int i = 1; i < (int)fp_2.size(); i++) {
             ThickLine tl(fp_2[i - 1], fp_2[i]);
             tl.setThickness(2.f);
             // tl.setColor(Config::color_dark_green);
-            tl.setColor(sf::Color::Cyan);
+            tl.setColor(sf::Color::Red);
             // tl.setColor(sf::Color::White);
             footprint.push_back(tl);
         }
@@ -177,19 +203,35 @@ namespace
             window.draw(f_line);
         }
 
-        // triangle2.setPoint(0, sf::Vector2f(Config::agent_size, 0.f));
-        // triangle2.setPoint(2, sf::Vector2f(
-        //     Config::agent_size * std::cos(-2.f * Config::pi / 3.0),
-        //     Config::agent_size * std::sin(-2.f * Config::pi / 3.0) * 0.5f
-        // ));
-        // triangle2.setPoint(1, sf::Vector2f(
-        //     Config::agent_size * std::cos(2.0 * Config::pi / 3.0),
-        //     Config::agent_size * std::sin(2.0 * Config::pi / 3.0) * 0.5f
-        // ));
-        // triangle2.setFillColor(sf::Color::Cyan);
-        // triangle2.setOutlineColor(sf::Color::Transparent);
-        //
-        // window.draw(triangle2);
+        footprint.clear();
+
+        for(int i = 1; i < (int)fp_3.size(); i++) {
+            ThickLine tl(fp_3[i - 1], fp_3[i]);
+            tl.setThickness(2.f);
+            // tl.setColor(Config::color_dark_green);
+            tl.setColor(sf::Color::Green);
+            // tl.setColor(sf::Color::White);
+            footprint.push_back(tl);
+        }
+
+        for(auto& f_line : footprint) {
+            window.draw(f_line);
+        }
+
+        footprint.clear();
+
+        for(int i = 1; i < (int)fp_4.size(); i++) {
+            ThickLine tl(fp_4[i - 1], fp_4[i]);
+            tl.setThickness(2.f);
+            // tl.setColor(Config::color_dark_green);
+            tl.setColor(sf::Color::Blue);
+            // tl.setColor(sf::Color::White);
+            footprint.push_back(tl);
+        }
+
+        for(auto& f_line : footprint) {
+            window.draw(f_line);
+        }
 
         window.display();
         sf::Image screen = window.capture();
