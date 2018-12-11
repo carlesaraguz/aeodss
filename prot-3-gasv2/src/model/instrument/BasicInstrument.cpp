@@ -35,7 +35,8 @@ void BasicInstrument::setPosition(sf::Vector3f p)
     m_position = p;
     if(m_swath == -1.f && Config::motion_model == AgentMotionType::ORBITAL) {
         m_swath = getSwath(p, m_aperture);
-        Log::dbg << "Instrument has a true swath of " << m_swath / 1e3 << " km. (aperture is " << m_aperture << "º)\n";
+        Log::dbg << "Instrument has a true swath of " << m_swath / 1e3 << " km. (aperture is " << m_aperture << "º). ";
+        Log::dbg << "Max. slant range (at " << m_aperture / 2.f << "º) is: " << getSlantRangeAt(m_aperture / 2.f, m_position) / 1e3 << " km.\n";
     } else if(m_swath == -1.f && Config::motion_model != AgentMotionType::ORBITAL) {
         m_swath = m_aperture;
         Log::dbg << "Instrument has a swath/aperture of " << m_swath << " (2-d motion model).\n";
@@ -266,7 +267,7 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
     }
     if(cells.size() == 0) {
         Log::err << "Could not find visible (" << (world_cells ? "world" : "model") << ") cells at distance " << dist << ".\n";
-        Log::err << "   Will provide one (i.e. the projected position) and try to continue.\n";
+        Log::err << "  Will provide one (i.e. the projected position) and try to continue.\n";
         cells.push_back(sf::Vector2i(ox, oy));
     }
     return cells;
@@ -313,8 +314,8 @@ float BasicInstrument::getSlantRangeAt(float deg, sf::Vector3f p) const
         Log::err << "  h = " << h << " meters.\n";
         Log::err << "  (h/R)·sin(ẟ) = " << (h / Config::earth_wgs84_a) * std::sin(ang_rad) << ".\n";
         Log::err << "  ẟ = " << deg << "º = " << ang_rad << " rad.\n";
-        Log::err << "  λ = " << MathUtils::radToDeg(lambda) << "º = " << lambda << "rad.\n";
-        Log::err << "  α = " << MathUtils::radToDeg(alpha) << "º = " << alpha << "rad.\n";
+        Log::err << "  λ = " << MathUtils::radToDeg(lambda) << "º = " << lambda << " rad.\n";
+        Log::err << "  α = " << MathUtils::radToDeg(alpha) << "º = " << alpha << " rad.\n";
         Log::err << "  sin(α) = " << std::sin(alpha) << ".\n";
         Log::err << "  sin(ẟ) = " << std::sin(ang_rad) << ".\n";
         throw std::runtime_error("Error computing slant range.");

@@ -75,10 +75,10 @@ int main(int argc, char** argv)
     mv1.setScale(0.5f, 0.5f);
     mv2.setScale(0.5f, 0.5f);
     mv3.setScale(0.5f, 0.5f);
-    mv4.setScale(0.5f, 0.5f);
+    // mv4.setScale(0.5f, 0.5f);
     mv2.setPosition(Config::win_width / 2.f, 0.f);
     mv3.setPosition(0.f, Config::win_height / 2.f);
-    mv4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
+    // mv4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
 
     // std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
     // MultiView mv_world;
@@ -138,12 +138,12 @@ int main(int argc, char** argv)
         }
 
         /* Pre-draw loop: ----------------------------------------------------------------------- */
-        mv1.drawViews();
-        mv2.drawViews();
+        // mv1.drawViews();
+        // mv2.drawViews();
         if(draw_it % 10 == 0) {
             draw_it = 0;
-            world->display(World::Layer::REVISIT_TIME_ACTUAL);
-            mv3.drawViews();
+            // world->display(World::Layer::REVISIT_TIME_ACTUAL);
+            // mv3.drawViews();
             world->display(World::Layer::REVISIT_TIME_BEST);
             mv4.drawViews();
         }
@@ -151,14 +151,14 @@ int main(int argc, char** argv)
         /* Draw loop: --------------------------------------------------------------------------- */
         window.clear();
         // window.draw(mv_world);
-        window.draw(mv1);
-        window.draw(mv2);
-        window.draw(mv3);
+        // window.draw(mv1);
+        // window.draw(mv2);
+        // window.draw(mv3);
         window.draw(mv4);
-        window.draw(world_map1);
-        window.draw(world_map2);
-        window.draw(world_map3);
-        window.draw(world_map4);
+        // window.draw(world_map1);
+        // window.draw(world_map2);
+        // window.draw(world_map3);
+        // window.draw(world_map4);
         window.display();
         draw_it++;
     }

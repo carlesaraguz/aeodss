@@ -219,7 +219,6 @@ const GridView& EnvModel::getView(void) const
     return *m_payoff_view;
 }
 
-
 std::vector<sf::Vector2i> EnvModel::getWorldCells(EnvCell model_cell) const
 {
     return getWorldCells(sf::Vector2i(model_cell.x, model_cell.y));

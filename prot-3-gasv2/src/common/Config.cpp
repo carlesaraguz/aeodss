@@ -156,20 +156,17 @@ void Config::loadCmdArgs(int argc, char** argv)
                                     time_type = TimeValueType::JULIAN_DAYS;
                                     Log::dbg << "Config. parameter \'time_type\' is set to JULIAN_DAYS.\n";
                                     getConfigParam("start_epoch", time_node, start_epoch);
-                                    VirtualTime::init(start_epoch);
                                     Log::dbg << "Config. parameter \'time_step\' is set to " << time_step << " => "
                                         << days << " days, " << hour << " hours, " << min << " min, " << sec << " sec.\n";
                                 } else if(time_node["type"].as<std::string>() == "arbitrary") {
                                     time_type = TimeValueType::ARBITRARY;
                                     Log::dbg << "Config. param \'time_type\' is set to ARBITRARY.\n";
                                     start_epoch = 0.0;
-                                    VirtualTime::init(start_epoch);
                                     getConfigParam("value", time_node, time_step);
                                 } else if(time_node["type"].as<std::string>() == "seconds") {
                                     time_type = TimeValueType::SECONDS;
                                     Log::dbg << "Config. param \'time_type\' is set to SECONDS.\n";
                                     start_epoch = 0.0;
-                                    VirtualTime::init(start_epoch);
                                     getConfigParam("sec", time_node, time_step);
                                 } else {
                                     throw std::runtime_error("Unrecognized time type in configuration file.");
@@ -249,6 +246,8 @@ void Config::loadCmdArgs(int argc, char** argv)
                             switch(motion_model) {
                                 case AgentMotionType::ORBITAL:
                                     if(getConfigParam("altitude", motion_node, orbp_sma_min, orbp_sma_max)) {
+                                        orbp_sma_max *= 1e3;    /* Convert km to m. */
+                                        orbp_sma_min *= 1e3;    /* Convert km to m. */
                                         orbp_sma_max += earth_wgs84_a;
                                         orbp_sma_min += earth_wgs84_a;
                                     }
@@ -339,6 +338,13 @@ void Config::loadCmdArgs(int argc, char** argv)
                 Log::err << e.what() << "\n";
             }
         }
+    }
+
+    VirtualTime::doInit(start_epoch);
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        Config::time_type = TimeValueType::JULIAN_DAYS;
+    } else {
+        Config::time_type = TimeValueType::ARBITRARY;
     }
 }
 

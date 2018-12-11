@@ -16,12 +16,6 @@ void Init::doInit(void)
 {
     LogStream::setLogLevel(LogStream::Level::DEBUG);
 
-    if(Config::motion_model == AgentMotionType::ORBITAL) {
-        Config::time_type = TimeValueType::JULIAN_DAYS;
-    } else {
-        Config::time_type = TimeValueType::ARBITRARY;
-    }
-
     Random::doInit();
 
     Config::fnt_monospace.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf");

@@ -20,7 +20,7 @@ void VirtualTime::step(void)
     m_vtime += Config::time_step;
 }
 
-void VirtualTime::init(double t)
+void VirtualTime::doInit(double t)
 {
     m_vtime = t;
     m_initialized = true;
