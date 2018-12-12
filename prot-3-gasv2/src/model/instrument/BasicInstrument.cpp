@@ -339,7 +339,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
 {
     int n_points;
     std::vector<sf::Vector2f> footprint;
-    switch(Config::motion_model){
+    switch(Config::motion_model) {
         case AgentMotionType::LINEAR_BOUNCE:
         case AgentMotionType::LINEAR_INFINITE:
         case AgentMotionType::SINUSOIDAL:
@@ -391,14 +391,27 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
 
                 auto p_proj = AgentMotion::getProjection2D(m_position, VirtualTime::now());
 
-                if((p_proj.y < 225.f && p_proj.y > 180.f) || (p_proj.y < 720.f && p_proj.y > 675.f)) {
-                    n_points = 50;
-                } else if(p_proj.y < 180.f || p_proj.y > 720.f) {
-                    n_points = 100;
-                } else {
-                    n_points = 20;
+                /* This can't be hardcoded this way */
+                // if((p_proj.y < 225.f && p_proj.y > 180.f) || (p_proj.y < 720.f && p_proj.y > 675.f)) {
+                //     n_points = 50;
+                // } else if(p_proj.y < 180.f || p_proj.y > 720.f) {
+                //     n_points = 100;
+                // } else {
+                //     n_points = 20;
+                // }
+
+                /* Compute number of points based on "latitude" (Y-axis value) */
+                int lat = p_proj.y;
+                if(lat >= Config::world_height - m_fp_lat_threshold) {
+                    lat = -(lat - Config::world_height);
                 }
-                
+                int points_inc = (m_max_fp_points - m_min_fp_points) / m_fp_lat_threshold;
+                if (lat <= m_fp_lat_threshold) {
+                    n_points = m_min_fp_points + points_inc * lat;
+                } else {
+                    n_points = m_min_fp_points;
+                }
+
                 sf::Vector2f top_left  = sf::Vector2f(-p_proj.x, -p_proj.y);
                 sf::Vector2f top_right = sf::Vector2f(-p_proj.x + Config::world_width, -p_proj.y);
                 sf::Vector2f bot_left  = sf::Vector2f(-p_proj.x, -p_proj.y + Config::world_height);
@@ -417,56 +430,79 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                         fp_prev = footprint.back();
                     }
 
-                    bool is_split = std::abs(fp_proj.x - fp_prev.x) > Config::world_width / 2.f;
+                    /* Division of the world into 4 quadrants (only width) */
+                    float first_border  = Config::world_width / 4;     /* 1st quadrant: [0, first_border */
+                    float second_border = Config::world_width / 2;     /* 2nd quadrant: [first_border, second_border) */
+                    float third_border  = 3 * Config::world_width / 4; /* 3rd quadrant: [second_border, third_border) */
+                                                                       /* 4th quadrant: [third_quadrant, Config::world_width) */
 
-                    if(north_included) {
-                        float border_y = (fp_prev.y + fp_proj.y) / 2.f;
-
-                        if(fp_prev.x > fp_proj.x) {
-                            footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                            footprint.push_back(top_right);
-                            footprint.push_back(top_left);
-                            footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                        } else {
-                            footprint.push_back(sf::Vector2f(-p_proj.x, border_y));                        }
-                            footprint.push_back(top_left);
-                            footprint.push_back(top_right);
-                            footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                    bool is_split;
+                    if(fp_proj.x > third_border && fp_prev.x < first_border) { /* Point on 1st quad. and the following one on 4th quad. */
+                        is_split = true;
+                    } else if(fp_proj.x < first_border && fp_prev.x > third_border) { /* Point on 4th quad. and the following one on 1st quad. */
+                        is_split = true;
+                    } else {
+                        is_split = false;
                     }
 
-                    if(south_included) {
-                        float border_y = std::abs(fp_prev.y + fp_proj.y) / 2;
-
-                        if(fp_prev.x > fp_proj.x) {
-                            footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                            footprint.push_back(bot_right);
-                            footprint.push_back(bot_left);
-                            footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                        } else {
-                            footprint.push_back(sf::Vector2f(-p_proj.x, border_y));                        }
-                            footprint.push_back(bot_left);
-                            footprint.push_back(bot_right);
-                            footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                    bool first_point;
+                    if(th == 0.f) {
+                        first_point = true;
+                    } else {
+                        first_point = false;
                     }
 
-                    if(is_split){
-                        float border_y = (fp_prev.y + fp_proj.y) / 2.f;
+                    if(!first_point) {
+                        if(north_included) {
+                            is_split = false;
+                            float border_y = (fp_prev.y + fp_proj.y) / 2.f;
 
-                         if(fp_prev.x > fp_proj.x) {
-                             footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                             footprint.push_back(top_right);
-                             footprint.push_back(top_left);
-                             footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                         } else {
-                             footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                             footprint.push_back(bot_left);
-                             footprint.push_back(bot_right);
-                             footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                         }
+                            if(fp_prev.x > fp_proj.x) {
+                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                                footprint.push_back(top_right);
+                                footprint.push_back(top_left);
+                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
+                            } else {
+                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
+                                footprint.push_back(top_left);
+                                footprint.push_back(top_right);
+                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                            }
+                        } else if(south_included) {
+                            is_split = false;
+                            float border_y = std::abs(fp_prev.y + fp_proj.y) / 2;
+
+                            if(fp_prev.x > fp_proj.x) {
+                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                                footprint.push_back(bot_right);
+                                footprint.push_back(bot_left);
+                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
+                            } else {
+                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
+                                footprint.push_back(bot_left);
+                                footprint.push_back(bot_right);
+                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                            }
+                        }
+
+                        if(is_split) {
+                            float border_y = (fp_prev.y + fp_proj.y) / 2.f;
+
+                            if(fp_prev.x > fp_proj.x) {
+                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                                footprint.push_back(top_right);
+                                footprint.push_back(top_left);
+                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
+                            } else {
+                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
+                                footprint.push_back(bot_left);
+                                footprint.push_back(bot_right);
+                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                            }
+                        }
                     }
                     footprint.push_back(fp_proj);
                 }
-                return footprint;
                 break;
             }
     }

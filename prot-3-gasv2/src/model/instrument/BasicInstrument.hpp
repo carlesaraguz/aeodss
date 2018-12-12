@@ -187,6 +187,12 @@ private:
     sf::Vector3f m_position;    /**< Current position of the instrument. */
     bool m_enabled;             /**< Whether the instrument is enabled (true) or not (false). */
 
+    /* Parameters related to number of points in footprint */
+    const int m_min_fp_points = 20;
+    const int m_max_fp_points = 100;
+    const int m_fp_lat_half = Config::world_height / 2;
+    const int m_fp_lat_threshold = Config::world_height / 4;
+
     /*******************************************************************************************//**
      *  Iterates the environment cells (model or world) in 2-dimensions and invokes f() for cells
      *  that are at a distance `r` (or less) from the origin (ox, oy). This function implements a
