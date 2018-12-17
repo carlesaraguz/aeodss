@@ -470,7 +470,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                             }
                         } else if(south_included) {
                             is_split = false;
-                            float border_y = std::abs(fp_prev.y + fp_proj.y) / 2;
+                            float border_y = std::abs(fp_prev.y + fp_proj.y) / 2.f;
 
                             if(fp_prev.x > fp_proj.x) {
                                 footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
