@@ -417,6 +417,17 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 sf::Vector2f bot_left  = sf::Vector2f(-p_proj.x, -p_proj.y + Config::world_height);
                 sf::Vector2f bot_right = sf::Vector2f(-p_proj.x + Config::world_width, -p_proj.y + Config::world_height);
 
+                /*  Get the boundaries of longitude quadrants:
+                 *  - 1st quadrant: [0, xq1),
+                 *  - 2nd quadrant: [xq1, xq2),
+                 *  - 3rd quadrant: [xq2, xq3),
+                 *  - 4th quadrant: [xq3, xq4) = [xq3, Config::world_width) = [xq3, 0).
+                 *  Values xq2 and xq4 are actually not used and hence will not be calculated.
+                 **/
+                float xq1 = Config::world_width / 4.f;
+                float xq3 = 3.f * Config::world_width / 4.f;
+
+                bool first_point = true;
                 for(float th = 0.f; th < (float)n_points; th += 2.f * Config::pi / (float)n_points) {
                     float footprint_x = c.x + footprint_radius * std::cos(th) * a.x + footprint_radius * std::sin(th) * b.x;
                     float footprint_y = c.y + footprint_radius * std::cos(th) * a.y + footprint_radius * std::sin(th) * b.y;
@@ -430,26 +441,15 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                         fp_prev = footprint.back();
                     }
 
-                    /* Division of the world into 4 quadrants (only width) */
-                    float first_border  = Config::world_width / 4;     /* 1st quadrant: [0, first_border */
-                    float second_border = Config::world_width / 2;     /* 2nd quadrant: [first_border, second_border) */
-                    float third_border  = 3 * Config::world_width / 4; /* 3rd quadrant: [second_border, third_border) */
-                                                                       /* 4th quadrant: [third_quadrant, Config::world_width) */
-
                     bool is_split;
-                    if(fp_proj.x > third_border && fp_prev.x < first_border) { /* Point on 1st quad. and the following one on 4th quad. */
+                    if(fp_proj.x > xq3 && fp_prev.x < xq1) {
+                        /* This point is on the 4th quad. and the previous one was on the 1st quad. */
                         is_split = true;
-                    } else if(fp_proj.x < first_border && fp_prev.x > third_border) { /* Point on 4th quad. and the following one on 1st quad. */
+                    } else if(fp_proj.x < xq1 && fp_prev.x > xq3) {
+                        /* This point is on the 1st quad. and the previous one was on the 4th quad. */
                         is_split = true;
                     } else {
                         is_split = false;
-                    }
-
-                    bool first_point;
-                    if(th == 0.f) {
-                        first_point = true;
-                    } else {
-                        first_point = false;
                     }
 
                     if(!first_point) {
@@ -502,6 +502,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                         }
                     }
                     footprint.push_back(fp_proj);
+                    first_point = false;
                 }
                 break;
             }
