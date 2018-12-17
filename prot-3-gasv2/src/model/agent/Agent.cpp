@@ -84,7 +84,7 @@ void Agent::step(void)
     } else {
         m_self_view.setText(m_id);
     }
-    m_self_view.setPosition(m_motion.getProjection2D());
+    m_self_view.setLocation(m_motion.getProjection2D());
     m_self_view.setDirection(m_motion.getDirection2D());
     m_self_view.setFootprint(m_payload.getFootprint());
 }

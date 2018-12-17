@@ -63,8 +63,8 @@ AgentMotionType Config::motion_model = AgentMotionType::ORBITAL;
 TimeValueType   Config::time_type;
 
 /* Orbital motion random paramters: */
-float           Config::orbp_sma_min = Config::earth_wgs84_a + 500.f;
-float           Config::orbp_sma_max = Config::earth_wgs84_a + 900.f;
+float           Config::orbp_sma_min = Config::earth_wgs84_a + 500e3f;
+float           Config::orbp_sma_max = Config::earth_wgs84_a + 900e3f;
 float           Config::orbp_ecc_max = 0.f;
 float           Config::orbp_inc_min = 0.f;
 float           Config::orbp_inc_max = 90.f;

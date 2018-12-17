@@ -380,42 +380,24 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 b.x = u.y * a.z - u.z * a.y;
                 b.y = -(u.x * a.z - u.z * a.x);
                 b.z = u.x * a.y - u.y * a.x;
-
                 b = MathUtils::makeUnitary(b);
-
-                sf::Vector3f n_pole = sf::Vector3f(0.f, 0.f, Config::earth_wgs84_a);
-                sf::Vector3f s_pole = sf::Vector3f(0.f, 0.f, -Config::earth_wgs84_a);
-
-                bool north_included = MathUtils::norm(n_pole - m_position) <= footprint_radius;
-                bool south_included = MathUtils::norm(s_pole - m_position) <= footprint_radius;
 
                 auto p_proj = AgentMotion::getProjection2D(m_position, VirtualTime::now());
 
-                /* This can't be hardcoded this way */
-                // if((p_proj.y < 225.f && p_proj.y > 180.f) || (p_proj.y < 720.f && p_proj.y > 675.f)) {
-                //     n_points = 50;
-                // } else if(p_proj.y < 180.f || p_proj.y > 720.f) {
-                //     n_points = 100;
-                // } else {
-                //     n_points = 20;
-                // }
-
                 /* Compute number of points based on "latitude" (Y-axis value) */
-                int lat = p_proj.y;
-                if(lat >= Config::world_height - m_fp_lat_threshold) {
+                float lat = p_proj.y;
+                if(lat >= (Config::world_height - m_fp_lat_threshold)) {
                     lat = -(lat - Config::world_height);
                 }
-                int points_inc = (m_max_fp_points - m_min_fp_points) / m_fp_lat_threshold;
+                float points_inc = (m_max_fp_points - m_min_fp_points) / m_fp_lat_threshold;
                 if (lat <= m_fp_lat_threshold) {
                     n_points = m_min_fp_points + points_inc * lat;
                 } else {
                     n_points = m_min_fp_points;
                 }
 
-                sf::Vector2f top_left  = sf::Vector2f(-p_proj.x, -p_proj.y);
-                sf::Vector2f top_right = sf::Vector2f(-p_proj.x + Config::world_width, -p_proj.y);
-                sf::Vector2f bot_left  = sf::Vector2f(-p_proj.x, -p_proj.y + Config::world_height);
-                sf::Vector2f bot_right = sf::Vector2f(-p_proj.x + Config::world_width, -p_proj.y + Config::world_height);
+                sf::Vector2f top_left  = sf::Vector2f(-10.f, -10.f);
+                sf::Vector2f top_right = sf::Vector2f(Config::world_width + 10.f, -10.f);
 
                 /*  Get the boundaries of longitude quadrants:
                  *  - 1st quadrant: [0, xq1),
@@ -428,17 +410,20 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                 float xq3 = 3.f * Config::world_width / 4.f;
 
                 bool first_point = true;
-                for(float th = 0.f; th < (float)n_points; th += 2.f * Config::pi / (float)n_points) {
-                    float footprint_x = c.x + footprint_radius * std::cos(th) * a.x + footprint_radius * std::sin(th) * b.x;
-                    float footprint_y = c.y + footprint_radius * std::cos(th) * a.y + footprint_radius * std::sin(th) * b.y;
-                    float footprint_z = c.z + footprint_radius * std::cos(th) * a.z + footprint_radius * std::sin(th) * b.z;
+                float da = 2.f * Config::pi / (float)n_points;
+                for(int i = 0; i <= n_points; i++) {
+                    float footprint_x = c.x + footprint_radius * std::cos(da * (float)i) * a.x + footprint_radius * std::sin(da * (float)i) * b.x;
+                    float footprint_y = c.y + footprint_radius * std::cos(da * (float)i) * a.y + footprint_radius * std::sin(da * (float)i) * b.y;
+                    float footprint_z = c.z + footprint_radius * std::cos(da * (float)i) * a.z + footprint_radius * std::sin(da * (float)i) * b.z;
 
                     sf::Vector3f fp_pos  = sf::Vector3f(footprint_x, footprint_y, footprint_z);
-                    sf::Vector2f fp_proj = AgentMotion::getProjection2D(fp_pos, VirtualTime::now()) - p_proj;
+                    sf::Vector2f fp_proj = AgentMotion::getProjection2D(fp_pos, VirtualTime::now());
 
                     sf::Vector2f fp_prev;
-                    if (footprint.size() > 0) {
+                    if(footprint.size() > 0) {
                         fp_prev = footprint.back();
+                    } else {
+                        fp_prev = fp_proj;
                     }
 
                     bool is_split;
@@ -453,55 +438,26 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                     }
 
                     if(!first_point) {
-                        if(north_included) {
-                            is_split = false;
-                            float border_y = (fp_prev.y + fp_proj.y) / 2.f;
-
-                            if(fp_prev.x > fp_proj.x) {
-                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                                footprint.push_back(top_right);
-                                footprint.push_back(top_left);
-                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                            } else {
-                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                                footprint.push_back(top_left);
-                                footprint.push_back(top_right);
-                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                            }
-                        } else if(south_included) {
-                            is_split = false;
-                            float border_y = std::abs(fp_prev.y + fp_proj.y) / 2.f;
-
-                            if(fp_prev.x > fp_proj.x) {
-                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                                footprint.push_back(bot_right);
-                                footprint.push_back(bot_left);
-                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                            } else {
-                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                                footprint.push_back(bot_left);
-                                footprint.push_back(bot_right);
-                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
-                            }
-                        }
-
                         if(is_split) {
-                            float border_y = (fp_prev.y + fp_proj.y) / 2.f;
-
                             if(fp_prev.x > fp_proj.x) {
-                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                                footprint.push_back({ (fp_proj.x + Config::world_width), fp_proj.y });
                                 footprint.push_back(top_right);
                                 footprint.push_back(top_left);
-                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
+                                footprint.push_back({ (fp_proj.x - Config::world_width), fp_proj.y });
+                                footprint.push_back(fp_proj);
                             } else {
-                                footprint.push_back(sf::Vector2f(-p_proj.x, border_y));
-                                footprint.push_back(bot_left);
-                                footprint.push_back(bot_right);
-                                footprint.push_back(sf::Vector2f(-p_proj.x + Config::world_width, border_y));
+                                footprint.push_back({ (fp_proj.x - Config::world_width), fp_proj.y });
+                                footprint.push_back(top_left);
+                                footprint.push_back(top_right);
+                                footprint.push_back({ (fp_proj.x + Config::world_width), fp_proj.y });
+                                footprint.push_back(fp_proj);
                             }
+                        } else {
+                            footprint.push_back(fp_proj);
                         }
+                    } else {
+                        footprint.push_back(fp_proj);
                     }
-                    footprint.push_back(fp_proj);
                     first_point = false;
                 }
                 break;

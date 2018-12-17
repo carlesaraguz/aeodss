@@ -16,7 +16,7 @@
 #include "ThickLine.hpp"
 #include "VirtualTime.hpp"
 
-class AgentView : public HideGraphics, public sf::Drawable, public sf::Transformable
+class AgentView : public HideGraphics, public sf::Drawable /*, public sf::Transformable */
 {
 public:
     AgentView(std::string id, float comms_range = 0.f);
@@ -29,6 +29,7 @@ public:
     void setDirection(sf::Vector2f vel);
     void setAlpha(float a);
     void setText(std::string str);
+    void setLocation(sf::Vector2f l);
 
     float getCommsRange(void) const { return m_comms_range; }
     bool isFootprintHidden(void) const { return m_display_footprint; }
@@ -40,6 +41,7 @@ private:
     bool m_display_footprint;
     bool m_display_range;
     bool m_display_id;
+    sf::Vector2f m_location;
     sf::ConvexShape m_triangle;
     std::vector<ThickLine> m_footprint;
     sf::CircleShape m_range;

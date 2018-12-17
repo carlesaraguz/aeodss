@@ -190,8 +190,7 @@ private:
     /* Parameters related to number of points in footprint */
     const int m_min_fp_points = 20;
     const int m_max_fp_points = 100;
-    const int m_fp_lat_half = Config::world_height / 2;
-    const int m_fp_lat_threshold = Config::world_height / 4;
+    const float m_fp_lat_threshold = Config::world_height / 4.f;
 
     /*******************************************************************************************//**
      *  Iterates the environment cells (model or world) in 2-dimensions and invokes f() for cells

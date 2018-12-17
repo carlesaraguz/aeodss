@@ -128,10 +128,18 @@ void AgentView::setText(std::string str)
     m_txt.setString(str);
 }
 
+void AgentView::setLocation(sf::Vector2f l)
+{
+    m_txt.setPosition(l.x + Config::agent_size, l.y + Config::agent_size);
+    m_range.setPosition(l);
+    m_triangle.setPosition(l);
+}
+
+
 void AgentView::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     if(m_show) {
-        states.transform *= getTransform();
+        // states.transform *= getTransform();
         if(m_display_footprint) {
             for(auto& f_line : m_footprint) {
                 target.draw(f_line, states);

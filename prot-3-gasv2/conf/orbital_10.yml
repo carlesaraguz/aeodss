@@ -1,6 +1,6 @@
 version: 1
 system:
-    n_agents: 10
+    n_agents: 1
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -14,7 +14,7 @@ graphics:
     win_width: 1800
     win_height: 900
     agent_size: 14
-    font_size: 14
+    font_size: 24
 
 # -- Environment model configuration: --------------------------------------------------------------
 environment:
@@ -36,7 +36,7 @@ agent:
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
     link:
-        range: [50, 90]         # Distance units (world pixels or meters), [min, max] or single value.
+        range: [87, 90]         # Distance units (world pixels or meters), [min, max] or single value.
         datarate: [0.1, 0.2]    # Datarate [min, max] or value.
         energy_tx: 0.5          # Energy consumption rate.
         energy_rx: 0.05         # Energy consumption rate.
@@ -46,7 +46,7 @@ agent:
         # ---- Orbital (3D) motion:
         altitude: [500, 900]    # Orbital height in kilometers [min, max] or single value.
         max_ecc: 0.02           # Max. eccentricity.
-        inc: [35, 87]           # Inclination in degrees, [min, max] or single value.
+        inc: [50, 99]           # Inclination in degrees, [min, max] or single value.
         argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity:
