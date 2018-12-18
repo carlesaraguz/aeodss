@@ -105,11 +105,10 @@ void Agent::plan(void)
         double t_end = tv_now + Config::agent_planning_window * Config::time_step;
         auto tmp_act = createActivity(tv_now, t_end, m_payload.getAperture());
 
-
         /* Compute and display payoff for the temporal activity object: */
         m_environment->computePayoff(tmp_act, true);
 
-        #if 1
+        #if 0
         /* DEBUG ================================================================================ */
         double debug_tstart = tv_now + Random::getUi(10, 100) * Config::time_step;
         double debug_tend   = debug_tstart + Random::getUi(100, 300) * Config::time_step;

@@ -1,6 +1,6 @@
 version: 1
 system:
-    n_agents: 1
+    n_agents: 10
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.

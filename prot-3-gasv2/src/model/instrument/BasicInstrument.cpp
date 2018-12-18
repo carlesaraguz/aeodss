@@ -443,13 +443,13 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
                                 footprint.push_back({ (fp_proj.x + Config::world_width), fp_proj.y });
                                 footprint.push_back(top_right);
                                 footprint.push_back(top_left);
-                                footprint.push_back({ (fp_proj.x - Config::world_width), fp_proj.y });
+                                footprint.push_back({ (fp_prev.x - Config::world_width), fp_prev.y });
                                 footprint.push_back(fp_proj);
                             } else {
                                 footprint.push_back({ (fp_proj.x - Config::world_width), fp_proj.y });
                                 footprint.push_back(top_left);
                                 footprint.push_back(top_right);
-                                footprint.push_back({ (fp_proj.x + Config::world_width), fp_proj.y });
+                                footprint.push_back({ (fp_prev.x + Config::world_width), fp_prev.y });
                                 footprint.push_back(fp_proj);
                             }
                         } else {
