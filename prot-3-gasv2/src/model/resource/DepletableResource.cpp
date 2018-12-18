@@ -26,6 +26,7 @@ DepletableResource::DepletableResource(Agent* aptr, std::string name, float c, f
     , m_name(name)
     , m_instantaneous(0.f)
     , m_agent(aptr)
+    , m_reserved_capacity(0.f)
 { }
 
 void DepletableResource::setMaxCapacity(float c)
@@ -44,7 +45,7 @@ bool DepletableResource::tryApplyOnce(float c) const
         acc += r.second;
     }
     acc += m_instantaneous + c;
-    return acc <= m_max_capacity;
+    return acc <= m_max_capacity - m_reserved_capacity;
 }
 
 void DepletableResource::applyOnce(float c)
@@ -60,14 +61,14 @@ bool DepletableResource::applyUntil(float c, unsigned int steps)
 
     float acc = 0.f;
     for(auto& r : m_rates) {
-        acc += r.second * Config::time_step;
+        acc += r.second;
     }
-    acc += c * Config::time_step;
-    if(m_max_capacity - acc - m_instantaneous >= 0.f) {
-        m_capacity = m_max_capacity - Config::time_step * (acc + (m_instantaneous * (int)(steps == 1)));
+    acc += c;
+    if(m_max_capacity - acc - m_instantaneous >= m_reserved_capacity) {
+        m_capacity = m_max_capacity - acc - m_instantaneous;
         return true;
     } else {
-        m_capacity = 0.f;
+        m_capacity = m_reserved_capacity;
         return false;
     }
 }
@@ -80,7 +81,11 @@ void DepletableResource::addRate(float dc, Activity* ptr)
     } else {
         rate_id = ptr->getAgentId() + ":" + std::to_string(ptr->getId());
     }
-    m_rates[rate_id] = dc;
+    if(dc > 0.f) {
+        m_rates[rate_id] = dc;
+    } else {
+        Log::warn << "Can't inflict a negative consumption rate (" << rate_id << ") for the depletable resource \'" << m_name << "\'\n";
+    }
 }
 
 void DepletableResource::removeRate(Activity* ptr)
@@ -103,16 +108,14 @@ void DepletableResource::step(void)
 {
     float acc = 0.f;
     for(auto& r : m_rates) {
-        acc += r.second * Config::time_step;
+        acc += r.second;    /* These "rates" will only be positive for depletable resources. */
     }
-    acc += m_instantaneous * Config::time_step;
-    if(acc > m_max_capacity) {
+    acc += m_instantaneous;
+    if(acc > m_max_capacity - m_reserved_capacity) {
         Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Trying to consume ["
-            << m_capacity << "-]" << acc << " would result in negative capacity.\n";
+            << (m_max_capacity - m_reserved_capacity) << "-]" << acc << " would result in negative capacity.\n";
         throw std::runtime_error("Resource capacity exceeded.");
-    } else if(-acc > m_max_capacity) {
-        m_capacity = m_max_capacity;
-    } else if(m_max_capacity == acc) {
+    } else if(m_max_capacity - m_reserved_capacity == acc) {
         Log::warn << "[Agent " << m_agent->getId() << ":" << m_name << "] Agent has depleted its resource completely (last consumption: "
             << acc << ").\n";
         m_capacity = m_max_capacity - acc;

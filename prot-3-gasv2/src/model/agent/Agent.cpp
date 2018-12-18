@@ -21,6 +21,7 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_activities(std::make_shared<ActivityHandler>(this))
     , m_current_activity(nullptr)
     , m_display_resources(false)
+    , m_link_energy_available(false)
 {
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getPosition());
@@ -37,6 +38,7 @@ Agent::Agent(std::string id)
     , m_activities(std::make_shared<ActivityHandler>(this))
     , m_current_activity(nullptr)
     , m_display_resources(false)
+    , m_link_energy_available(false)
 {
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getPosition());
@@ -57,8 +59,12 @@ void Agent::step(void)
 {
     m_motion.step();
     m_payload.setPosition(m_motion.getPosition());
+    m_link->setPosition(m_motion.getPosition());
+    m_link->update();
+    m_link->step();
 
     plan();
+    listen();
     execute();
     consume();
 
@@ -107,6 +113,13 @@ void Agent::plan(void)
         float te = acts.back()->getEndTime();
 
         /* Create scheduler instance: */
+        if(!m_link_energy_available && !m_link->isEnabled()) {
+            /* Only enable if it was disabled due to energy issues: */
+            Log::dbg << "The link for agent " << m_id << " will now be (re-)enabled.\n";
+            m_link->enable();
+        }
+        m_link_energy_available = true;
+        m_resources.at("energy")->setReservedCapacity(0.1f /* TODO: change for Config::reserved_energy_capacity */);
         std::map<std::string, std::shared_ptr<const Resource> > rs_cpy_const(m_resources.begin(), m_resources.end());
         GAScheduler scheduler(ts, te, rs_cpy_const);
 
@@ -138,6 +151,27 @@ void Agent::plan(void)
     }
 }
 
+bool Agent::encounter(std::string aid)
+{
+    if(m_current_activity != nullptr) {
+        /* Accept the connection always, with everyone: */
+        return true;
+    } else {
+        /* There's an activity executing, will ignore this connection. */
+        Log::dbg << "[" << m_id << "] Ignoring encounter with " << aid << " because a task is ongoing.\n";
+        return false;
+    }
+}
+
+void Agent::listen(void)
+{
+    auto rcv = m_link->readRxQueue();
+    if(rcv.size() > 0) {
+        Log::dbg << "[" << m_id << "] Received " << rcv.size() << " new activities.\n";
+
+    }
+}
+
 void Agent::execute(void)
 {
     /* Execute activities: */
@@ -149,11 +183,12 @@ void Agent::execute(void)
                 << ", T = [" << m_current_activity->getStartTime() << ", " << m_current_activity->getEndTime() << ").\n";
             m_payload.disable();
             for(auto& r : m_resources) {
-                // Log::warn << "Removing a resource rate: \'" << r.first << "\'.\n";
                 r.second->removeRate(m_current_activity.get());
-                // r.second->showStatus();
             }
             m_current_activity = nullptr;
+            // if(m_link_energy_available) {
+            //     m_link->enable();
+            // }
         }
     }
 
@@ -162,6 +197,7 @@ void Agent::execute(void)
         if(actptr != nullptr) {
             if(actptr->getStartTime() <= VirtualTime::now()) {
                 /* This activity has to start: */
+                // m_link->disable();
                 m_current_activity = actptr;
                 m_current_activity->setConfirmed();
                 Log::dbg << "Agent " << m_id << " is starting activity " << m_current_activity->getId() << ".\n";
@@ -176,12 +212,26 @@ void Agent::execute(void)
 
 void Agent::consume(void)
 {
+    float consumed_link_energy = m_link->readEnergyConsumed();
+    float reserved_capacity = m_resources.at("energy")->getReservedCapacity();
+    if(consumed_link_energy <= reserved_capacity) {
+        m_resources.at("energy")->setReservedCapacity(reserved_capacity - consumed_link_energy);
+        m_resources.at("energy")->applyOnce(consumed_link_energy);
+    } else {
+        m_resources.at("energy")->setReservedCapacity(0.f);
+        m_resources.at("energy")->applyOnce(reserved_capacity);
+        Log::warn << "Agent " << m_id << " has consumed all the energy capacity reserved to links. ";
+        Log::warn << "Disabling its link until next schedule cycle.\n";
+        m_link->disable();
+        m_link_energy_available = false;
+    }
+
     /* Update resources: */
     for(auto& r : m_resources) {
         try {
             r.second->step();
         } catch(const std::runtime_error& e) {
-            Log::err << "Resource violation exception catched. Continue for debugging purposes.\n";
+            Log::err << "Resource violation exception catched. Will continue for debugging purposes.\n";
         }
     }
 }

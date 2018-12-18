@@ -209,8 +209,19 @@ std::ostream& operator<<(std::ostream& os, const Activity& act)
     os << "{Activity " << act.m_agent_id << ":" << act.m_id << "; ";
     if(act.m_ready) {
         os << std::fixed << std::setprecision(2);
-        os << "S:" << act.getStartTime() << " E:" << act.getEndTime() << ", ";
-        os << "traj:" << act.m_trajectory.size() << " points";
+        os << "S:";
+        if(act.m_trajectory.size() > 0 && act.m_ready) {
+            os << act.m_trajectory.cbegin()->first;
+        } else {
+            os << "(unknown)";
+        }
+        os << " E:";
+        if(act.m_trajectory.size() > 0 && act.m_ready) {
+            os << act.m_trajectory.crbegin()->first;
+        } else {
+            os << "(unknown)";
+        }
+        os << ", traj:" << act.m_trajectory.size() << " points";
     } else {
         os << "not ready";
     }
