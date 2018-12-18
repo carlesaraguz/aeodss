@@ -20,21 +20,32 @@ CumulativeResource::CumulativeResource(Agent* aptr, std::string name, float max_
 CumulativeResource::CumulativeResource(Agent* aptr, std::string name, float c)
     : CumulativeResource(aptr, name, c, (c / 2.f))
 { }
+
 CumulativeResource::CumulativeResource(Agent* aptr, std::string name, float c, float c_init)
     : m_max_capacity(c)
     , m_capacity(c_init)
     , m_name(name)
     , m_instantaneous(0.f)
     , m_agent(aptr)
+    , m_reserved_capacity(0.f)
 { }
 
 void CumulativeResource::setMaxCapacity(float c)
 {
     if(c < m_capacity) {
-        Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Changing maximum capacity failed.\n";
-        throw std::runtime_error("Resource capacity error.");
+        Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Changing maximum \'" << m_name << "\' capacity to " << c << " failed.\n";
+        throw std::runtime_error("Resource capacity error (1).");
     }
     m_max_capacity = c;
+}
+
+void CumulativeResource::setReservedCapacity(float c)
+{
+    if(c > m_capacity) {
+        Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Changing reserved \'" << m_name << "\' capacity to " << c << " failed.\n";
+        throw std::runtime_error("Resource capacity error (2).");
+    }
+    m_reserved_capacity = c;
 }
 
 bool CumulativeResource::tryApplyOnce(float c) const
@@ -44,7 +55,7 @@ bool CumulativeResource::tryApplyOnce(float c) const
         acc += r.second;
     }
     acc += m_instantaneous;
-    return acc + c <= m_max_capacity;
+    return acc + c <= m_max_capacity - m_reserved_capacity;
 }
 
 void CumulativeResource::applyOnce(float c)
@@ -54,19 +65,23 @@ void CumulativeResource::applyOnce(float c)
 
 bool CumulativeResource::applyUntil(float c, unsigned int steps)
 {
+    if(steps == 0) {
+        return true;
+    }
+
     float acc = 0.f;
     for(auto& r : m_rates) {
         acc += r.second * Config::time_step;
     }
     acc += c * Config::time_step;
     m_capacity -= (acc * steps) + m_instantaneous * Config::time_step;
-    if(m_capacity >= 0.f) {
+    if(m_capacity >= m_reserved_capacity) {
         if(m_capacity > m_max_capacity) {
             m_capacity = m_max_capacity;
         }
         return true;
     } else {
-        m_capacity = 0.f;
+        m_capacity = m_reserved_capacity;
         return false;
     }
 }
@@ -105,13 +120,13 @@ void CumulativeResource::step(void)
         acc += r.second * Config::time_step;
     }
     acc += m_instantaneous * Config::time_step;
-    if(acc > m_capacity) {
+    if(acc > m_capacity - m_reserved_capacity) {
         Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Trying to consume ["
             << m_capacity << "-]" << acc << " would result in negative capacity.\n";
         throw std::runtime_error("Resource capacity exceeded.");
     } else if(m_capacity - acc > m_max_capacity) {
         m_capacity = m_max_capacity;
-    } else if(m_capacity == acc) {
+    } else if(m_capacity - m_reserved_capacity == acc) {
         Log::warn << "[Agent " << m_agent->getId() << ":" << m_name << "] Agent has depleted its resource completely (last consumption: "
             << acc << ").\n";
         m_capacity -= acc;

@@ -61,6 +61,7 @@ private:
     BasicInstrument m_payload;
     AgentMotion m_motion;
     std::shared_ptr<AgentLink> m_link;
+    bool m_link_energy_available;
     std::shared_ptr<ActivityHandler> m_activities;
     std::shared_ptr<Activity> m_current_activity;
 
@@ -77,8 +78,10 @@ private:
     void initializeResources(void);
 
     void plan(void);
+    void listen(void);
     void execute(void);
     void consume(void);
+    bool encounter(std::string aid);
 };
 
 #endif /* AGENT_HPP */

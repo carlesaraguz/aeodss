@@ -38,8 +38,8 @@ int main(int /* argc */, char** /* argv */)
         auto aptr = std::make_shared<Agent>("A" + std::to_string(i));
         agents.push_back(aptr);
     }
-    // agents.push_back(std::make_shared<Agent>("A0", sf::Vector2f(0.f, 0.f), sf::Vector2f(10.f, 10.f)));
-    // agents.push_back(std::make_shared<Agent>("A1", sf::Vector2f(0.f, 460.f), sf::Vector2f(10.f, -5.1f)));
+    // agents.push_back(std::make_shared<Agent>("A0", sf::Vector2f(1800.f, 450.f), sf::Vector2f(-10.f, 0.f)));
+    // agents.push_back(std::make_shared<Agent>("A1", sf::Vector2f(   0.f, 450.f), sf::Vector2f( 10.f, 0.f)));
     // agents.push_back(std::make_shared<Agent>("A2", sf::Vector2f(0.f, 460.f), sf::Vector2f(10.f, 0.f)));
 
     /* Configure agents: ------------------------------------------------------------------------ */
@@ -89,8 +89,6 @@ int main(int /* argc */, char** /* argv */)
             /* Update agents: */
             for(auto& a : agents) {
                 a->step();
-                a->getLink()->update();
-                a->getLink()->step();
             }
             world->step();
         }

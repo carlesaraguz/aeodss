@@ -27,7 +27,9 @@ public:
 
     float getCapacity(void) const override { return m_capacity; }
     float getMaxCapacity(void) const override { return m_max_capacity; }
+    float getReservedCapacity(void) const override { return m_reserved_capacity; }
     void setMaxCapacity(float c) override;
+    void setReservedCapacity(float c) override;
     void applyOnce(float c) override;
     bool applyUntil(float c, unsigned int steps);
     bool isFull(void) const override { return m_capacity == m_max_capacity; }
@@ -45,11 +47,12 @@ public:
 private:
     float m_capacity;
     float m_max_capacity;
+    float m_reserved_capacity;
     Agent* m_agent;
     std::string m_name;
     float m_instantaneous;
 
-    std::map<std::string, float> m_rates;
+    std::map<std::string, float> m_rates;   /* Must only be positive. */
 };
 
 #endif /* DEPLETABLE_RESOURCE_HPP */

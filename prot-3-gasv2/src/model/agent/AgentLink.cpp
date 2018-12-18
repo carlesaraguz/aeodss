@@ -18,9 +18,9 @@ AgentLink::AgentLink(Agent* aptr)
 { }
 
 AgentLink::AgentLink(Agent* aptr, float range)
-    : m_enabled(true)
+    : m_enabled(false)
     , m_range(range)
-    , m_datarate(Random::getUf(Config::agent_range_min, Config::agent_range_max))
+    , m_datarate(Random::getUf(Config::agent_datarate_min, Config::agent_datarate_max))
     , m_energy_consumed(0.f)
     , m_agent(aptr)
     , m_tx_count(0)
@@ -122,7 +122,7 @@ void AgentLink::doDisconnect(std::string aid)
             << " found an error in the control structures.\n";
     }
     m_connected[aid] = false;
-    Log::dbg << "Agent " << m_agent->getId() << " has disconnected from " << aid << ".\n";
+    Log::warn << "Agent " << m_agent->getId() << " has disconnected from " << aid << ".\n";
 }
 
 void AgentLink::update(void)
@@ -156,7 +156,7 @@ void AgentLink::update(void)
                     if(m_encounter_callback(id)) {
                         if(a.second->getLink()->tryConnect(shared_from_this())) {
                             doConnect(id);
-                            Log::dbg << "Agents connected " << getAgentId() << " <--> " << id << ".\n";
+                            Log::warn << "Agents connected " << getAgentId() << " <--> " << id << ".\n";
                         }
                     }
                 }
@@ -240,23 +240,27 @@ void AgentLink::enable(void)
      *  management: (1) predictive through scheduling (which leaves a margin for operations); and
      *  (2) dynamic and not predicted which uses that margin.
      **/
+    m_enabled = true;
 }
 
 void AgentLink::disable(void)
 {
     Log::dbg << "Agent " << getAgentId() << " is going to disconnect from all agents (" << m_link_ranges.size() << " active connections).\n";
     for(auto& a : m_other_agents) {
-        doDisconnect(a.second->getId());
-        /* Notify of disconnection: */
-        m_other_agents[a.second->getId()]->getLink()->notifyDisconnect(getAgentId());
+        if(m_connected[a.first]) {
+            doDisconnect(a.second->getId());
+            /* Notify of disconnection: */
+            m_other_agents[a.second->getId()]->getLink()->notifyDisconnect(getAgentId());
+        }
     }
+    m_enabled = false;
 }
 
 void AgentLink::step(void)
 {
     if(m_enabled) {
         /* Start new transfers: */
-        float t = VirtualTime::now();
+        double t = VirtualTime::now();
         for(auto& txq : m_tx_queue) {
             if(txq.second.size() > 0) {
                 auto& first_transfer = txq.second.front();
@@ -295,9 +299,13 @@ void AgentLink::step(void)
     }
 }
 
-float AgentLink::distanceFrom(sf::Vector2f p) const
+float AgentLink::distanceFrom(sf::Vector3f p) const
 {
-    sf::Vector2f v = p - m_agent->getMotion().getPosition();
+    /*  TODO: Future updates (once Marc's branch is merged) will change this function to 3d:
+     *  sf::Vector3f v = p - m_position;
+     *  return MathUtils::norm(v);
+     **/
+    sf::Vector3f v = p - m_position;
     return std::sqrt(v.x * v.x + v.y * v.y);
 }
 
