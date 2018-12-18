@@ -5,11 +5,11 @@ add_library(graphics_test STATIC ${src_list})
 
 target_link_libraries(graphics
     common
-    # model
+    model
 )
 target_link_libraries(graphics_test
     common_test
-    # model_test
+    model_test
 )
 
 set_target_properties(graphics_test

@@ -40,6 +40,7 @@ public:
     const GridView& getView(void) const override { return m_self_view; }
     void report(void);
 
+    static const std::vector<std::vector<sf::Vector3f> >& getPositionLUT(void) { return m_world_positions; }
     static unsigned int getWidth(void) { return m_width; }
     static unsigned int getHeight(void) { return m_height; }
     static const unsigned int n_layers = 6;
@@ -54,6 +55,8 @@ private:
     GridView m_self_view;
     std::vector<std::vector<std::vector<WorldCell> > > m_cells;
     std::vector<std::shared_ptr<Agent> > m_agents;
+
+    static std::vector<std::vector<sf::Vector3f> > m_world_positions;  /**< Look-up table of world 3D coordinates (ECEF). */
 
     void updateLayer(Layer l, int x, int y, bool active);
     void updateAllLayers(int x, int y, bool active);

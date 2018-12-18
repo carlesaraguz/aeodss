@@ -100,7 +100,7 @@ std::vector<sf::Vector2i> Activity::getActiveCells(void) const
     return retval;
 }
 
-std::vector<sf::Vector2i> Activity::getActiveCells(float t) const
+std::vector<sf::Vector2i> Activity::getActiveCells(double t) const
 {
     std::vector<sf::Vector2i> retval;
     for(auto& ac : m_active_cells) {
@@ -113,7 +113,7 @@ std::vector<sf::Vector2i> Activity::getActiveCells(float t) const
     return retval;
 }
 
-int Activity::getCellTimes(unsigned int x, unsigned int y, float** t0s, float** t1s) const
+int Activity::getCellTimes(unsigned int x, unsigned int y, double** t0s, double** t1s) const
 {
     if(t0s == nullptr || t1s == nullptr) {
         Log::err << "Error getting cell times for activity " << *this << ". Null pointer (" << (void*)t0s << ", " << (void*)t1s << ").\n";
@@ -133,7 +133,7 @@ int Activity::getCellTimes(unsigned int x, unsigned int y, float** t0s, float** 
     return 0;
 }
 
-void Activity::setTrajectory(const std::map<float, sf::Vector2f>& pts, const std::vector<ActivityCell>& acs)
+void Activity::setTrajectory(const std::map<double, sf::Vector2f>& pts, const std::vector<ActivityCell>& acs)
 {
     m_trajectory   = pts;   /* Copies trajectory.   */
     m_active_cells = acs;   /* Copies active cells. */
@@ -164,7 +164,7 @@ std::shared_ptr<SegmentView> Activity::getView(void)
     return m_self_view;
 }
 
-float Activity::getStartTime(void) const
+double Activity::getStartTime(void) const
 {
     if(m_trajectory.size() > 0 && m_ready) {
         return m_trajectory.cbegin()->first;
@@ -175,7 +175,7 @@ float Activity::getStartTime(void) const
     }
 }
 
-float Activity::getEndTime(void) const
+double Activity::getEndTime(void) const
 {
     if(m_trajectory.size() > 0 && m_ready) {
         return m_trajectory.crbegin()->first;
@@ -209,19 +209,8 @@ std::ostream& operator<<(std::ostream& os, const Activity& act)
     os << "{Activity " << act.m_agent_id << ":" << act.m_id << "; ";
     if(act.m_ready) {
         os << std::fixed << std::setprecision(2);
-        os << "S:";
-        if(act.m_trajectory.size() > 0 && act.m_ready) {
-            os << act.m_trajectory.cbegin()->first;
-        } else {
-            os << "(unknown)";
-        }
-        os << " E:";
-        if(act.m_trajectory.size() > 0 && act.m_ready) {
-            os << act.m_trajectory.crbegin()->first;
-        } else {
-            os << "(unknown)";
-        }
-        os << ", traj:" << act.m_trajectory.size() << " points";
+        os << "S:" << VirtualTime::toString(act.getStartTime()) << " E:" << VirtualTime::toString(act.getEndTime()) << ", ";
+        os << "traj:" << act.m_trajectory.size() << " points";
     } else {
         os << "not ready";
     }

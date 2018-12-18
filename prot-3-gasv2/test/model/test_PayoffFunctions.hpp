@@ -44,17 +44,17 @@ namespace
         vec_act_ptr.push_back(actptr_b0);
         vec_act_ptr.push_back(actptr_b1);
 
-        float rt = -((Config::max_revisit_time - Config::target_revisit_time) / 2.f + Config::target_revisit_time);
-        std::vector<std::vector<std::pair<float, float> > > vec_times;
-        vec_times.push_back({std::make_pair(rt - 12.f, rt - 11.f)});    /* a0 */
-        vec_times.push_back({std::make_pair(rt - 10.f, rt)});           /* a1 */
-        vec_times.push_back({std::make_pair(11.f, 12.f)});              /* b0 */
-        vec_times.push_back({std::make_pair(13.f, 14.f)});              /* b1 */
+        double rt = -((Config::max_revisit_time - Config::target_revisit_time) / 2.0 + Config::target_revisit_time);
+        std::vector<std::vector<std::pair<double, double> > > vec_times;
+        vec_times.push_back({std::make_pair(rt - 12.0, rt - 11.0)});    /* a0 */
+        vec_times.push_back({std::make_pair(rt - 10.0, rt)});           /* a1 */
+        vec_times.push_back({std::make_pair(11.0, 12.0)});              /* b0 */
+        vec_times.push_back({std::make_pair(13.0, 14.0)});              /* b1 */
 
         float payoff;
-        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), { }, { }));
+        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.0, 10.0), { }, { }));
         EXPECT_EQ(payoff, 1.f);
-        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), vec_times, vec_act_ptr));
+        EXPECT_NO_THROW(payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.0, 10.0), vec_times, vec_act_ptr));
         EXPECT_NEAR(payoff, 0.5f * (Config::max_payoff - Config::min_payoff) + Config::min_payoff, 1e-3);
     }
 
@@ -80,20 +80,20 @@ namespace
         vec_act_ptr.push_back(actptr2);
         vec_act_ptr.push_back(actptr3);
 
-        float rtmax = -Config::max_revisit_time;
-        float rtopt = -Config::target_revisit_time;
-        float rtmed = (rtopt + (rtmax - rtopt) / 2.f);
-        float m = rtopt / 10.f;
-        std::vector<std::vector<std::pair<float, float> > > vec_times;
-        vec_times.push_back({std::make_pair(rtmax * 2.f, rtmax)});    /* 0 */
+        double rtmax = -Config::max_revisit_time;
+        double rtopt = -Config::target_revisit_time;
+        double rtmed = (rtopt + (rtmax - rtopt) / 2.0);
+        double m = rtopt / 10.0;
+        std::vector<std::vector<std::pair<double, double> > > vec_times;
+        vec_times.push_back({std::make_pair(rtmax * 2.0, rtmax)});    /* 0 */
         vec_times.push_back({std::make_pair(rtmax - m,   rtmed)});    /* 1 */
         vec_times.push_back({std::make_pair(rtmax - m,   rtmed)});    /* 2 */
         vec_times.push_back({std::make_pair(rtmed - m,   rtmed)});    /* 3 */
 
-        float equiv_rt = (Config::max_revisit_time - Config::target_revisit_time) / 8.f + Config::target_revisit_time;
-        float delta = (Config::max_payoff - Config::min_payoff) / (Config::max_revisit_time - Config::target_revisit_time);
-        float expected_payoff = delta * (equiv_rt - Config::target_revisit_time) + Config::min_payoff;
-        float payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), vec_times, vec_act_ptr);
+        double equiv_rt = (Config::max_revisit_time - Config::target_revisit_time) / 8.0 + Config::target_revisit_time;
+        double delta = (Config::max_payoff - Config::min_payoff) / (Config::max_revisit_time - Config::target_revisit_time);
+        double expected_payoff = delta * (equiv_rt - Config::target_revisit_time) + Config::min_payoff;
+        float payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.0, 10.0), vec_times, vec_act_ptr);
         EXPECT_NEAR(payoff, expected_payoff, 1e-3);
     }
 
@@ -119,20 +119,20 @@ namespace
         vec_act_ptr.push_back(actptr2);
         vec_act_ptr.push_back(actptr3);
 
-        float rtmax = -Config::max_revisit_time;
-        float rtopt = -Config::target_revisit_time;
-        float rtmed = (rtopt + (rtmax - rtopt) * 3.f / 4.f);
-        float m = rtopt / 10.f;
-        std::vector<std::vector<std::pair<float, float> > > vec_times;
-        vec_times.push_back({std::make_pair(rtmax * 2.f, rtmax)});          /* 0 */
-        vec_times.push_back({std::make_pair(rtmax - m,   rtmed / 1.f)});    /* 1 */
-        vec_times.push_back({std::make_pair(rtmax - m,   rtmed / 2.f)});    /* 2 */
-        vec_times.push_back({std::make_pair(rtmed - m,   rtmed / 4.f)});    /* 3 */
+        double rtmax = -Config::max_revisit_time;
+        double rtopt = -Config::target_revisit_time;
+        double rtmed = (rtopt + (rtmax - rtopt) * 3.0 / 4.0);
+        double m = rtopt / 10.0;
+        std::vector<std::vector<std::pair<double, double> > > vec_times;
+        vec_times.push_back({std::make_pair(rtmax * 2.0, rtmax)});          /* 0 */
+        vec_times.push_back({std::make_pair(rtmax - m,   rtmed / 1.0)});    /* 1 */
+        vec_times.push_back({std::make_pair(rtmax - m,   rtmed / 2.0)});    /* 2 */
+        vec_times.push_back({std::make_pair(rtmed - m,   rtmed / 4.0)});    /* 3 */
 
-        float equiv_rt = (Config::max_revisit_time - Config::target_revisit_time) / 8.f + Config::target_revisit_time;
-        float delta = (Config::max_payoff - Config::min_payoff) / (Config::max_revisit_time - Config::target_revisit_time);
-        float expected_payoff = delta * (equiv_rt - Config::target_revisit_time) + Config::min_payoff;
-        float payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.f, 10.f), vec_times, vec_act_ptr);
+        double equiv_rt = (Config::max_revisit_time - Config::target_revisit_time) / 8.0 + Config::target_revisit_time;
+        double delta = (Config::max_payoff - Config::min_payoff) / (Config::max_revisit_time - Config::target_revisit_time);
+        double expected_payoff = delta * (equiv_rt - Config::target_revisit_time) + Config::min_payoff;
+        float payoff = PayoffFunctions::f_revisit_time_backwards.first(std::make_pair(0.0, 10.0), vec_times, vec_act_ptr);
         EXPECT_NEAR(payoff, expected_payoff, 1e-3);
     }
 }

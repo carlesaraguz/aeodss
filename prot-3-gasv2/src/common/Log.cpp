@@ -84,8 +84,25 @@ void LogStream::conditionalPrintHeader(void)
     if(m_new_line) {
         m_out << m_color_lut[Color::GRAY] << "[ " << m_color_lut[Color::NO_COLOR]
             << WallTime::getTimeStr();
-        m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " "
-            << std::setw(7) << std::setprecision(1) << std::fixed << VirtualTime::now();
+        m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " ";
+
+        if(Config::time_type == TimeValueType::JULIAN_DAYS) {
+            if(VirtualTime::isInit()) {
+                double julian_days = VirtualTime::now() - Config::start_epoch;
+                int sec  = (int)(julian_days * 60 * 60 * 24) % 60;
+                int min  = (int)(julian_days * 60 * 24) % 60;
+                int hour = (int)(julian_days * 24) % 24;
+                int days = (int)julian_days;
+                m_out << std::setw(3) << days << "d "
+                    << std::setw(2) << std::setfill('0') << hour << ":"
+                    << std::setw(2) << std::setfill('0') << min  << ":"
+                    << std::setw(2) << std::setfill('0') << sec;
+            } else {
+                m_out << "  -d --:--:--";
+            }
+        } else {
+            m_out << std::setw(7) << std::setprecision(1) << std::fixed << VirtualTime::now();
+        }
         m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " "
             << std::right << std::setfill(' ') << std::setw(m_max_cname_len) << m_cname;
         m_out << m_color_lut[Color::GRAY] << " ]" << m_color_lut[Color::NO_COLOR] << " ("

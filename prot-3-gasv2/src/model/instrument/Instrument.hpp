@@ -19,15 +19,17 @@ class Instrument    /* Interface class. */
 {
 public:
     virtual void setDimensions(EnvModelInfo emi) = 0;
-    virtual void setPosition(sf::Vector2f p) = 0;
     virtual void setPosition(sf::Vector3f p) = 0;
-    virtual void setVelocity(sf::Vector2f v) = 0;
-    virtual void setVelocity(sf::Vector3f v) = 0;
+    virtual float getAperture(void) const = 0;
+    virtual float getSwath(void) const = 0;
     virtual void enable(void) = 0;
     virtual void disable(void) = 0;
     virtual bool isEnabled(void) const = 0;
 
-    virtual std::vector<sf::Vector2i> getVisibleCells(bool world_cells = false) const = 0;  /* From current position. */
+    virtual float getSlantRangeAt(float deg, sf::Vector3f p) const = 0;
+    virtual float getSwath(sf::Vector3f p, float aperture) const = 0;
+    virtual std::vector<sf::Vector2i> getVisibleCells(const std::vector<std::vector<sf::Vector3f> >& lut,
+        bool world_cells = false) const = 0;  /* From current position. */
     virtual std::vector<sf::Vector2f> getFootprint(void) const = 0;
     virtual float getResourceRate(std::string rname) const = 0;
     virtual std::map<std::string, float> getResourceRates(void) const = 0;

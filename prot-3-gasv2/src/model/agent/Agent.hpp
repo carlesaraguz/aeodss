@@ -24,6 +24,7 @@
 #include "BasicInstrument.hpp"
 #include "Resource.hpp"
 #include "CumulativeResource.hpp"
+#include "VirtualTime.hpp"
 
 #include "GAScheduler.hpp"
 
@@ -43,7 +44,7 @@ public:
     std::shared_ptr<EnvModel> getEnvironment(void) { return m_environment; }
     const AgentMotion& getMotion(void) const { return m_motion; }
     std::shared_ptr<const ActivityHandler> getActivityHandler(void) const { return m_activities; }
-    std::vector<sf::Vector2i> getWorldFootprint(void) const;
+    std::vector<sf::Vector2i> getWorldFootprint(const std::vector<std::vector<sf::Vector3f> >& lut) const;
     bool isCapturing(void) const { return m_payload.isEnabled(); }
 
     /* Agent Link: */
@@ -74,7 +75,7 @@ private:
     std::string m_id;
     bool m_display_resources;
 
-    std::shared_ptr<Activity> createActivity(float t0, float t1, float swath);
+    std::shared_ptr<Activity> createActivity(double t0, double t1, float aperture);
     void initializeResources(void);
 
     void plan(void);

@@ -29,7 +29,7 @@ void ActivityHandler::setAgentId(std::string aid)
     m_self_view.setAgentId(aid);
 }
 
-std::shared_ptr<Activity> ActivityHandler::getNextActivity(float t) const
+std::shared_ptr<Activity> ActivityHandler::getNextActivity(double t) const
 {
     std::shared_ptr<Activity> retval(nullptr);
     /*  NB: This function assumes that:
@@ -48,7 +48,7 @@ std::shared_ptr<Activity> ActivityHandler::getNextActivity(float t) const
 std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) const
 {
     std::shared_ptr<Activity> retval(nullptr);
-    float t = VirtualTime::now();
+    double t = VirtualTime::now();
     /*  NB: This function assumes that:
      *  - Activities are sorted by start time.
      *  - Start and end times of activities for an agent do not overlap.
@@ -112,7 +112,7 @@ unsigned int ActivityHandler::pending(std::string aid) const
 
 
 std::shared_ptr<Activity> ActivityHandler::createOwnedActivity(
-    const std::map<float, sf::Vector2f>& a_pos,
+    const std::map<double, sf::Vector2f>& a_pos,
     const std::vector<ActivityCell>& a_cells)
 {
     auto a = std::make_shared<Activity>(m_agent_id);

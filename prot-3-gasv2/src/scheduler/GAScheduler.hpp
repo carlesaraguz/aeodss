@@ -26,14 +26,14 @@ public:
      *  @param  t1      End time of scheduling window.
      *  @param  res     Agent resources to consider for scheduling and fitness.
      **********************************************************************************************/
-    GAScheduler(float t0, float t1, std::map<std::string, std::shared_ptr<const Resource> > res);
+    GAScheduler(double t0, double t1, std::map<std::string, std::shared_ptr<const Resource> > res);
 
     /*******************************************************************************************//**
      *  Starts the GA Scheduler algorithm. Needs to (previously) having spwaned population and
      *  configured payoffs.
      *  @return Start and end times of scheduled activities.
      **********************************************************************************************/
-    std::vector<std::pair<float, float> > schedule(void);
+    std::vector<std::pair<double, double> > schedule(void);
 
     /*******************************************************************************************//**
      *  Spawn population. Creates individuals (i.e. GASChromosome's) based on predefined activities/
@@ -42,7 +42,7 @@ public:
      *  @param  s       Number of steps for each activity/task.
      *  @param  cs      Resources consumed by this activity (rates at each step).
      **********************************************************************************************/
-    void setChromosomeInfo(std::vector<float> t0s, std::vector<int> s, const std::map<std::string, float>& cs);
+    void setChromosomeInfo(std::vector<double> t0s, std::vector<int> s, const std::map<std::string, float>& cs);
 
     /*******************************************************************************************//**
      *  Prepares activity/choromosome information. Computes aggregated payoff for a given activity,
@@ -65,7 +65,7 @@ public:
 
 private:
     struct GASInfo {                            /**< Info for a single chromosome allele. */
-        float t_start;                          /**< Start time of the allele. */
+        double t_start;                         /**< Start time of the allele. */
         int t_steps;                            /**< Steps of duration of this allele. */
         float ag_payoff;                        /**< Aggregated payoff that would be obtained. */
     };
@@ -80,11 +80,9 @@ private:
     std::vector<GASChromosome> m_population;    /**< Chromosomes/individuals. */
     std::map<std::string, float> m_costs;       /**< Resource consumptions. */
     std::vector<GASInfo> m_individual_info;     /**< Info about chromosomes and their alleles. */
-    float m_tstart;                             /**< Scheduling window start time. */
-    float m_tend;                               /**< Scheduling window end time. */
+    double m_tstart;                            /**< Scheduling window start time. */
+    double m_tend;                              /**< Scheduling window end time. */
     std::map<std::string, std::shared_ptr<const Resource> > m_resources_init;   /* Agent resources at start time. */
-
-
 
     /*******************************************************************************************//**
      *  Compute fitness of a chromosome. Takes payoffs for all the active alleles (i.e. tasks/
