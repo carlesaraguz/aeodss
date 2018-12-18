@@ -39,21 +39,39 @@ EnvModel::EnvModel(Agent* aptr, unsigned int mw, unsigned int mh)
     }
 
     m_cells.reserve(m_model_w);
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        m_world_positions.reserve(m_model_w);
+    }
+    float lat, lng;
     for(unsigned int i = 0; i < m_model_w; i++) {
-        std::vector<EnvCell> row;
-        row.reserve(m_model_h);
+        std::vector<EnvCell> column;
+        std::vector<sf::Vector3f> column_lut;
+        column.reserve(m_model_h);
+        if(Config::motion_model == AgentMotionType::ORBITAL) {
+            column_lut.reserve(m_model_h);
+        }
         for(unsigned int j = 0; j < m_model_h; j++) {
             EnvCell c(i, j);
             c.pushPayoffFunc(PayoffFunctions::f_revisit_time_backwards);
-            row.push_back(c);
+            column.push_back(c);
+            if(Config::motion_model == AgentMotionType::ORBITAL) {
+                lng =   (360.f * (i * m_ratio_w) / World::getWidth()) - 180.f;
+                lat = -((180.f * (j * m_ratio_h) / World::getHeight()) - 90.f);
+                auto position_ecef = CoordinateSystemUtils::fromGeographicToECEF(sf::Vector3f(lat, lng, 0.f));
+                column_lut.push_back(position_ecef);
+            }
         }
-        m_cells.push_back(row);
+        m_cells.push_back(column);
+        if(Config::motion_model == AgentMotionType::ORBITAL) {
+            m_world_positions.push_back(column_lut);
+        }
     }
 }
 
 void EnvModel::buildView(void)
 {
     m_payoff_view = std::make_shared<GridView>(m_model_w, m_model_h, Config::model_unity_size, Config::model_unity_size);
+    m_payoff_view->setColorGradient(Config::color_gradient_krbg);
 }
 
 void EnvModel::clearView(void)
@@ -65,8 +83,8 @@ void EnvModel::clearView(void)
 
 void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_view)
 {
-    float* t0s;
-    float* t1s;
+    double* t0s;
+    double* t1s;
     float po;
     if(display_in_view && m_payoff_view) {
         clearView();
@@ -107,7 +125,7 @@ bool EnvModel::removeActivity(std::shared_ptr<Activity> act)
     return retval;
 }
 
-void EnvModel::cleanActivities(float t)
+void EnvModel::cleanActivities(double t)
 {
     if(t == -1.f) {
         t = VirtualTime::now();
@@ -123,13 +141,17 @@ void EnvModel::cleanActivities(float t)
 
 std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> tmp_act)
 {
-    Log::dbg << "[" << m_agent->getId() << "] Generating potential activities in the range t = [" << tmp_act->getStartTime() << ", " << tmp_act->getEndTime() << "].\n";
+    double duration = tmp_act->getEndTime() - tmp_act->getStartTime();
+    Log::dbg << "[" << m_agent->getId() << "] Generating potential activities in the range t = ["
+        << VirtualTime::toString(tmp_act->getStartTime()) << ", "
+        << VirtualTime::toString(tmp_act->getEndTime()) << "] ==> Duration: "
+        << VirtualTime::toString(duration, false) << ".\n";
     std::vector<ActivityGen> retval;
 
     /* Iterate in time steps, to generate new activities: */
-    float tstart = tmp_act->getStartTime();
-    float tend = tmp_act->getEndTime();
-    float t, t0 = 0.f, t1;
+    double tstart = tmp_act->getStartTime();
+    double tend = tmp_act->getEndTime();
+    double t, t0 = 0.f, t1;
     bool bflag = false;
     std::unordered_set<sf::Vector2i, Vector2iHash> selected_cells;
     for(unsigned int s = 0; tstart + s * Config::time_step <= tend; s++) {
@@ -157,8 +179,11 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
             t1 = t;
             bflag = false;
             if(t1 > t0 && selected_cells.size() > 0) {
-                // Log::dbg << "[" << m_agent->getId() << "] - Activity #" << retval.size() << ", T start = " << t0 << ", end = " << t1
-                //     << ", Cell count: " << selected_cells.size() << ".\n";
+                /*  DEBUG with:
+                 *  Log::dbg << "[" << m_agent->getId() << "] Activity #" << retval.size() << ", T start = "
+                 *      << std::setw(16) << VirtualTime::toString(t0) << ", end = " << std::setw(16) << VirtualTime::toString(t1)
+                 *      << ", duration = " << VirtualTime::toString(t1 - t0, false) << ". Cell count: " << selected_cells.size() << std::defaultfloat << ".\n";
+                 **/
                 std::vector<sf::Vector2i> vec_selected_cells(selected_cells.begin(), selected_cells.end());
                 std::vector<float> vec_payoffs;
                 for(auto& vsc : vec_selected_cells) {
@@ -193,7 +218,6 @@ const GridView& EnvModel::getView(void) const
     }
     return *m_payoff_view;
 }
-
 
 std::vector<sf::Vector2i> EnvModel::getWorldCells(EnvCell model_cell) const
 {

@@ -26,4 +26,10 @@ enum class AgentMotionType {
     ORBITAL             /* orb - unimplemented. */
 };
 
+enum class TimeValueType {
+    ARBITRARY,          /* Unitless abstract and arbitrary time values. */
+    JULIAN_DAYS,        /* All times are in Julian Days J2000. */
+    SECONDS             /* Unit is seconds. */
+};
+
 #endif /* COMMON_ENUM_TYPES_HPP */

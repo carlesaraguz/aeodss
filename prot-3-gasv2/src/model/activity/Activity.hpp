@@ -19,8 +19,8 @@ class SegmentView;
 struct ActivityCell {
     unsigned int x;     /* Cell column number in the environment model (not real world coordinates). */
     unsigned int y;     /* Cell row number in the environment model (not real world coordinates). */
-    float* t0s;         /* Times when this cell starts becoming active by the activity. */
-    float* t1s;         /* Times when this cell ends being active by the activity. */
+    double* t0s;        /* Times when this cell starts becoming active by the activity. */
+    double* t1s;        /* Times when this cell ends being active by the activity. */
     unsigned int nts;   /* The number of elements in the lists t0s and t1s. */
     bool ready;         /* The information in this cell is ready/valid. */
 };
@@ -41,14 +41,14 @@ public:
     bool isDiscarded(void) const { return m_discarded; }
     bool isFact(void) const { return (m_confirmed && !m_discarded) || (!m_confirmed && m_discarded); }
     bool isOwner(std::string aid) const { return aid == m_agent_id; }
-    int getCellTimes(unsigned int x, unsigned int y, float** t0s, float** t1s) const;
+    int getCellTimes(unsigned int x, unsigned int y, double** t0s, double** t1s) const;
     std::vector<sf::Vector2i> getActiveCells(void) const;
-    std::vector<sf::Vector2i> getActiveCells(float t) const;
+    std::vector<sf::Vector2i> getActiveCells(double t) const;
     std::shared_ptr<SegmentView> getView(void);
 
     /* Positions: */
     std::size_t getPositionCount(void) const { return m_trajectory.size(); }
-    void setTrajectory(const std::map<float, sf::Vector2f>& pts, const std::vector<ActivityCell>& acs);
+    void setTrajectory(const std::map<double, sf::Vector2f>& pts, const std::vector<ActivityCell>& acs);
 
     /* Getters & setters: */
     void setConfirmed(bool c = true);
@@ -57,8 +57,8 @@ public:
     void setId(int id);
     std::string getAgentId(void) const { return m_agent_id; }
     unsigned int getId(void) const { return m_id; }
-    float getStartTime(void) const;
-    float getEndTime(void) const;
+    double getStartTime(void) const;
+    double getEndTime(void) const;
     float getConfidence(void) const { return m_confidence; }
 
     /* Operator overloads: */
@@ -78,7 +78,7 @@ private:
 
     /* Spatio-temporal information: */
     std::shared_ptr<SegmentView> m_self_view;
-    std::map<float, sf::Vector2f> m_trajectory;
+    std::map<double, sf::Vector2f> m_trajectory;
     std::vector<ActivityCell> m_active_cells;
     std::map<unsigned int, std::map<unsigned int, int> > m_cell_lut;
 };

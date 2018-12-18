@@ -14,7 +14,7 @@ GridView::GridView(int w, int h, float cw, float ch, sf::Color init_color)
     : m_width(w)
     , m_height(h)
     , m_grid(sf::Triangles, w * h * 6)
-    , m_color_gradient(Config::color_gradient_krbg)
+    , m_color_gradient(Config::color_gradient_rainbow)
 {
     int v = 0;
     m_grid_idxs.reserve(m_width);

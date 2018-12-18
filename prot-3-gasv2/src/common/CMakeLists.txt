@@ -4,12 +4,16 @@ add_library(common STATIC ${src_list})
 add_library(common_test STATIC ${src_list})
 
 target_link_libraries(common
-    graphics
-    model
+    # model
+    # graphics
+    # scheduler
+    # utils
 )
 target_link_libraries(common_test
-    graphics_test
-    model_test
+    # model_test
+    # graphics_test
+    # scheduler_test
+    # utils_test
 )
 
 set_target_properties(common_test

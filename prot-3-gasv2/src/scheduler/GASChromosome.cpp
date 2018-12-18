@@ -10,6 +10,8 @@
 
 #include "GASChromosome.hpp"
 
+CREATE_LOGGER(GASChromosome)
+
 GASChromosome::GASChromosome(unsigned int sz)
     : alleles(sz)
     , valid(true)
@@ -22,7 +24,24 @@ GASChromosome::GASChromosome(unsigned int sz)
 
 void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2)
 {
+    if(p1.alleles.size() != p2.alleles.size() || p2.alleles.size() != c1.alleles.size() || c1.alleles.size() != c2.alleles.size()) {
+        Log::err << "Error on chromosome crossover operator: size mismatch.\n";
+        Log::err << "Parent sizes are " << p1.alleles.size() << " and " << p2.alleles.size()
+            << ". Children sizes are " << c1.alleles.size() << " and " << c2.alleles.size() << ".\n";
+        throw std::runtime_error("Error on chromosome crossover operator: size mismatch.");
+    }
     unsigned int l = p1.alleles.size();
+    /* Fallback in case of error: */
+    if(l <= 1) {
+        if(Random::getUf() > 0.5f) {
+            c1.alleles = p1.alleles;
+            c2.alleles = p2.alleles;
+        } else {
+            c1.alleles = p2.alleles;
+            c2.alleles = p1.alleles;
+        }
+        return;
+    }
     switch(Config::ga_crossover_op) {
         case GASCrossoverOp::SINGLE_POINT:
             {
@@ -45,9 +64,7 @@ void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome&
                 std::vector<unsigned int> xo_points(l - 1);
                 std::iota(xo_points.begin(), xo_points.end(), 0);  /* Generates 0, 1, 2, 3... (N-1). */
                 int idx;
-                if(Config::ga_crossover_points >= (l - 1)) {
-                    /* Cross over all points: use xo_points as is. */
-                } else {
+                if(Config::ga_crossover_points < (l - 1)) {
                     /* Choose where to cross by removing some XO points. */
                     for(unsigned int i = 0; i < ((l - 1) - Config::ga_crossover_points); i++) {
                         idx = Random::getUi(0, xo_points.size() - 1);
