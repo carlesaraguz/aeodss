@@ -15,9 +15,10 @@ CREATE_LOGGER(World)
 
 unsigned int World::m_width = Config::world_width;
 unsigned int World::m_height = Config::world_height;
+std::vector<std::vector<sf::Vector3f> > World::m_world_positions;
 
 World::World(void)
-    : m_self_view(m_width, m_height, 1.f, 1.f)
+    : m_self_view(m_width, m_height, 1.f, 1.f, Config::color_gradient_rainbow.getColorAt(0.f))
 {
     std::time_t t = std::time(nullptr);
     char str[100];
@@ -39,8 +40,8 @@ World::World(void)
 
     m_cells.reserve(m_width);
     for(unsigned int i = 0; i < m_width; i++) {
-        std::vector<std::vector<WorldCell> > row;
-        row.reserve(m_height);
+        std::vector<std::vector<WorldCell> > column;
+        column.reserve(m_height);
         for(unsigned int j = 0; j < m_height; j++) {
             std::vector<WorldCell> layers(n_layers, { 0.f });
             /* Initialize values for each layer: */
@@ -50,9 +51,26 @@ World::World(void)
             layers[(int)Layer::REVISIT_TIME_ACTUAL].value = Config::max_revisit_time;
             layers[(int)Layer::OVERLAPPING_WORST].value = 0.f;
             layers[(int)Layer::OVERLAPPING_ACTUAL].value = 0.f;
-            row.push_back(layers);
+            column.push_back(layers);
         }
-        m_cells.push_back(row);
+        m_cells.push_back(column);
+    }
+    if(m_world_positions.size() == 0 && Config::motion_model == AgentMotionType::ORBITAL) {
+        /* Build the positions LUT: */
+        float lat, lng;
+        m_world_positions.reserve(m_width);
+        for(unsigned int i = 0; i < m_width; i++) {
+            std::vector<sf::Vector3f> column_lut;
+            column_lut.reserve(m_height);
+            for(unsigned int j = 0; j < m_height; j++) {
+                lng =   (360.f * i / World::getWidth()) - 180.f;
+                lat = -((180.f * j / World::getHeight()) - 90.f);
+                auto position_ecef = CoordinateSystemUtils::fromGeographicToECEF(sf::Vector3f(lat, lng, 0.f));
+                column_lut.push_back(position_ecef);
+            }
+            m_world_positions.push_back(column_lut);
+        }
+        Log::dbg << "Completed the pre-computation of coordinates in the ECEF frame for every world cell.\n";
     }
 }
 
@@ -151,7 +169,7 @@ void World::step(void)
         }
     }
     for(auto& a : m_agents) {
-        auto cells = a->getWorldFootprint();
+        auto cells = a->getWorldFootprint(m_world_positions);
         bool capturing = a->isCapturing();
         for(auto& c : cells) {
             updateLayer(Layer::COVERAGE_BEST, c.x, c.y, true);

@@ -23,6 +23,7 @@
 #include <chrono>
 #include <thread>
 #include <functional>
+#include <cmath>
 
 /* -- Standard C libraries: */
 #include <unistd.h>

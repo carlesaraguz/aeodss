@@ -13,6 +13,7 @@
 
 #include "prot.hpp"
 
+#include "MathUtils.hpp"
 #include "ThickLine.hpp"
 #include "Activity.hpp"
 #include "HideGraphics.hpp"

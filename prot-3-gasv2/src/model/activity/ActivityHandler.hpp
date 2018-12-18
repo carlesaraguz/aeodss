@@ -20,14 +20,14 @@ class ActivityHandler : public HasView
 public:
     ActivityHandler(Agent* aptr);
 
-    std::shared_ptr<Activity> getNextActivity(float t) const;
+    std::shared_ptr<Activity> getNextActivity(double t) const;
     std::shared_ptr<Activity> getCurrentActivity(void) const;
     std::shared_ptr<Activity> getLastActivity(void) const;
     void add(std::shared_ptr<Activity> pa);
     unsigned int count(std::string aid) const;
     unsigned int pending(std::string aid) const;
     void setAgentId(std::string aid);
-    std::shared_ptr<Activity> createOwnedActivity(const std::map<float, sf::Vector2f>& a_pos, const std::vector<ActivityCell>& a_cells);
+    std::shared_ptr<Activity> createOwnedActivity(const std::map<double, sf::Vector2f>& a_pos, const std::vector<ActivityCell>& a_cells);
 
     /* View and control: */
     const sf::Drawable& getView(void) const override;

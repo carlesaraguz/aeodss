@@ -50,7 +50,9 @@ void AgentView::setFootprint(std::vector<sf::Vector2f> footprint)
     for(int i = 1; i < (int)footprint.size(); i++) {
         ThickLine tl(footprint[i - 1], footprint[i]);
         tl.setThickness(2.f);
-        tl.setColor(Config::color_dark_green);
+        // tl.setColor(Config::color_dark_green);
+        tl.setColor(Config::color_orange);
+        // tl.setColor(sf::Color::White);
         m_footprint.push_back(tl);
     }
 }
@@ -79,16 +81,15 @@ void AgentView::displayId(bool d)
 
 void AgentView::setDirection(sf::Vector2f vel)
 {
-    sf::Vector2f v = vel / std::sqrt(vel.x * vel.x + vel.y * vel.y);
     float dir = 0.f;
-    switch(quadrant(v)) {
+    switch(quadrant(vel)) {
         case 1:
         case 2:
-        dir = std::acos(v.x);
+        dir = std::acos(vel.x);
         break;
         case 3:
         case 4:
-        dir = -std::acos(v.x);
+        dir = -std::acos(vel.x);
         break;
     }
     dir *= 180.f / Config::pi;
@@ -127,10 +128,18 @@ void AgentView::setText(std::string str)
     m_txt.setString(str);
 }
 
+void AgentView::setLocation(sf::Vector2f l)
+{
+    m_txt.setPosition(l.x + Config::agent_size, l.y + Config::agent_size);
+    m_range.setPosition(l);
+    m_triangle.setPosition(l);
+}
+
+
 void AgentView::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     if(m_show) {
-        states.transform *= getTransform();
+        // states.transform *= getTransform();
         if(m_display_footprint) {
             for(auto& f_line : m_footprint) {
                 target.draw(f_line, states);

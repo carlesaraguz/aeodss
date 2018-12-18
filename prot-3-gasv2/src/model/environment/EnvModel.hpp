@@ -30,11 +30,11 @@ struct EnvModelInfo {
 };
 
 struct ActivityGen {
-    float t0;
-    float t1;
-    unsigned int steps;
-    std::vector<sf::Vector2i> c_coord;
-    std::vector<float> c_payoffs;
+    double t0;                          /* Start time. */
+    double t1;                          /* End time. */
+    unsigned int steps;                 /* Duration of the activity, in steps. */
+    std::vector<sf::Vector2i> c_coord;  /* Coordinates for all the visible cells of the activity. */
+    std::vector<float> c_payoffs;       /* Cell payoffs for all the visible cells og the activity. */
 };
 
 class EnvModel : public HasView
@@ -104,23 +104,90 @@ public:
      *  Cells are cleaned for time `t`. If this is not provided (or is equal to -1), the current
      *  virtual time will be used.
      **********************************************************************************************/
-    void cleanActivities(float t = -1.f);
+    void cleanActivities(double t = -1.f);
 
+    /*******************************************************************************************//**
+     *  Getter for the environment model size information.
+     **********************************************************************************************/
     EnvModelInfo getEnvModelInfo(void) const { return { m_model_h, m_model_w, m_ratio_w, m_ratio_h }; }
+
+    /*******************************************************************************************//**
+     *  Getter for the model width.
+     *  @return Number of unit cells.
+     **********************************************************************************************/
     unsigned int getModelWidth(void) const { return m_model_w; }
+
+    /*******************************************************************************************//**
+     *  Getter for the model height.
+     *  @return Number of unit cells.
+     **********************************************************************************************/
     unsigned int getModelHeight(void) const { return m_model_h; }
 
+    /*******************************************************************************************//**
+     *  Get the world cell coordinates that correspond to a model cell.
+     *  @param  model_cell  Cell from which world coordinates will be found.
+     *  @return The list of world coordinates.
+     **********************************************************************************************/
     std::vector<sf::Vector2i> getWorldCells(EnvCell model_cell) const;
+
+    /*******************************************************************************************//**
+     *  Get the world cell coordinates that correspond to a model cell with coordinates x, y.
+     *  @param  x           Model cell x-axis coordinate.
+     *  @param  y           Model cell y-axis coordinate.
+     *  @return The list of world coordinates.
+     **********************************************************************************************/
     std::vector<sf::Vector2i> getWorldCells(unsigned int x, unsigned int y) const;
+
+    /*******************************************************************************************//**
+     *  Get the world cell coordinates that correspond to a model cell.
+     *  @param  model_cell  Model cell coordinates.
+     *  @return The list of world coordinates.
+     **********************************************************************************************/
     std::vector<sf::Vector2i> getWorldCells(sf::Vector2i model_cell) const;
+
+    /*******************************************************************************************//**
+     *  Get the world cell coordinates for all the model cells in model_cells.
+     *  @param  model_cell  A list of model cell coordinates.
+     *  @return The list of world coordinates.
+     **********************************************************************************************/
     std::vector<sf::Vector2i> getWorldCells(std::vector<sf::Vector2i> model_cells) const;
+
+    /*******************************************************************************************//**
+     *  Gets a look up table of pre-computed ECEF positions for every model cell in the environment.
+     **********************************************************************************************/
+    const std::vector<std::vector<sf::Vector3f> >& getPositionLUT(void) const { return m_world_positions; }
+
+    /*******************************************************************************************//**
+     *  Convert model coordinates (in model cell units) to world coordinates (in pixels).
+     **********************************************************************************************/
     template <class T>
     sf::Vector2<T> toWorldCoordinates(sf::Vector2<T> model_coord) const;
+
+    /*******************************************************************************************//**
+     *  Convert world coordinates (in pixels) to model coordinates (in model cell units).
+     **********************************************************************************************/
     template <class T>
     sf::Vector2<T> toModelCoordinates(sf::Vector2<T> world_coord) const;
 
+    /*******************************************************************************************//**
+     *  Build the environment model view to be able to display it. If this function is not called,
+     *  the object will not allocate graphic resources. This function needs to be called before any
+     *  other call to computePayoff(tmp_act, true) (i.e. display_in_view = true). If this function
+     *  is not used, calling computePayoff will never update the view (avoiding invalid access to
+     *  uninitialized attributes and a program crash).
+     **********************************************************************************************/
     void buildView(void);
+
+    /*******************************************************************************************//**
+     *  Clear the view by setting value 0 to all cells.
+     **********************************************************************************************/
     void clearView(void);
+
+    /*******************************************************************************************//**
+     *  Getter for the view object. Calling this function without a properly built view (i.e. with
+     *  buildView) throws an expection.
+     *  @throw std::runtime_error   When the view has not been initialized with buildView.
+     **********************************************************************************************/
     const GridView& getView(void) const;
 
 private:
@@ -131,8 +198,9 @@ private:
     unsigned int m_world_w;     /* Real world magnitude (here in pixels.) */
     float m_ratio_w;            /* Unit width in [world-pixel / model-unit].  */
     float m_ratio_h;            /* Unit height in [world-pixel / model-unit]. */
-    std::vector<std::vector<EnvCell> > m_cells;
-    std::shared_ptr<GridView> m_payoff_view;
+    std::vector<std::vector<EnvCell> > m_cells;                 /**< Cells in which the environment is tesselated. */
+    std::shared_ptr<GridView> m_payoff_view;                    /**< Environment graphical representation (payoff values). */
+    std::vector<std::vector<sf::Vector3f> > m_world_positions;  /**< Look-up table of cell 3D coordinates (ECEF) in the world. */
 };
 
 template <class T>

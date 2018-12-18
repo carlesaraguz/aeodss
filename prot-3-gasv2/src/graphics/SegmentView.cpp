@@ -31,37 +31,34 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, std::string str)
     }
     auto p_s0 = m_positions[0];
     auto p_s1 = m_positions[1];
-    // auto p_e0 = m_positions[m_positions.size() - 2];
-    // auto p_e1 = m_positions[m_positions.size() - 1];
 
-    // /* Find a unitary vectors perpendicular to the start and end directions: */
-    sf::Vector2f p0 = p_s1 - p_s0;
-    // sf::Vector2f p1 = p_e1 - p_e0;
-    p0 = p0 / std::sqrt(p0.x * p0.x + p0.y * p0.y);
-    // p1 = p1 / std::sqrt(p1.x * p1.x + p1.y * p1.y);
-    //
-    // sf::Vector2f u0 = { p_s1.y - p_s0.y, p_s0.x - p_s1.x };
-    // sf::Vector2f u1 = { p_e1.y - p_e0.y, p_e0.x - p_e1.x };
-    // u0 /= std::sqrt(u0.x * u0.x + u0.y * u0.y);
-    // u1 /= std::sqrt(u1.x * u1.x + u1.y * u1.y);
-    // sf::Vector2f p_sa = u0 * (swath / 2.f);
-    // sf::Vector2f p_sb = u0 * (-swath / 2.f);
-    // sf::Vector2f p_ea = u1 * (swath / 2.f);
-    // sf::Vector2f p_eb = u1 * (-swath / 2.f);
-
+    sf::Vector2f p0 = MathUtils::makeUnitary(p_s1 - p_s0);
     sf::Color c = sf::Color::White;
     c.a = 180;
 
     /* Lines: trajectory of the segment. */
     for(unsigned int i = 1; i < m_positions.size(); i++) {
-        if((m_positions[i - 1].x <= 0.f && m_positions[i - 1].y <= 0.f) || (m_positions[i].x <= 0.f && m_positions[i].y <= 0.f)) {
-            Log::err << "Segment view error: found a potential inconsistency in position {" << i << "}\n";
+        auto p0 = m_positions[i - 1];
+        auto p1 = m_positions[i];
+        if( (p0.x < 0.f && p0.y < 0.f) ||
+            (p1.x < 0.f && p1.y < 0.f) ||
+            (p0.x > Config::world_width && p0.y > Config::world_height) ||
+            (p1.x > Config::world_width && p1.y > Config::world_height)
+        ) {
+            Log::err << "Segment view error: found a potential inconsistency in position {" << i << "} -> "
+                << "(" << m_positions[i].x << ", " << m_positions[i].y << ")\n";
             m_error = true;
         }
-        ThickLine tline(m_positions[i - 1], m_positions[i]);
-        tline.setColor(c);
-        tline.setThickness(2.f);
-        m_lines.push_back(tline);
+        auto dvec = p1 - p0;
+        float dist = MathUtils::norm(dvec);
+        if(dist > (3.0 / 4.0) * Config::world_width) {
+            /* This line possibly crosses all screen length, skipping: */
+        } else {
+            ThickLine tline(p0, p1);
+            tline.setColor(c);
+            tline.setThickness(2.f);
+            m_lines.push_back(tline);
+        }
     }
 
     float circle_radius = 7.f;

@@ -131,7 +131,7 @@ void AgentLink::update(void)
     std::vector<std::string> disconnect_list;
     for(auto& l : m_connected) {
         if(l.second) {
-            if(m_other_agents[l.first]->getLink()->distanceFrom(m_agent->getMotion().getPosition()) > m_link_ranges.at(l.first)) {
+            if(m_other_agents[l.first]->getLink()->distanceFrom(m_agent->getMotion().getProjection2D()) > m_link_ranges.at(l.first)) {
                 disconnect_list.push_back(l.first);
             }
         }
@@ -148,7 +148,7 @@ void AgentLink::update(void)
         for(auto& a : m_other_agents) {
             std::string id = a.second->getId();
             float r = a.second->getLink()->getRange();
-            float d = a.second->getLink()->distanceFrom(m_agent->getMotion().getPosition());
+            float d = a.second->getLink()->distanceFrom(m_agent->getMotion().getProjection2D());
             /* Check mutual visibility/range. */
             if(d <= r && d <= m_range) {
                 if(!m_connected[id]) {
@@ -268,7 +268,7 @@ void AgentLink::step(void)
                     /* This starts this transfer locally. */
                     first_transfer.t_start = t;
                     first_transfer.finished = false;
-                    first_transfer.t_end = t + (Config::activity_size / m_datarate);
+                    first_transfer.t_end = t + (double)(Config::activity_size / m_datarate);
                     m_other_agents[txq.first]->getLink()->startTransfer(getAgentId(), first_transfer);
                 } else {
                     /* This transfer was already started. */
@@ -301,12 +301,8 @@ void AgentLink::step(void)
 
 float AgentLink::distanceFrom(sf::Vector3f p) const
 {
-    /*  TODO: Future updates (once Marc's branch is merged) will change this function to 3d:
-     *  sf::Vector3f v = p - m_position;
-     *  return MathUtils::norm(v);
-     **/
     sf::Vector3f v = p - m_position;
-    return std::sqrt(v.x * v.x + v.y * v.y);
+    return MathUtils::norm(v);
 }
 
 int AgentLink::scheduleSend(Activity a, std::string aid, std::function<void(int)> on_sent, std::function<void(int)> on_failure)

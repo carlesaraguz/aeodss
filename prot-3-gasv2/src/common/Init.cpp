@@ -40,6 +40,12 @@ void Init::doInit(void)
     gradient[0.5f]  = sf::Color(  5, 123, 191, 255);    /* Blue.        */
     gradient[1.f]   = sf::Color(  0, 132,  70, 255);    /* Green.       */
     Config::color_gradient_krbg.setGradient(gradient);
+    gradient[0.0f]  = sf::Color(255, 255, 255, 255);    /* White.       */
+    gradient[0.25f] = sf::Color(237,  52,  52, 255);    /* Red.         */
+    gradient[0.5f]  = sf::Color(255, 236,  38, 255);    /* Yellow.      */
+    gradient[0.75f] = sf::Color( 51, 221,  85, 255);    /* Green.       */
+    gradient[1.0f]  = sf::Color( 27,  68, 214, 255);    /* Blue.        */
+    Config::color_gradient_rainbow.setGradient(gradient);
     gradient.clear();
     gradient[0.f]  = sf::Color(173,   0,   0, 255);     /* Dark red.    */
     gradient[0.5f] = sf::Color(255, 165,   0, 255);     /* Orange.      */
@@ -52,10 +58,10 @@ void Init::doInit(void)
     Config::color_gradient_blue.setGradient(gradient);
     gradient.clear();
 
-    // if(Config::ga_crossover_points > Config::max_tasks - 1) {
-    //     Config::ga_crossover_points = Random::getUi(1, Config::max_tasks - 1);
-    //     std::cerr << "GA Scheduler: crossover points changed to " << Config::ga_crossover_points << ".\n";
-    // }
+    if(Config::ga_crossover_points > Config::max_tasks - 1) {
+        Config::ga_crossover_points = Random::getUi(1, Config::max_tasks - 1);
+        Log::warn << "GA Scheduler: crossover points changed to " << Config::ga_crossover_points << ".\n";
+    }
 
     Config::root_path = getRootPath();
     Log::dbg << "Process root path: " << Config::root_path << "\n";

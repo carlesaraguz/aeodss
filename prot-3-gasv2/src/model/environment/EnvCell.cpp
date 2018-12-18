@@ -29,15 +29,15 @@ EnvCell::EnvCell(unsigned int cx, unsigned int cy, EnvCellPayoffFunc fp, EnvCell
 void EnvCell::addCellActivity(std::shared_ptr<Activity> aptr)
 {
     /* The Activity must have this cell as an active cell: */
-    float* t0s;
-    float* t1s;
+    double* t0s;
+    double* t1s;
     int nts = aptr->getCellTimes(x, y, &t0s, &t1s);
     if(nts <= 0) {
         Log::err << "(" << x << "-" << y << ") Error adding activity " << *aptr << " in a cell, for \'"
             << aptr->getAgentId() << ":" << aptr->getId() << "\'.\n";
     } else {
-        m_activities[aptr].t0s = new float[nts];
-        m_activities[aptr].t1s = new float[nts];
+        m_activities[aptr].t0s = new double[nts];
+        m_activities[aptr].t1s = new double[nts];
         m_activities[aptr].nts = nts;
         for(int i = 0; i < nts; i++) {
             m_activities[aptr].t0s[i] = t0s[i];
@@ -63,21 +63,21 @@ bool EnvCell::removeCellActivity(std::shared_ptr<Activity> aptr)
     }
 }
 
-float EnvCell::computeCellPayoff(unsigned int fidx, float* at0s, float* at1s, int nts)
+float EnvCell::computeCellPayoff(unsigned int fidx, double* at0s, double* at1s, int nts)
 {
     if(fidx < m_payoff_func.size() && nts > 0) {
         m_payoff.clear();
         for(int i = 0; i < nts; i++) {
             /*  Payoff function for one cell:
-             *  Arg. #0:                     pair<float, float>  --> t0 & t1 of the potential new activity.
-             *  Arg. #1:   vector<vector<pair<float, float> > >  --> vector of t0 & t1 of the activities for this cell.
+             *  Arg. #0:                   pair<double, double>  --> t0 & t1 of the potential new activity.
+             *  Arg. #1: vector<vector<pair<double, double> > >  --> vector of t0 & t1 of the activities for this cell.
              *  Arg. #2:          vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
              **/
             auto arg1 = std::make_pair(at0s[i], at1s[i]);
-            std::vector<std::vector<std::pair<float, float> > > arg2;
+            std::vector<std::vector<std::pair<double, double> > > arg2;
             std::vector<std::shared_ptr<Activity> > arg3;
             for(auto& ra : m_activities) {
-                std::vector<std::pair<float, float> > vec_ts;
+                std::vector<std::pair<double, double> > vec_ts;
                 for(int j = 0; j < ra.second.nts; j++) {
                     vec_ts.push_back({ra.second.t0s[j], ra.second.t1s[j]});
                 }
@@ -93,9 +93,9 @@ float EnvCell::computeCellPayoff(unsigned int fidx, float* at0s, float* at1s, in
     return -1.f;
 }
 
-float EnvCell::getPayoff(float t) const
+float EnvCell::getPayoff(double t) const
 {
-    float t_diff, retval;
+    double t_diff, retval;
     bool started = false;
     for(auto& po : m_payoff) {
         if(!started) {
@@ -111,12 +111,11 @@ float EnvCell::getPayoff(float t) const
     }
     if(!started) {
         Log::warn << "Cell " << *this << " does not have payoffs to retrieve.\n";
-        return -1.f;
+        return -1.0;
     } else {
         return retval;
     }
 }
-
 
 std::vector<std::shared_ptr<Activity> > EnvCell::getAllActivities(void) const
 {
@@ -127,7 +126,7 @@ std::vector<std::shared_ptr<Activity> > EnvCell::getAllActivities(void) const
     return retval;
 }
 
-void EnvCell::clean(unsigned int fidx, float t)
+void EnvCell::clean(unsigned int fidx, double t)
 {
     auto activities = m_clean_func[fidx](t, getAllActivities());
     for(auto& ac : activities) {
