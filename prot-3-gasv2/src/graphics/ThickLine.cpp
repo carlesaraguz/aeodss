@@ -10,9 +10,9 @@
 
 #include "ThickLine.hpp"
 
-ThickLine::ThickLine(const sf::Vector2f& p1, const sf::Vector2f& p2)
+ThickLine::ThickLine(const sf::Vector2f& p1, const sf::Vector2f& p2, float thickness)
     : m_color(sf::Color::Transparent)
-    , m_thickness(1.f)
+    , m_thickness(thickness)
     , m_p1(p1)
     , m_p2(p2)
 {

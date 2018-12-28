@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 0;
-    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Autonomous Nano-Satellite Swarm", sf::Style::Titlebar | sf::Style::Close, settings);
+    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height / 2), "Autonomous Nano-Satellite Swarm", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(60);
     /*  NOTE:
      *  Update mechanism should be changed to something user controlled and rely upon sf::Clock and
@@ -60,14 +60,16 @@ int main(int argc, char** argv)
     /* Create multi-views: ---------------------------------------------------------------------- */
     std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
     MultiView mv1, mv2, mv3, mv4;
-    mv1.setViews(avs);
+    // mv1.setViews(avs);
     mv2.addViewToBack(agents[0]->getEnvironment());
     mv2.addViewToBack(std::static_pointer_cast<const HasView>(agents[0]->getActivityHandler()));
     mv2.addViewToBack(avs[0]);
     mv3.addViewToBack(world);
     mv4.addViewToBack(world);
     for(unsigned int i = 0; i < agents.size(); i++) {
-        mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
+        mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getLink()));
+        mv1.addViewToBack(avs[i]);
+        // mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
         mv3.addViewToBack(avs[i]);
         mv4.addViewToBack(avs[i]);
     }
@@ -79,14 +81,6 @@ int main(int argc, char** argv)
     mv2.setPosition(Config::win_width / 2.f, 0.f);
     mv3.setPosition(0.f, Config::win_height / 2.f);
     mv4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
-
-    // std::vector<std::shared_ptr<const HasView> > avs(agents.begin(), agents.end());   /* Casts. */
-    // MultiView mv_world;
-    // mv_world.addViewToBack(world);
-    // for(unsigned int i = 0; i < agents.size(); i++) {
-    //     // mv_world.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
-    //     mv_world.addViewToBack(avs[i]);
-    // }
 
     /* Add some background: */
     sf::Texture world_map_texture;
@@ -128,40 +122,39 @@ int main(int argc, char** argv)
         std::vector<std::thread> thread_pool;
         if(play) {
             VirtualTime::step();
-            /* Update agents: */
-            for(auto& a : agents) {
-                a->step();
-            }
+            std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->updatePosition(); });
+            std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->step(); });
             world->step();
         }
 
         /* Pre-draw loop: ----------------------------------------------------------------------- */
         mv1.drawViews();
         mv2.drawViews();
+        /*
         if(draw_it % 5 == 0) {
-            // draw_it = 0;
             world->display(World::Layer::REVISIT_TIME_ACTUAL);
             mv3.drawViews();
-            world->display(World::Layer::OVERLAPPING_ACTUAL);
-            mv4.drawViews();
-            world->display(World::Layer::OVERLAPPING_WORST);
             world->display(World::Layer::REVISIT_TIME_BEST);
+            mv4.drawViews();
+            world->display(World::Layer::OVERLAPPING_ACTUAL);
+            world->display(World::Layer::OVERLAPPING_WORST);
             world->display(World::Layer::COVERAGE_BEST);
             world->display(World::Layer::COVERAGE_ACTUAL);
             world->report();
         }
+        */
 
         /* Draw loop: --------------------------------------------------------------------------- */
         window.clear();
         // window.draw(mv_world);
         window.draw(mv1);
         window.draw(mv2);
-        window.draw(mv3);
-        window.draw(mv4);
-        window.draw(world_map1);
+        // window.draw(mv3);
+        // window.draw(mv4);
+        // window.draw(world_map1);
         window.draw(world_map2);
-        window.draw(world_map3);
-        window.draw(world_map4);
+        // window.draw(world_map3);
+        // window.draw(world_map4);
         window.display();
         draw_it++;
     }
@@ -178,15 +171,15 @@ void handleEvents(sf::RenderWindow& w)
         }
         if(event.type == sf::Event::KeyPressed) {
             if(event.key.code == sf::Keyboard::Escape) {
-                std::cout << "The escape key was pressed. Exiting." << std::endl;
+                Log::dbg << "The escape key was pressed. Exiting." << std::endl;
                 w.close();
             }
             if(event.key.code == sf::Keyboard::Space) {
                 if(play) {
-                    std::cout << "Stopping world.\n";
+                    Log::dbg << "Stopping world.\n";
                     play = false;
                 } else {
-                    std::cout << "Resuming world.\n";
+                    Log::dbg << "Resuming world.\n";
                     play = true;
                 }
             }

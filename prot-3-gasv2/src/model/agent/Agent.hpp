@@ -36,6 +36,7 @@ public:
 
     /* Public member functions: */
     void step(void) override;
+    void updatePosition(void);
     void showResources(bool d = true);
 
     /* Getters and setters: */
