@@ -41,6 +41,7 @@ public:
     static float max_payoff;                    /**< Unit-less (payoff RT > max.) */
 
     /* Earth WGS84 parameters: */
+    static const double earth_radius;           /**< Standard radius of the Earth (in meters). */
     static const double earth_wgs84_a;          /**< Semi-major axis of WGS84 ellipsoid (in meters). */
     static const double earth_wgs84_b;          /**< Semi-minor axis of WGS84 ellipsoid (in meters). */
     static const double earth_wgs84_e;          /**< Eccentricity of WGS84 ellipsoid. */
@@ -69,6 +70,8 @@ public:
     static float orbp_argp_max;                 /**< Max. argument of the perigee (in degrees). */
     static float orbp_raan_min;                 /**< Min. Right Ascension of the Ascending node (in deg). */
     static float orbp_raan_max;                 /**< Max. Right Ascension of the Ascending node (in deg). */
+    static float orbp_init_ma_max;              /**< Max. mean anomaly (in deg). */
+    static float orbp_init_ma_min;              /**< Min. mean anomaly (in deg). */
 
     /* Resource consumptions and capacities: */
     /* -- Energy: */
@@ -87,6 +90,9 @@ public:
     static sf::Font fnt_awesome;
     static sf::Color color_orange;
     static sf::Color color_dark_green;
+    static sf::Color color_link_los;
+    static sf::Color color_link_connected;
+    static sf::Color color_link_sending;
     static ColorGradient color_gradient_rgb;
     static ColorGradient color_gradient_rbg;
     static ColorGradient color_gradient_krbg;

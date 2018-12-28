@@ -16,7 +16,7 @@
 #include "ThickLine.hpp"
 #include "VirtualTime.hpp"
 
-class AgentView : public HideGraphics, public sf::Drawable /*, public sf::Transformable */
+class AgentView : public HideGraphics, public sf::Drawable
 {
 public:
     AgentView(std::string id, float comms_range = 0.f);

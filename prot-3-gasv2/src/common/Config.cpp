@@ -44,6 +44,7 @@ float           Config::min_payoff = 1e-3f;
 float           Config::max_payoff = 1.f;
 
 /* Earth WGS84 parameters: */
+const double    Config::earth_radius  = 6371000.0;
 const double    Config::earth_wgs84_a = 6378137.0;
 const double    Config::earth_wgs84_b = 6356752.314245;
 const double    Config::earth_wgs84_e = 0.08181919;
@@ -72,6 +73,8 @@ float           Config::orbp_argp_min = 0.f;
 float           Config::orbp_argp_max = 360.f;
 float           Config::orbp_raan_min = 0.f;
 float           Config::orbp_raan_max = 360.f;
+float           Config::orbp_init_ma_max = 0.f;
+float           Config::orbp_init_ma_min = 360.f;
 
 /* Resource consumptions and capacities: */
 /* -- Energy: */
@@ -89,8 +92,11 @@ unsigned int    Config::fnt_size = 24;
 sf::Font        Config::fnt_monospace;
 sf::Font        Config::fnt_normal;
 sf::Font        Config::fnt_awesome;
-sf::Color       Config::color_orange;
-sf::Color       Config::color_dark_green;
+sf::Color       Config::color_orange = {255, 153, 102};
+sf::Color       Config::color_dark_green = {35, 94, 92};
+sf::Color       Config::color_link_los = {100, 100, 100};
+sf::Color       Config::color_link_connected = {255, 153, 102, 127};
+sf::Color       Config::color_link_sending = {151, 45, 168};
 ColorGradient   Config::color_gradient_rgb;
 ColorGradient   Config::color_gradient_rbg;
 ColorGradient   Config::color_gradient_krbg;
@@ -116,7 +122,6 @@ GASSelectionOp  Config::ga_environsel_op = GASSelectionOp::ELITIST;
 
 /* Global values: */
 std::string Config::root_path;
-
 
 void Config::loadCmdArgs(int argc, char** argv)
 {
@@ -180,6 +185,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                         getConfigParam("win_height", node_it.second, win_height);
                         getConfigParam("agent_size", node_it.second, agent_size);
                         getConfigParam("font_size", node_it.second, fnt_size);
+
                     } else if(node_it.first.as<std::string>() == "agent") {
                         Log::dbg << "Loading agent configuration...\n";
                         getConfigParam("energy_generation", node_it.second, agent_energy_generation_rate);
@@ -246,8 +252,8 @@ void Config::loadCmdArgs(int argc, char** argv)
                             switch(motion_model) {
                                 case AgentMotionType::ORBITAL:
                                     if(getConfigParam("altitude", motion_node, orbp_sma_min, orbp_sma_max)) {
-                                        orbp_sma_max *= 1e3;    /* Convert km to m. */
-                                        orbp_sma_min *= 1e3;    /* Convert km to m. */
+                                        orbp_sma_max *= 1e3f;    /* Convert km to m. */
+                                        orbp_sma_min *= 1e3f;    /* Convert km to m. */
                                         orbp_sma_max += earth_wgs84_a;
                                         orbp_sma_min += earth_wgs84_a;
                                     }
@@ -255,6 +261,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                                     getConfigParam("inc", motion_node, orbp_inc_min, orbp_inc_max);
                                     getConfigParam("argp", motion_node, orbp_argp_min, orbp_argp_max);
                                     getConfigParam("raan", motion_node, orbp_raan_min, orbp_raan_max);
+                                    getConfigParam("init_ma", motion_node, orbp_init_ma_min, orbp_init_ma_max);
                                     break;
                                 default:
                                     getConfigParam("speed", motion_node, agent_speed);

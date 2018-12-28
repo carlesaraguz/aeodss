@@ -1,6 +1,6 @@
 version: 1
 system:
-    n_agents: 10
+    n_agents: 2
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -44,11 +44,12 @@ agent:
     motion:
         type: orbital           # orbital, linear_bounce, linear_infinite or sinusoidal.
         # ---- Orbital (3D) motion:
-        altitude: [500, 900]    # Orbital height in kilometers [min, max] or single value.
-        max_ecc: 0.02           # Max. eccentricity.
-        inc: [70, 99]           # Inclination in degrees, [min, max] or single value.
-        argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
-        raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
+        altitude: 500           # Orbital height in kilometers [min, max] or single value.
+        max_ecc: 0.0            # Max. eccentricity.
+        inc: [10, 87]           # Inclination in degrees, [min, max] or single value.
+        argp: 0                 # Argument of the perigee in degrees, [min, max] or single value.
+        raan: [0, 0]          # Right ascension of the ascending node in deg., [min, max] or single val.
+        init_ma: 0              # Initial mean anomaly in deg., [min, max] or single val.
     activity:
         size: 0.01                  # Amount of information to transmit.
     planning_window: 1080           # Time-steps.

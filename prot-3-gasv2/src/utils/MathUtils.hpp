@@ -141,6 +141,24 @@ public:
      **********************************************************************************************/
     template <class Vec>
     static Vec makeUnitary(const Vec& v);
+
+    /*******************************************************************************************//**
+     *  Computes cross-product (A x B) of two 3d vectors a and b.
+     *  @tparam     T       The underlying type with which the vector components are expressed.
+     *  @param      a       Vector A.
+     *  @param      b       Vector B.
+     **********************************************************************************************/
+    template <class T>
+    static sf::Vector3<T> cross(const sf::Vector3<T>& a, const sf::Vector3<T>& b);
+
+    /*******************************************************************************************//**
+     *  Computes dot-product (A · B) of two 3d vectors a and b.
+     *  @tparam     T       The underlying type with which the vector components are expressed.
+     *  @param      a       Vector A.
+     *  @param      b       Vector B.
+     **********************************************************************************************/
+    template <class T>
+    static T dot(const sf::Vector3<T>& a, const sf::Vector3<T>& b);
 };
 
 template <typename T>
@@ -161,6 +179,20 @@ Vec MathUtils::makeUnitary(const Vec& v)
     return v / norm(v);
 }
 
+template <class T>
+sf::Vector3<T> MathUtils::cross(const sf::Vector3<T>& a, const sf::Vector3<T>& b)
+{
+    return sf::Vector3<T>(
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    );
+}
 
+template <class T>
+T MathUtils::dot(const sf::Vector3<T>& a, const sf::Vector3<T>& b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 
 #endif  /* MATH_UTILS_HPP */

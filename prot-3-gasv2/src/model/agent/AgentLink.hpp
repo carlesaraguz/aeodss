@@ -15,10 +15,11 @@
 #include "MathUtils.hpp"
 #include "Activity.hpp"
 #include "VirtualTime.hpp"
+#include "AgentLinkView.hpp"
 
 class Agent;
 
-class AgentLink : public TimeStep, public std::enable_shared_from_this<AgentLink>
+class AgentLink : public TimeStep, public HasView, public std::enable_shared_from_this<AgentLink>
 {
 private:
     struct Transfer;    /* Forward declaration. */
@@ -67,13 +68,13 @@ public:
      *  `z` coordinate is set to 0 in this case.
      *  @note   To be used when Config::motion_model is not equal to AgentMotionType::ORBITAL.
      **********************************************************************************************/
-    void setPosition(sf::Vector2f p) { m_position = sf::Vector3f(p.x, p.y, 0.f); }
+    void setPosition(sf::Vector2f p);
 
     /*******************************************************************************************//**
      *  Sets the current position of this agent in 3d space.
      *  @note   To be used when Config::motion_model is equal to AgentMotionType::ORBITAL.
      **********************************************************************************************/
-    void setPosition(sf::Vector3f p) { m_position = p; }
+    void setPosition(sf::Vector3f p);
 
     /*******************************************************************************************//**
      *  Installs a callback function that will be invoked every time the agent encounters a peer.
@@ -158,6 +159,11 @@ public:
      **********************************************************************************************/
     bool isEnabled(void) const { return m_enabled; }
 
+    /*******************************************************************************************//**
+     *  Returns a reference to the visual representation of this link.
+     **********************************************************************************************/
+    const sf::Drawable& getView(void) const { return m_self_view; }
+
 private:
     struct Transfer {
         std::shared_ptr<Activity> msg;  /**< The message to send. */
@@ -186,6 +192,7 @@ private:
     std::map<std::string, std::vector<Transfer> > m_rx_queue;       /**< Reception queue for each conencted agent. */
     std::map<int, std::function<void(int)> > m_callback_success;    /**< Callbacks for each transfer (on success). */
     std::map<int, std::function<void(int)> > m_callback_failure;    /**< Callbacks for each transfer (on cancellation). */
+    AgentLinkView m_self_view;
 
     /*******************************************************************************************//**
      *  Establishes a connection with the agent aid.
@@ -225,10 +232,16 @@ private:
     float distanceFrom(sf::Vector3f p) const;
 
     /*******************************************************************************************//**
-     *  TODO: REMOVE AFTER MERGING MARC'S FEATURES. DEBUG. XXX.
+     *  Determines whether agent aptr is in line of sight.
+     *  @param  aptr    Pointer to the other agent.
      **********************************************************************************************/
-    float distanceFrom(sf::Vector2f p) const { return distanceFrom({p.x, p.y, 0.f}); }
+    bool hasLineOfSight(const std::shared_ptr<Agent>& aptr);
 
+    /*******************************************************************************************//**
+     *  Determines whether agent aptr is within mutual link ranges.
+     *  @param  aptr    Pointer to the other agent.
+     **********************************************************************************************/
+    bool isInRange(const std::shared_ptr<Agent>& aptr);
 };
 
 #endif /* AGENT_LINK_HPP */

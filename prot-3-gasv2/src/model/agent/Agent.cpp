@@ -32,13 +32,14 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getPosition());
     m_activities->setAgentId(m_id);
+    m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
     initializeResources();
 }
 
 Agent::Agent(std::string id)
     : m_id(id)
     , m_self_view(id)
-    , m_motion(this, Random::getUf(0.f, 2 * Config::pi))
+    , m_motion(this, -1.0)
     , m_environment(std::make_shared<EnvModel>(this, (Config::world_width / Config::model_unity_size), (Config::world_height / Config::model_unity_size)))
     , m_link(std::make_shared<AgentLink>(this))
     , m_activities(std::make_shared<ActivityHandler>(this))
@@ -54,6 +55,7 @@ Agent::Agent(std::string id)
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getPosition());
     m_activities->setAgentId(m_id);
+    m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
     initializeResources();
 }
 
@@ -66,11 +68,15 @@ void Agent::initializeResources(void)
     // m_resources["storage"] = std::static_pointer_cast<Resource>(storage);
 }
 
-void Agent::step(void)
+void Agent::updatePosition(void)
 {
     m_motion.step();
     m_payload.setPosition(m_motion.getPosition());
     m_link->setPosition(m_motion.getPosition());
+}
+
+void Agent::step(void)
+{
     m_link->update();
     m_link->step();
 
@@ -187,7 +193,7 @@ void Agent::plan(void)
 
 bool Agent::encounter(std::string aid)
 {
-    if(m_current_activity != nullptr) {
+    if(m_current_activity == nullptr) {
         /* Accept the connection always, with everyone: */
         return true;
     } else {
@@ -221,9 +227,9 @@ void Agent::execute(void)
                 r.second->removeRate(m_current_activity.get());
             }
             m_current_activity = nullptr;
-            // if(m_link_energy_available) {
-            //     m_link->enable();
-            // }
+            if(m_link_energy_available) {
+                m_link->enable();
+            }
         }
     }
 
@@ -232,7 +238,7 @@ void Agent::execute(void)
         if(actptr != nullptr) {
             if(actptr->getStartTime() <= VirtualTime::now()) {
                 /* This activity has to start: */
-                // m_link->disable();
+                m_link->disable();
                 m_current_activity = actptr;
                 m_current_activity->setConfirmed();
                 Log::dbg << "Agent " << m_id << " is starting activity " << m_current_activity->getId() << ".\n";

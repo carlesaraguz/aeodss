@@ -17,7 +17,7 @@
 class ThickLine : public sf::Drawable, public sf::Transformable
 {
 public:
-    ThickLine(const sf::Vector2f& p1 = {0.f, 0.f}, const sf::Vector2f& p2 = {0.f, 0.f});
+    ThickLine(const sf::Vector2f& p1 = {0.f, 0.f}, const sf::Vector2f& p2 = {0.f, 0.f}, float thickness = 2.f);
     void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 
     void setPoints(const sf::Vector2f& p1, const sf::Vector2f& p2);

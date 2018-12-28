@@ -36,6 +36,19 @@ void AgentLink::setAgents(std::vector<std::shared_ptr<Agent> > agents)
     }
 }
 
+void AgentLink::setPosition(sf::Vector2f p)
+{
+    m_position = sf::Vector3f(p.x, p.y, 0.f);
+    m_self_view.setPosition(m_position);
+}
+
+void AgentLink::setPosition(sf::Vector3f p)
+{
+    m_position = p;
+    m_self_view.setPosition(m_position);
+}
+
+
 bool AgentLink::tryConnect(std::shared_ptr<AgentLink> other)
 {
     if(m_enabled) {
@@ -43,7 +56,7 @@ bool AgentLink::tryConnect(std::shared_ptr<AgentLink> other)
         if(m_connected[aid]) {
             /* Already connected to this agent. Do nothing. */
             Log::warn << "Agent " << aid << " is trying to connect to "
-                << m_agent->getId() << " but they were already connected.\n";
+                << getAgentId() << " but they were already connected.\n";
             return true;
         } else {
             if(m_encounter_callback(aid)) {
@@ -74,12 +87,13 @@ void AgentLink::doConnect(std::string aid)
     float r = m_other_agents[aid]->getLink()->getRange();
     m_link_ranges[aid] = std::min(r, m_range);
     m_connected[aid] = true;
+    m_self_view.setLink(aid, AgentLinkView::State::CONNECTED, m_other_agents[aid]->getMotion().getPosition());
 }
 
 void AgentLink::doDisconnect(std::string aid)
 {
     if(!m_connected[aid]) {
-        Log::warn << "Agent " << m_agent->getId() << ", trying to disconnect from " << aid
+        Log::warn << "Agent " << getAgentId() << ", trying to disconnect from " << aid
             << " but was already disconnected.\n";
         return;
     }
@@ -87,10 +101,10 @@ void AgentLink::doDisconnect(std::string aid)
     /* Cancel scheduled or on-going TX transfers with this agent: */
     for(auto& tx : m_tx_queue[aid]) {
         if(tx.t_start >= VirtualTime::now() && !tx.finished) {
-            m_other_agents[aid]->getLink()->cancelTransfer(m_agent->getId(), tx);  /* Cancel this transfer. */
+            m_other_agents[aid]->getLink()->cancelTransfer(getAgentId(), tx);  /* Cancel this transfer. */
         } else if(tx.t_start != -1.f) {
             /* If it hasn't started, t_start should be -1.f */
-            Log::err << "Agent " << m_agent->getId() << ", while disconnecting from " << aid
+            Log::err << "Agent " << getAgentId() << ", while disconnecting from " << aid
                 << " found an error in the TX queue (1).\n";
         }
         auto txcb = m_callback_failure.find(tx.id);
@@ -98,7 +112,7 @@ void AgentLink::doDisconnect(std::string aid)
             m_callback_failure[tx.id](tx.id);
             m_callback_failure.erase(txcb);
         } else {
-            Log::err << "Agent " << m_agent->getId() << ", while disconnecting from " << aid
+            Log::err << "Agent " << getAgentId() << ", while disconnecting from " << aid
                 << " found an error in the TX queue (2).\n";
         }
     }
@@ -118,11 +132,12 @@ void AgentLink::doDisconnect(std::string aid)
             m_rx_queue.at(aid).swap(only_finished);
         }
     } catch(std::out_of_range& e) {
-        Log::err << "Agent " << m_agent->getId() << ", while disconnecting from " << aid
+        Log::err << "Agent " << getAgentId() << ", while disconnecting from " << aid
             << " found an error in the control structures.\n";
     }
     m_connected[aid] = false;
-    Log::warn << "Agent " << m_agent->getId() << " has disconnected from " << aid << ".\n";
+    m_self_view.setLink(aid, AgentLinkView::State::DISCONNECTED);
+    Log::dbg << "Agent " << getAgentId() << " has disconnected from " << aid << ".\n";
 }
 
 void AgentLink::update(void)
@@ -131,7 +146,7 @@ void AgentLink::update(void)
     std::vector<std::string> disconnect_list;
     for(auto& l : m_connected) {
         if(l.second) {
-            if(m_other_agents[l.first]->getLink()->distanceFrom(m_agent->getMotion().getProjection2D()) > m_link_ranges.at(l.first)) {
+            if(!hasLineOfSight(m_other_agents[l.first]) || !isInRange(m_other_agents[l.first])) {
                 disconnect_list.push_back(l.first);
             }
         }
@@ -140,30 +155,64 @@ void AgentLink::update(void)
         Log::dbg << "Agent " << getAgentId() << " is going to disconnect from " << aid << ".\n";
         doDisconnect(aid);
         /* Notify of disconnection: */
-        m_other_agents[aid]->getLink()->notifyDisconnect(m_agent->getId());
+        m_other_agents[aid]->getLink()->notifyDisconnect(getAgentId());
     }
 
     /*  Find agents that are now in range: */
-    if(m_enabled) {
-        for(auto& a : m_other_agents) {
-            std::string id = a.second->getId();
-            float r = a.second->getLink()->getRange();
-            float d = a.second->getLink()->distanceFrom(m_agent->getMotion().getProjection2D());
-            /* Check mutual visibility/range. */
-            if(d <= r && d <= m_range) {
-                if(!m_connected[id]) {
-                    /* This agent wasn't in range before or we disconnected from it. */
-                    if(m_encounter_callback(id)) {
-                        if(a.second->getLink()->tryConnect(shared_from_this())) {
-                            doConnect(id);
-                            Log::warn << "Agents connected " << getAgentId() << " <--> " << id << ".\n";
-                        }
+    for(auto& a : m_other_agents) {
+        /* Check mutual visibility/range. */
+        std::string id = a.second->getId();
+        bool has_los = hasLineOfSight(a.second);
+        bool is_in_range = isInRange(a.second);
+        if(has_los && is_in_range) {
+            if(!m_connected[id]) {
+                m_self_view.setLink(id, AgentLinkView::State::LINE_OF_SIGHT, a.second->getMotion().getPosition());
+            }
+            if(!m_connected[id] && m_enabled) {
+                /* This agent wasn't in range before or we disconnected from it. */
+                if(m_encounter_callback(id)) {
+                    if(a.second->getLink()->tryConnect(shared_from_this())) {
+                        doConnect(id);
+                        Log::dbg << "Agents connected " << getAgentId() << " <--> " << id << ".\n";
                     }
                 }
             }
+        } else {
+            m_self_view.setLink(id, AgentLinkView::State::DISCONNECTED);
         }
     }
 }
+
+bool AgentLink::hasLineOfSight(const std::shared_ptr<Agent>& aptr)
+{
+    sf::Vector3f s = m_position;
+    sf::Vector3f d = aptr->getMotion().getPosition();
+
+    float s_len  = MathUtils::norm(s);
+    float theta  = std::asin(Config::earth_radius / s_len);
+    auto ds_norm = MathUtils::makeUnitary(d - s);
+    auto s_norm  = MathUtils::makeUnitary(s);
+    float adiff  = std::acos(std::fabs(MathUtils::dot(ds_norm, s_norm)));
+
+    float h = std::sqrt(std::pow(s_len, 2.0) - std::pow(Config::earth_radius, 2.0));
+
+    if(adiff > theta) {
+        return true;
+    } else if(MathUtils::norm(d - s) > h) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+bool AgentLink::isInRange(const std::shared_ptr<Agent>& aptr)
+{
+    float ra = aptr->getLink()->getRange();
+    float rb = m_range;
+    float d = aptr->getLink()->distanceFrom(m_position);
+    return (d < ra && d < rb);
+}
+
 
 std::vector<Activity> AgentLink::readRxQueue(void)
 {
@@ -194,7 +243,7 @@ bool AgentLink::startTransfer(std::string aid, const Transfer& data)
     /* This should be called when t_start is equal to now. */
     if(data.t_start != VirtualTime::now()) {
         Log::err << "A transfer start has been requested by agent " << aid << " to "
-            << m_agent->getId() << ", but start times mismatch. Will not accept the transfer.\n";
+            << getAgentId() << ", but start times mismatch. Will not accept the transfer.\n";
         return false;
     }
     m_rx_queue[aid].push_back(data);
@@ -262,6 +311,7 @@ void AgentLink::step(void)
         /* Start new transfers: */
         double t = VirtualTime::now();
         for(auto& txq : m_tx_queue) {
+            bool sending = false;
             if(txq.second.size() > 0) {
                 auto& first_transfer = txq.second.front();
                 if(first_transfer.t_start == -1.f) {
@@ -269,7 +319,15 @@ void AgentLink::step(void)
                     first_transfer.t_start = t;
                     first_transfer.finished = false;
                     first_transfer.t_end = t + (double)(Config::activity_size / m_datarate);
-                    m_other_agents[txq.first]->getLink()->startTransfer(getAgentId(), first_transfer);
+                    if(!m_other_agents[txq.first]->getLink()->startTransfer(getAgentId(), first_transfer)) {
+                        /* Error, could not be started: */
+                        first_transfer.t_start = -1.f;
+                        first_transfer.t_end   = -1.f;
+                        Log::err << "Agent " << getAgentId() << " failed to start a transfer with " << txq.first << ".\n";
+                    } else {
+                        Log::dbg << "Agent " << getAgentId() << " started a transfer with " << txq.first << ".\n";
+                        sending = true;
+                    }
                 } else {
                     /* This transfer was already started. */
                     m_energy_consumed += Config::link_tx_energy_rate;
@@ -282,8 +340,15 @@ void AgentLink::step(void)
                         m_callback_success.erase(m_callback_success.find(first_transfer.id));
                         m_callback_failure.erase(m_callback_failure.find(first_transfer.id));
                         txq.second.erase(txq.second.begin());
+                    } else {
+                        sending = true;
                     }
                 }
+            }
+            if(sending) {
+                m_self_view.setLink(txq.first, AgentLinkView::State::SENDING, m_other_agents[txq.first]->getMotion().getPosition());
+            } else if(m_connected[txq.first]) {
+                m_self_view.setLink(txq.first, AgentLinkView::State::CONNECTED, m_other_agents[txq.first]->getMotion().getPosition());
             }
         }
         for(auto& rxq : m_rx_queue) {

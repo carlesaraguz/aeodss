@@ -21,8 +21,6 @@ void Init::doInit(void)
     Config::fnt_monospace.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf");
     Config::fnt_normal.loadFromFile("/usr/share/fonts/truetype/ubuntu/Ubuntu-L.ttf");
     Config::fnt_awesome.loadFromFile("/usr/share/fonts/opentype/font-awesome/FontAwesome.otf");
-    Config::color_orange = sf::Color(255, 153, 102);
-    Config::color_dark_green = sf::Color(35, 94, 92);
 
     std::map<float, sf::Color> gradient;
     gradient[0.f]  = sf::Color::Red;
