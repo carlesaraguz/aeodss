@@ -118,6 +118,27 @@ public:
      **********************************************************************************************/
     double getSMA(void) const { return m_orb_params.sma; }
 
+    /*******************************************************************************************//**
+     *  Computes the maximum altitude that this agent will ever get to. For 3-d orbital motion
+     *  models this function computes the orbital radius at the apogee. In 2-d modes, this function
+     *  always returns 0.
+     *  @return     Orbital height (in meters) at apogee.
+     **********************************************************************************************/
+    double getMaxAltitude(void) const;
+
+    /*******************************************************************************************//**
+     *  Computes the minimum altitude that this agent will ever get to. For 3-d orbital motion
+     *  models this function computes the orbital radius at the perigee. In 2-d modes, this function
+     *  always returns 0.
+     *  @return     Orbital height (in meters) at perigee.
+     **********************************************************************************************/
+    double getMinAltitude(void) const;
+
+    /*******************************************************************************************//**
+     *  Shows debug info for the agent motion model.
+     **********************************************************************************************/
+    void debug(void) const;
+
 private:
     /* Motion arguments: */
     std::vector<sf::Vector3f> m_position;

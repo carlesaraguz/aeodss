@@ -43,8 +43,10 @@ public:
      *  @param  aperture    For 2D motion models: the diameter of the circumference that represents
      *                      the instrument's visibile area. For 3D/orbital motion model: this value
      *                      is the aperture of the instrument in degrees.
+     *  @param  max_h       Maximum altitude/height of the agent motion. Needed to verify that
+     *                      maximum aperture is not exceeded.
      **********************************************************************************************/
-    BasicInstrument(float aperture);
+    BasicInstrument(float aperture, float max_h);
 
     /*******************************************************************************************//**
      *  Enable the instrument. This is just a setter for an internal attribute and does not modify
@@ -62,6 +64,18 @@ public:
      *  Getter for the state of the instrument.
      **********************************************************************************************/
     bool isEnabled(void) const { return m_enabled; }
+
+    /*******************************************************************************************//**
+     *  Sets the instrument's aperture to be `ap`. This function does check that maximum aperture is
+     *  not exceeded for cases where max_h is greater or equal than 0.
+     *  @param  ap      For 2D motion models: the diameter of the circumference that represents the
+     *                  instrument's visibile area. For 3D/orbital motion model: this value is the
+     *                  aperture of the instrument in degrees.
+     *  @param  max_h   Maximum altitude/height of the agent motion. Needed to verify that maximum
+     *                  aperture is not exceeded.
+     *  @see BasicInstrument::findMaxAperture.
+     **********************************************************************************************/
+    void setAperture(float ap, float max_h);
 
     /*******************************************************************************************//**
      *  Define environment model dimensions. These dimensions are used in the computation of visible
@@ -96,7 +110,7 @@ public:
      *  @note For a 2D version of this function, see the other overloads of getVisibleCells.
      **********************************************************************************************/
     std::vector<sf::Vector2i> getVisibleCells(const std::vector<std::vector<sf::Vector3f> >& lut,
-        float dist, sf::Vector3f position, bool world_cells, double t = -1.0) const;
+        float dist, sf::Vector3f position, bool world_cells, double t = -1.0) const override;
 
     /*******************************************************************************************//**
      *  Computes visible cells for an instrument located at the given 2D position. Visibility is
@@ -110,7 +124,7 @@ public:
      *                      false) or world cordinates in pixels (if true).
      *  @note This function should only be used in 2D motion models.
      **********************************************************************************************/
-    std::vector<sf::Vector2i> getVisibleCells(float dist, sf::Vector2f position, bool world_cells) const;
+    std::vector<sf::Vector2i> getVisibleCells(float dist, sf::Vector2f position, bool world_cells) const override;
 
     /*******************************************************************************************//**
      *  Computes visible cells for the actual instrument (i.e. taking its current position and
@@ -177,6 +191,13 @@ public:
      *  Getter for the instrument position in ECI coordinates.
      **********************************************************************************************/
     sf::Vector3f getPosition(void) const { return m_position; }
+
+    /*******************************************************************************************//**
+     *  Computes the instrument's maximum aperture for a given height.
+     *  @param  h   The height/altitude of the agent orbiting around the Earth.
+     *  @return     The maximum aperture in degrees, or Config::agent_aperture_max for negative `h`.
+     **********************************************************************************************/
+    static float findMaxAperture(float h);
 
 private:
     EnvModelInfo m_env_info;    /**< Information about the environment model size. */

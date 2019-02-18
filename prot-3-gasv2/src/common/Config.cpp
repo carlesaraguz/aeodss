@@ -37,6 +37,7 @@ unsigned int    Config::model_unity_size = 10;
 unsigned int    Config::agent_size = 14;
 unsigned int    Config::n_agents = 1;
 double          Config::start_epoch = 2451545.0;
+double          Config::duration = 30.0;
 double          Config::time_step = 10.0 / 86400.0;
 float           Config::max_revisit_time = 0.7f;
 float           Config::target_revisit_time = 0.2f;
@@ -55,11 +56,12 @@ float           Config::agent_aperture_min = 60.f;
 float           Config::agent_aperture_max = 120.f;
 float           Config::agent_range_min = 50.f;
 float           Config::agent_range_max = 90.f;
-float           Config::agent_datarate_min = 0.1f;
-float           Config::agent_datarate_max = 0.2f;
+float           Config::agent_datarate_min = 100.f;
+float           Config::agent_datarate_max = 200.f;
+bool            Config::link_allow_during_capture = false;
 float           Config::agent_speed =  4.f;
 unsigned int    Config::agent_planning_window = 1080; /* Steps (540 ~= 1 orbit). */
-float           Config::activity_size = 0.01f;
+float           Config::activity_size = 1000.f;
 AgentMotionType Config::motion_model = AgentMotionType::ORBITAL;
 TimeValueType   Config::time_type;
 
@@ -122,6 +124,7 @@ GASSelectionOp  Config::ga_environsel_op = GASSelectionOp::ELITIST;
 
 /* Global values: */
 std::string Config::root_path;
+std::string Config::data_path;
 
 void Config::loadCmdArgs(int argc, char** argv)
 {
@@ -138,7 +141,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                     if(conf_ver < CONF_VERSION) {
                         Log::warn << "Configuration file version " << conf_ver << " is older than the implementation.\n";
                     } else if(conf_ver > CONF_VERSION) {
-                        Log::err << "Unexpected confi. file version " << conf_ver
+                        Log::err << "Unexpected config. file version " << conf_ver
                             << ". Implementation only supports versions <= " << CONF_VERSION << ".\n";
                         throw std::runtime_error("Unsupported configuration file. Wrong version specs.");
                     }
@@ -147,10 +150,11 @@ void Config::loadCmdArgs(int argc, char** argv)
                     if(node_it.first.as<std::string>() == "version") {
                         /* Ignore here. */
                     } else if(node_it.first.as<std::string>() == "system") {
-                        Log::dbg << "Loading system configuration...\n";
+                        Log::dbg << "=== Loading system configuration...\n";
                         getConfigParam("n_agents", node_it.second, n_agents);
                         YAML::Node time_node = node_it.second["time"];
                         if(time_node.IsDefined()) {
+                            getConfigParam("duration", time_node, duration);
                             if(time_node["type"].IsDefined()) {
                                 if(time_node["type"].as<std::string>() == "julian_days") {
                                     float sec  = time_node["sec"].as<float>();
@@ -180,14 +184,15 @@ void Config::loadCmdArgs(int argc, char** argv)
                         }
 
                     } else if(node_it.first.as<std::string>() == "graphics") {
-                        Log::dbg << "Loading graphics configuration...\n";
+                        Log::dbg << "=== Loading graphics configuration...\n";
                         getConfigParam("win_width", node_it.second, win_width);
                         getConfigParam("win_height", node_it.second, win_height);
                         getConfigParam("agent_size", node_it.second, agent_size);
                         getConfigParam("font_size", node_it.second, fnt_size);
 
                     } else if(node_it.first.as<std::string>() == "agent") {
-                        Log::dbg << "Loading agent configuration...\n";
+                        Log::dbg << "=== Loading agent configuration...\n";
+                        getConfigParam("activity_size", node_it.second, activity_size);
                         getConfigParam("energy_generation", node_it.second, agent_energy_generation_rate);
                         getConfigParam("planning_window", node_it.second, agent_planning_window);
                         getConfigParam("max_tasks", node_it.second, max_tasks);
@@ -208,6 +213,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                             getConfigParam("datarate", link_node, agent_datarate_min, agent_datarate_max);
                             getConfigParam("energy_tx", link_node, link_tx_energy_rate);
                             getConfigParam("energy_rx", link_node, link_rx_energy_rate);
+                            getConfigParam("allow_during_capture", link_node, link_allow_during_capture);
                         } else {
                             throw std::runtime_error("Agent link model parameters have not been provided.");
                         }
@@ -328,7 +334,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                             }
                         }
                     } else if(node_it.first.as<std::string>() == "environment") {
-                        Log::dbg << "Loading environment configuration...\n";
+                        Log::dbg << "=== Loading environment configuration...\n";
                         getConfigParam("model_unity_size", node_it.second, model_unity_size);
                         getConfigParam("world_width", node_it.second, world_width);
                         getConfigParam("world_height", node_it.second, world_height);
@@ -337,7 +343,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                         getConfigParam("min_payoff", node_it.second, min_payoff);
                         getConfigParam("max_payoff", node_it.second, max_payoff);
                     } else {
-                        Log::warn << "Skipping unrecognized configuration category \'" << node_it.first.as<std::string>() << "\'.\n";
+                        Log::warn << "=== Skipping unrecognized configuration category \'" << node_it.first.as<std::string>() << "\'.\n";
                     }
                 }
             } catch(const std::exception& e) {

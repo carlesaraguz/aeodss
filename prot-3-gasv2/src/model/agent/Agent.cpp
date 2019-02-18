@@ -26,13 +26,19 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
 {
     if(Config::motion_model == AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n";
-        Log::err << "The world is modelled in 3-d (i.e. `motion_model` is set to AgentMotionType::ORBITAL). Use a different constructor.\n";
+        Log::err << "The world is modelled in 3-d (i.e. `motion_model` is set to AgentMotionType::ORBITAL). Please use a different constructor.\n";
         throw std::runtime_error("Wrong Agent constructor");
     }
+
+    /* 2-D mode / LINEAR constructor: */
+    m_motion.debug();
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getPosition());
     m_activities->setAgentId(m_id);
+    m_activities->setEnvironment(m_environment);
+    m_activities->setInstrumentAperture(m_payload.getAperture());
     m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
+    m_link->setConnectedCallback([this](std::string aid) { return connected(aid); });
     initializeResources();
 }
 
@@ -49,13 +55,20 @@ Agent::Agent(std::string id)
 {
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
-        Log::err << "The world is modelled in 2-d (i.e. `motion_model` is not set to AgentMotionType::ORBITAL). Use a different constructor.\n";
+        Log::err << "The world is modelled in 2-d (i.e. `motion_model` is not set to AgentMotionType::ORBITAL). Please use a different constructor.\n";
         throw std::runtime_error("Wrong Agent constructor");
     }
+
+    /* 3-D mode / ORBITAL constructor: */
+    m_motion.debug();
+    m_payload.setAperture(Random::getUf(Config::agent_aperture_min, Config::agent_aperture_max), m_motion.getMaxAltitude());
     m_payload.setDimensions(m_environment->getEnvModelInfo());
     m_payload.setPosition(m_motion.getPosition());
     m_activities->setAgentId(m_id);
+    m_activities->setEnvironment(m_environment);
+    m_activities->setInstrumentAperture(m_payload.getAperture());
     m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
+    m_link->setConnectedCallback([this](std::string aid) { return connected(aid); });
     initializeResources();
 }
 
@@ -112,10 +125,13 @@ void Agent::plan(void)
             break;
         }
     }
-    if(m_activities->pending(m_id) == 0 && m_current_activity == nullptr && resources_ok) {
+    if(m_activities->pending() == 0 && m_current_activity == nullptr && resources_ok) {
+        /* Ensures that old activities are removed from the agent's knowledge base: */
+        m_activities->purgeOld();
+
         /* Create a temporal activity (won't be added to the Activities Handler): */
         double t_end = tv_now + Config::agent_planning_window * Config::time_step;
-        auto tmp_act = createActivity(tv_now, t_end, m_payload.getAperture());
+        auto tmp_act = createActivity(tv_now, t_end);
 
         /* Compute and display payoff for the temporal activity object: */
         m_environment->computePayoff(tmp_act, true);
@@ -132,7 +148,6 @@ void Agent::plan(void)
         }
         auto new_act = createActivity(debug_tstart, debug_tend, m_payload.getAperture());
         m_activities->add(new_act);
-        m_environment->addActivity(new_act);
         return;
         /* ====================================================================================== */
         #endif
@@ -142,7 +157,7 @@ void Agent::plan(void)
         std::vector<std::shared_ptr<Activity> > acts;
         for(auto& ag : act_gens) {
             if(ag.t0 < ag.t1) {
-                acts.push_back(createActivity(ag.t0, ag.t1, m_payload.getAperture()));
+                acts.push_back(createActivity(ag.t0, ag.t1));
             } else {
                 Log::warn << "[" << m_id << "] Was trying to create an activity where tstart >= tend (1). Skipping.\n";
             }
@@ -181,9 +196,8 @@ void Agent::plan(void)
         /* Store the result: */
         for(auto& setimes : result) {
             if(setimes.first < setimes.second) {
-                auto new_act = createActivity(setimes.first, setimes.second, m_payload.getAperture());
+                auto new_act = createActivity(setimes.first, setimes.second);
                 m_activities->add(new_act);
-                m_environment->addActivity(new_act);
             } else {
                 Log::warn << "[" << m_id << "] Was trying to create an activity where tstart >= tend (2). Skipping.\n";
             }
@@ -193,22 +207,47 @@ void Agent::plan(void)
 
 bool Agent::encounter(std::string aid)
 {
-    if(m_current_activity == nullptr) {
-        /* Accept the connection always, with everyone: */
+    if((!m_activities->isCapturing() && !Config::link_allow_during_capture) || Config::link_allow_during_capture) {
+        /* Accept the connection (always, with everyone). */
         return true;
     } else {
         /* There's an activity executing, will ignore this connection. */
-        Log::dbg << "[" << m_id << "] Ignoring encounter with " << aid << " because a task is ongoing.\n";
+        Log::dbg << "[" << m_id << "] Ignoring encounter with " << aid << " because a task is ongoing and simultaneity is not allowed.\n";
         return false;
     }
+}
+
+void Agent::connected(std::string aid)
+{
+    /* Prepare the list of activities to send. */
+    m_activity_exchange_pool[aid] = m_activities->getActivitiesToExchange(aid);
 }
 
 void Agent::listen(void)
 {
     auto rcv = m_link->readRxQueue();
     if(rcv.size() > 0) {
-        Log::dbg << "[" << m_id << "] Received " << rcv.size() << " new activities.\n";
-
+        for(auto& act : rcv) {
+            std::vector<sf::Vector3f> traj_vec;
+            auto traj = act->getTrajectory();
+            for(auto& p : traj) {
+                traj_vec.push_back(p.second);
+            }
+            BasicInstrument tmp_imodel(act->getAperture(), -1.f);
+            tmp_imodel.setDimensions(m_environment->getEnvModelInfo());
+            auto active_cells = findActiveCells(traj.cbegin()->first, traj_vec, &tmp_imodel);
+            act->setActiveCells(active_cells);
+            m_activities->add(act);
+        }
+    }
+    for(auto& aep : m_activity_exchange_pool) {
+        if(aep.second.size() > 0) {
+            /* Push these to the link interface, for this agent: */
+            for(auto& a : aep.second) {
+                m_link->scheduleSend(std::static_pointer_cast<const Activity>(a), aep.first);
+            }
+            aep.second.clear();
+        }
     }
 }
 
@@ -219,6 +258,7 @@ void Agent::execute(void)
         /* There's an activity executing: */
         if(m_current_activity->getEndTime() <= VirtualTime::now()) {
             /* This activity has to end. */
+            m_current_activity->setActive(false);
             Log::dbg << "Agent " << m_id << " is ending activity " << m_current_activity->getId()
                 << ", T = [" << VirtualTime::toString(m_current_activity->getStartTime())
                 << ", " << VirtualTime::toString(m_current_activity->getEndTime()) << ").\n";
@@ -227,26 +267,27 @@ void Agent::execute(void)
                 r.second->removeRate(m_current_activity.get());
             }
             m_current_activity = nullptr;
-            if(m_link_energy_available) {
+            if(m_link_energy_available && !m_link->isEnabled() && !Config::link_allow_during_capture) {
+                /* Can be re-enabled now: */
                 m_link->enable();
             }
         }
     }
 
-    if(m_current_activity == nullptr) {
-        auto actptr = m_activities->getCurrentActivity();
-        if(actptr != nullptr) {
-            if(actptr->getStartTime() <= VirtualTime::now()) {
-                /* This activity has to start: */
-                m_link->disable();
-                m_current_activity = actptr;
-                m_current_activity->setConfirmed();
-                Log::dbg << "Agent " << m_id << " is starting activity " << m_current_activity->getId() << ".\n";
-                m_payload.enable();
-                for(auto& r : m_resources) {
-                    r.second->addRate(m_payload.getResourceRate(r.first), m_current_activity.get());
-                }
-            }
+    if(m_current_activity == nullptr && m_activities->isCapturing()) {
+        m_current_activity = m_activities->getCurrentActivity();
+        /* This activity has to start: */
+        Log::dbg << "Agent " << m_id << " is starting activity " << m_current_activity->getId() << ".\n";
+        m_current_activity->setActive();
+
+        if(!Config::link_allow_during_capture) {
+            /* Must disable link at this point. */
+            m_link->disable();
+        }
+
+        m_payload.enable();
+        for(auto& r : m_resources) {
+            r.second->addRate(m_payload.getResourceRate(r.first), m_current_activity.get());
         }
     }
 }
@@ -297,49 +338,48 @@ bool Agent::operator!=(const Agent& ra)
     return !(*this == ra);
 }
 
-std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float aperture)
+std::vector<ActivityCell> Agent::findActiveCells(
+    double t0,
+    const std::vector<sf::Vector3f>& ps,
+    const Instrument* instrument,
+    std::map<double, sf::Vector3f>* a_pos) const
 {
-    if(t0 >= t1 || t0 < VirtualTime::now()) {
-        Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: "
-            << std::fixed << std::setprecision(6) << t0 << ", " << t1 << std::defaultfloat << " ["
-            << (int)(t0 >= t1) << "|" << (int)(t0 < VirtualTime::now()) << "]\n";
-        throw std::runtime_error("Error creating activity (1)");
-    }
-    unsigned int n_steps = (t1 - t0) / Config::time_step;
-    unsigned int n_delay = (t0 - VirtualTime::now()) / Config::time_step;
-    std::vector<sf::Vector3f> ps = m_motion.propagate(n_delay + n_steps);
+    return findActiveCells(t0, ps.cbegin(), ps.cend(), instrument, a_pos);
+}
 
-    if(ps.size() != n_delay + n_steps) {
-        Log::err << "Agent " << m_id << " failed when creating activity, unexpected propagation points ("
-            << n_delay + n_steps << " req., " << ps.size() << " returned).\n";
-        throw std::runtime_error("Error creating activity (2)");
-    }
-
-    std::map<double, sf::Vector2f> a_pos;
-    std::vector<ActivityCell> a_cells;
-
+std::vector<ActivityCell> Agent::findActiveCells(
+    double t0,
+    const std::vector<sf::Vector3f>::const_iterator& ps0,
+    const std::vector<sf::Vector3f>::const_iterator& ps1,
+    const Instrument* instrument,
+    std::map<double, sf::Vector3f>* a_pos) const
+{
     struct default_lut_idx {
         int v = -1;
     };
+    std::vector<ActivityCell> a_cells;
     std::map<int, std::map<int, default_lut_idx> > a_cells_lut;
 
     /* Find active cells and their times: */
     double t = t0;
-    for(auto p = ps.begin() + n_delay; p != ps.begin() + n_delay + n_steps; p++) {
+    for(auto p = ps0; p != ps1; p++) {
         sf::Vector2f p2d = AgentMotion::getProjection2D(*p, t);
-        a_pos[t] = p2d;
+        if(a_pos != nullptr) {
+            a_pos->emplace(t, *p);
+        }
         std::vector<sf::Vector2i> cell_coords;
         if(Config::motion_model == AgentMotionType::ORBITAL) {
-            cell_coords = m_payload.getVisibleCells(
-                m_environment->getPositionLUT(),                /* Look-up table. */
-                m_payload.getSlantRangeAt(aperture / 2.f, *p),  /* Distance is the slant range. */
-                *p,                                             /* 3-d position in ECI frame. */
-                false,                                          /* `false` = model cells. */
-                t                                               /* CUrrent time in JD. */
+            float insap = instrument->getAperture() / 2.f;
+            cell_coords = instrument->getVisibleCells(
+                m_environment->getPositionLUT(),            /* Look-up table. */
+                instrument->getSlantRangeAt(insap, *p),     /* Distance is the slant range. */
+                *p,                                         /* 3-d position in ECI frame. */
+                false,                                      /* `false` = model cells. */
+                t                                           /* Current time in JD. */
             );
         } else {
             /* For 2-d motion models swath actually equals to the aperture. */
-            cell_coords = m_payload.getVisibleCells(aperture, p2d, false);
+            cell_coords = instrument->getVisibleCells(instrument->getAperture(), p2d, false);
         }
         for(auto& cit : cell_coords) {
             /* Check whether that cell was already in the list: */
@@ -356,6 +396,8 @@ std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float aper
                         a_cells[idx].t0s[i] = prev_t0s[i];
                         a_cells[idx].t1s[i] = prev_t1s[i];
                     }
+                    delete[] prev_t0s;
+                    delete[] prev_t1s;
                     a_cells[idx].nts = new_size;
                     a_cells[idx].t0s[a_cells[idx].nts - 1] = t;
                     a_cells[idx].t1s[a_cells[idx].nts - 1] = t;
@@ -381,6 +423,31 @@ std::shared_ptr<Activity> Agent::createActivity(double t0, double t1, float aper
         }
         t += Config::time_step;
     }
+    return a_cells;
+}
+
+std::shared_ptr<Activity> Agent::createActivity(double t0, double t1)
+{
+    if(t0 >= t1 || t0 < VirtualTime::now()) {
+        Log::err << "Agent " << m_id << " failed when creating activity, start and end times are wrong: "
+            << std::fixed << std::setprecision(6) << t0 << ", " << t1 << std::defaultfloat << " ["
+            << (int)(t0 >= t1) << "|" << (int)(t0 < VirtualTime::now()) << "]\n";
+        throw std::runtime_error("Error creating activity (1)");
+    }
+    unsigned int n_steps = std::ceil((t1 - t0) / Config::time_step);
+    unsigned int n_delay = (t0 - VirtualTime::now()) / Config::time_step;
+    std::vector<sf::Vector3f> ps = m_motion.propagate(n_delay + n_steps);
+
+    if(ps.size() != n_delay + n_steps) {
+        Log::err << "Agent " << m_id << " failed when creating activity, unexpected propagation points ("
+            << n_delay + n_steps << " req., " << ps.size() << " returned).\n";
+        throw std::runtime_error("Error creating activity (2)");
+    }
+
+    std::map<double, sf::Vector3f> a_pos;
+    std::vector<sf::Vector3f>::const_iterator it0 = ps.cbegin() + n_delay;
+    std::vector<sf::Vector3f>::const_iterator it1 = ps.cbegin() + n_delay + n_steps;
+    std::vector<ActivityCell> a_cells = findActiveCells(t0, it0, it1, &m_payload, &a_pos);
     return m_activities->createOwnedActivity(a_pos, a_cells);
 }
 

@@ -29,7 +29,7 @@ class ActivityHandlerView : public sf::Drawable
 public:
     ActivityHandlerView(std::string aid = "unknown");
     void setOwnActivityList(std::vector<std::shared_ptr<Activity> >* alist_ptr) { m_act_own_ptr = alist_ptr; }
-    void setOthersActivityList(std::map<std::string, std::vector<std::shared_ptr<Activity> > > const * alist_ptr) { m_act_others_ptr = alist_ptr; }
+    void setOthersActivityList(std::map<std::string, std::map<unsigned int, std::shared_ptr<Activity> > > const * alist_ptr) { m_act_others_ptr = alist_ptr; }
     void display(ActivityDisplayType adt, std::vector<std::pair<std::string, unsigned int> > filter = { });
     void update(void);
     void setAgentId(std::string aid) { m_agent_id = aid; }
@@ -42,7 +42,7 @@ private:
 
     std::vector<std::shared_ptr<SegmentView> > m_segments;
     std::vector<std::shared_ptr<Activity> > const * m_act_own_ptr;
-    std::map<std::string, std::vector<std::shared_ptr<Activity> > > const * m_act_others_ptr;
+    std::map<std::string, std::map<unsigned int, std::shared_ptr<Activity> > > const * m_act_others_ptr;
 
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 };

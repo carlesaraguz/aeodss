@@ -63,6 +63,8 @@ void Init::doInit(void)
 
     Config::root_path = getRootPath();
     Log::dbg << "Process root path: " << Config::root_path << "\n";
+    Config::data_path = createDataDir();
+    Log::dbg << "Results directory: " << Config::data_path << "\n";
 
     PayoffFunctions::bindPayoffFunctions();
 }
@@ -116,4 +118,24 @@ std::string Init::getRootPath(void)
         std::cerr << "Init error: unable to fork.\n";
     }
     return retval;
+}
+
+std::string Init::createDataDir(void)
+{
+    if(Config::root_path.length() <= 0) {
+        Log::err << "Unable to create data directory without a root path.\n";
+        throw std::runtime_error("Unable to create data directory without a root path");
+    }
+    /* Q&D version. To be improved if necessary in the future: */
+    std::time_t t = std::time(nullptr);
+    char str[100];
+    std::strftime(str, sizeof(str), "%Y_%m_%d_%H%M%S", std::localtime(&t));
+    std::string time_str(str);
+    std::string data_path = Config::root_path + "data/" + time_str + "/";
+    std::string cmd = "mkdir -p " + data_path;
+    if(std::system(cmd.c_str()) != 0) {
+        Log::err << "Unable to create data directory: " << data_path << ". Check permissions.\n";
+        return "";
+    }
+    return data_path;
 }

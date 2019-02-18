@@ -1,6 +1,6 @@
 version: 1
 system:
-    n_agents: 10
+    n_agents: 5
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -8,7 +8,7 @@ system:
         hour: 0             # Time step hours in julian_days mode.
         days: 0             # Time step days in julian_days mode.
         start_epoch: 2451545.0  # Start epoch in julian_days mode.
-        duration: 0.1       # Duration (in days, seconds or units of time depending upon mode).
+        duration: 2         # Duration (in days, seconds or units of time depending upon mode).
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -47,8 +47,8 @@ agent:
         type: orbital           # orbital, linear_bounce, linear_infinite or sinusoidal.
         # ---- Orbital (3D) motion:
         altitude: 500           # Orbital height in kilometers [min, max] or single value.
-        max_ecc: 0.02           # Max. eccentricity.
-        inc: [70, 99]           # Inclination in degrees, [min, max] or single value.
+        max_ecc: 0.00           # Max. eccentricity.
+        inc: [30, 99]           # Inclination in degrees, [min, max] or single value.
         argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1000             # Amount of information to transmit.

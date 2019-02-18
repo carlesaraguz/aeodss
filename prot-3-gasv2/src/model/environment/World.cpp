@@ -18,25 +18,21 @@ unsigned int World::m_height = Config::world_height;
 std::vector<std::vector<sf::Vector3f> > World::m_world_positions;
 
 World::World(void)
-    : m_self_view(m_width, m_height, 1.f, 1.f, Config::color_gradient_rainbow.getColorAt(0.f))
+    : ReportGenerator("world_metrics.csv")
+    , m_self_view(m_width, m_height, 1.f, 1.f, Config::color_gradient_rainbow.getColorAt(0.f))
 {
-    std::time_t t = std::time(nullptr);
-    char str[100];
-    std::strftime(str, sizeof(str), "%Y_%m_%d_%H%M%S", std::localtime(&t));
-    std::string time_str(str);
-    m_report_file.open(Config::root_path + "data/" + time_str + ".csv");
-    m_report_file << "Time,"
-        << "Mean_best_coverage,"
-        << "Mean_actual_coverage,"
-        << "Mean_best_revisit_time,"
-        << "Max_best_revisit_time,"
-        << "Min_best_revisit_time,"
-        << "Mean_actual_revisit_time,"
-        << "Max_actual_revisit_time,"
-        << "Min_actual_revisit_time,"
-        << "Mean_overlapping,"
-        << "Worst_overlapping,"
-        << "Max_overlapping\n";
+    addReportColumn("Mean_best_coverage");          /* 0 */
+    addReportColumn("Mean_actual_coverage");        /* 1 */
+    addReportColumn("Mean_best_revisit_time");      /* 2 */
+    addReportColumn("Max_best_revisit_time");       /* 3 */
+    addReportColumn("Min_best_revisit_time");       /* 4 */
+    addReportColumn("Mean_actual_revisit_time");    /* 5 */
+    addReportColumn("Max_actual_revisit_time");     /* 6 */
+    addReportColumn("Min_actual_revisit_time");     /* 7 */
+    addReportColumn("Mean_overlapping");            /* 8 */
+    addReportColumn("Worst_overlapping");           /* 9 */
+    addReportColumn("Max_overlapping");             /* 10 */
+    enableReport();
 
     m_cells.reserve(m_width);
     for(unsigned int i = 0; i < m_width; i++) {
@@ -74,35 +70,10 @@ World::World(void)
     }
 }
 
-World::~World(void)
-{
-    m_report_file.close();
-}
-
-void World::report(void)
-{
-    m_report_file << VirtualTime::now() << ","
-        << m_mean_best_coverage << ","
-        << m_mean_actual_coverage << ","
-        << m_mean_best_revisit_time << ","
-        << m_max_best_revisit_time << ","
-        << m_min_best_revisit_time << ","
-        << m_mean_actual_revisit_time << ","
-        << m_max_actual_revisit_time << ","
-        << m_min_actual_revisit_time << ","
-        << m_mean_overlapping << ","
-        << m_worst_overlapping << ","
-        << m_max_overlapping << "\n";
-    m_report_file << std::flush;
-}
-
 void World::display(Layer l)
 {
-    float norm_val, cell_val;
-    float mean_val = 0.f;
-    float max_val  = 0.f;
-    float min_val  = 1.f;
-    // #pragma omp parallel for default(shared) reduction(+:mean_val) reduction(max:max_val) reduction(min:min_val)
+    float cell_val, norm_val;
+    #pragma omp parallel for
     for(unsigned int i = 0; i < m_width; i++) {
         for(unsigned int j = 0; j < m_height; j++) {
             cell_val = m_cells[i][j][(int)l].value;
@@ -112,37 +83,58 @@ void World::display(Layer l)
                 norm_val = cell_val;
             }
             m_self_view.setValue(i, j, norm_val);
-            mean_val += norm_val;
-            max_val = (max_val > norm_val ? max_val : norm_val);
-            min_val = (min_val < norm_val ? min_val : norm_val);
         }
     }
-    mean_val /= (float)(m_width * m_height);
+}
 
-    switch(l) {
-        case Layer::COVERAGE_BEST:
-            m_mean_best_coverage = mean_val;
-            break;
-        case Layer::COVERAGE_ACTUAL:
-            m_mean_actual_coverage = mean_val;
-            break;
-        case Layer::REVISIT_TIME_BEST:
-            m_mean_best_revisit_time = mean_val;
-            m_max_best_revisit_time  = max_val;
-            m_min_best_revisit_time  = min_val;
-            break;
-        case Layer::REVISIT_TIME_ACTUAL:
-            m_mean_actual_revisit_time = mean_val;
-            m_max_actual_revisit_time  = max_val;
-            m_min_actual_revisit_time  = min_val;
-            break;
-        case Layer::OVERLAPPING_WORST:
-            m_worst_overlapping  = max_val;
-            break;
-        case Layer::OVERLAPPING_ACTUAL:
-            m_mean_overlapping = mean_val;
-            m_max_overlapping  = max_val;
-            break;
+void World::computeMetrics(void)
+{
+    #pragma omp parallel for
+    for(unsigned int l = 0; l < n_layers; l++) {
+        float norm_val, cell_val;
+        float mean_val = 0.f;
+        float max_val  = 0.f;
+        float min_val  = 1.f;
+        for(unsigned int i = 0; i < m_width; i++) {
+            for(unsigned int j = 0; j < m_height; j++) {
+                cell_val = m_cells[i][j][l].value;
+                if(static_cast<Layer>(l) == Layer::REVISIT_TIME_BEST || static_cast<Layer>(l) == Layer::REVISIT_TIME_ACTUAL) {
+                    norm_val = 1.f - (cell_val / Config::max_revisit_time);
+                } else {
+                    norm_val = cell_val;
+                }
+                mean_val += norm_val;
+                max_val = (max_val > norm_val ? max_val : norm_val);
+                min_val = (min_val < norm_val ? min_val : norm_val);
+            }
+        }
+        mean_val /= (float)(m_width * m_height);
+
+        switch(static_cast<Layer>(l)) {
+            case Layer::COVERAGE_BEST:
+                setReportColumnValue(0, mean_val);  /* Mean_best_coverage. */
+                break;
+            case Layer::COVERAGE_ACTUAL:
+                setReportColumnValue(1, mean_val);  /* Mean_actual_coverage. */
+                break;
+            case Layer::REVISIT_TIME_BEST:
+                setReportColumnValue(2, mean_val);  /* Mean_best_revisit_time. */
+                setReportColumnValue(3, max_val);   /* Max_best_revisit_time. */
+                setReportColumnValue(4, min_val);   /* Min_best_revisit_time. */
+                break;
+            case Layer::REVISIT_TIME_ACTUAL:
+                setReportColumnValue(5, mean_val);  /* Mean_actual_revisit_time. */
+                setReportColumnValue(6, max_val);   /* Max_actual_revisit_time. */
+                setReportColumnValue(7, min_val);   /* Min_actual_revisit_time. */
+                break;
+            case Layer::OVERLAPPING_WORST:
+                setReportColumnValue(9, max_val);   /* Worst_overlapping. */
+                break;
+            case Layer::OVERLAPPING_ACTUAL:
+                setReportColumnValue(8, mean_val);  /* Mean_overlapping. */
+                setReportColumnValue(10, max_val);  /* Max_overlapping. */
+                break;
+        }
     }
 }
 
@@ -163,9 +155,9 @@ void World::step(void)
     #pragma omp parallel for
     for(unsigned int xx = 0; xx < m_width; xx++) {
         for(unsigned int yy = 0; yy < m_height; yy++) {
-            updateAllLayers(xx, yy, false);
             m_cells[xx][yy][(int)Layer::OVERLAPPING_WORST].value = 0.f;
             m_cells[xx][yy][(int)Layer::OVERLAPPING_ACTUAL].value = 0.f;
+            updateAllLayers(xx, yy, false);
         }
     }
     for(auto& a : m_agents) {

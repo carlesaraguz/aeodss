@@ -27,6 +27,8 @@ public:
     void setOwnership(bool mine);
     void setActive(bool active);
     void setDone(bool done);
+    bool isActive(void) const { return m_active; }
+    bool isOwned(void) const { return m_owned; }
 
 private:
     float m_swath;

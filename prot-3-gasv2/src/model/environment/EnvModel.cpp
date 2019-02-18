@@ -113,17 +113,26 @@ void EnvModel::addActivity(std::shared_ptr<Activity> act)
     }
 }
 
-bool EnvModel::removeActivity(std::shared_ptr<Activity> act)
+void EnvModel::removeActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
-    bool retval = false;
     #pragma omp parallel for
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
-        retval |= m_cells[c.x][c.y].removeCellActivity(act);
+        m_cells[c.x][c.y].removeCellActivity(act);
     }
-    return retval;
 }
+
+void EnvModel::updateActivity(std::shared_ptr<Activity> act)
+{
+    auto cells = act->getActiveCells();
+    #pragma omp parallel for
+    for(std::size_t i = 0; i < cells.size(); i++) {
+        auto& c = cells[i];
+        m_cells[c.x][c.y].updateCellActivity(act);
+    }
+}
+
 
 void EnvModel::cleanActivities(double t)
 {

@@ -87,6 +87,15 @@ public:
     void setEncounterCallback(std::function<bool(std::string)> f) { m_encounter_callback = f; }
 
     /*******************************************************************************************//**
+     *  Installs a callback function that will be invoked every time the agent connects to a peer.
+     *  The callback function accepts a single string argument with the Agent ID of the connected
+     *  agent. The callbak will only be called if the link is enabled and the encounter has been
+     *  previously accepted with the encounter callback.
+     *  @param  f   Function to be called once the agents are connected.
+     **********************************************************************************************/
+    void setConnectedCallback(std::function<void(std::string)> f) { m_connected_callback = f; }
+
+    /*******************************************************************************************//**
      *  Updates links with other agents. Tries to connect to agents in close vicinity and
      *  disconnects from those that are further from their communications range. Connections are
      *  only established if the link is enabled and if the encounter callback returns true. Upon
@@ -121,7 +130,7 @@ public:
      *  Dump the Rx queue, effectively clearing any previously finished transfer. Transfers that are
      *  not completed are not dumped.
      **********************************************************************************************/
-    std::vector<Activity> readRxQueue(void);
+    std::vector<std::shared_ptr<Activity> > readRxQueue(void);
 
     /*******************************************************************************************//**
      *  Retrieve and clear the accumulated energy consumption for this link. Once read, the
@@ -139,7 +148,7 @@ public:
      *                      argument identifies the transfer.
      *  @return An ID of this transfer.
      **********************************************************************************************/
-    int scheduleSend(Activity a, std::string aid,
+    int scheduleSend(std::shared_ptr<const Activity> a, std::string aid,
         std::function<void(int)> on_sent = [](int) { },
         std::function<void(int)> on_failure = [](int) { });
 
@@ -169,7 +178,8 @@ private:
         std::shared_ptr<Activity> msg;  /**< The message to send. */
         double t_start;                 /**< Start time of the transfer. */
         double t_end;                   /**< Potential end time of the transfer (unless cancelled). */
-        bool finished;                  /**< Completion frag (true = finished). */
+        bool finished;                  /**< Completion flag (true = has completed). */
+        bool started;                   /**< Start flag (true = has started). */
         unsigned int id;                /**< Transfer ID. */
 
         bool operator==(const Transfer& other) {
@@ -185,6 +195,7 @@ private:
     int m_tx_count;                     /**< Internal counter of transfers (used to generated transfer ID's). */
     Agent* m_agent;                     /**< Pointer to the owning agent object. */
     std::function<bool(std::string)> m_encounter_callback;          /**< Invoked when one agent is in range with another. */
+    std::function<void(std::string)> m_connected_callback;          /**< Invoked when one agent is connected to another. */
     std::map<std::string, std::shared_ptr<Agent> > m_other_agents;  /**< Stays constant throughout execution. */
     std::map<std::string, bool> m_connected;                        /**< Connection look up table. */
     std::map<std::string, float> m_link_ranges;                     /**< Constantly updated and changed. */

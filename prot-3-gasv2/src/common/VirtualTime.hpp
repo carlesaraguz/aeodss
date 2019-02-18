@@ -13,6 +13,7 @@
 
 #include "prot.hpp"
 #include "Config.hpp"
+#include "common_enum_types.hpp"
 
 class VirtualTime
 {
@@ -20,8 +21,10 @@ public:
     static void step(void);
     static std::string toString(double t = -1.0, bool is_absolute_time = true);
     static double now(void) { return m_vtime; }
+    static bool finished(void);
     static void doInit(double t);
     static bool isInit(void) { return m_initialized; }
+    static double toVirtual(double t, TimeValueType type);
 
 private:
     static bool m_initialized;

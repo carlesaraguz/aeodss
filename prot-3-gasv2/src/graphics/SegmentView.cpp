@@ -87,27 +87,23 @@ void SegmentView::decorate(void)
     sf::Color c;
 
     /* Color: */
-    if(m_owned) {
+    if(m_owned && m_active) {
+        c = sf::Color(94, 238, 255);    /* Bright blue. */
+    } else if(m_owned && !m_active) {
         c = sf::Color::White;
     } else {
-        c = Config::color_orange;
+        c = sf::Color(127, 127, 127);   /* Gray. */
     }
 
-    /* Alpha: */
-    if(m_active) {
-        c.a = 255 * 1.f;
-    } else if(m_done) {
-        c.a = 255 * 0.25f;
-    } else {
-        c.a = 255 * 0.5f;
+    if(m_circle_start.getFillColor() != c) {
+        /* Has to change colours: */
+        for(auto& l : m_lines) {
+            l.setColor(c);
+        }
+        m_circle_start.setFillColor(c);
+        m_circle_end.setFillColor(c);
+        m_txt.setFillColor(c);
     }
-
-    for(auto& l : m_lines) {
-        l.setColor(c);
-    }
-    m_circle_start.setFillColor(c);
-    m_circle_end.setFillColor(c);
-    m_txt.setFillColor(c);
 }
 
 void SegmentView::setOwnership(bool mine)
@@ -124,14 +120,10 @@ void SegmentView::setActive(bool active)
         for(auto& l : m_lines) {
             l.setThickness(3.f);
         }
-        m_circle_start.setRadius(15.f);
-        m_circle_end.setRadius(15.f);
     } else {
         for(auto& l : m_lines) {
             l.setThickness(2.f);
         }
-        m_circle_start.setRadius(10.f);
-        m_circle_end.setRadius(10.f);
     }
     decorate();
 }

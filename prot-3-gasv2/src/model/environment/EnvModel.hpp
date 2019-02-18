@@ -92,7 +92,12 @@ public:
      *  activity had not been previously added or had been completely cleaned (automatically with
      *  EnvModel::cleanActivities).
      **********************************************************************************************/
-    bool removeActivity(std::shared_ptr<Activity> act);
+    void removeActivity(std::shared_ptr<Activity> act);
+
+    /*******************************************************************************************//**
+     *  Updates an activity that had been previously added.
+     **********************************************************************************************/
+    void updateActivity(std::shared_ptr<Activity> act);
 
     /*******************************************************************************************//**
      *  Calls the clean function for each cell of this environment. This function automatically

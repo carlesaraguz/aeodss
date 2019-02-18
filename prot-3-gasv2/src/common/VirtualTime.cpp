@@ -20,6 +20,11 @@ void VirtualTime::step(void)
     m_vtime += Config::time_step;
 }
 
+bool VirtualTime::finished(void)
+{
+    return m_vtime >= Config::start_epoch + Config::duration;
+}
+
 void VirtualTime::doInit(double t)
 {
     m_vtime = t;
@@ -58,4 +63,22 @@ std::string VirtualTime::toString(double t, bool is_absolute_time)
     }
     retval = ss.str();
     return retval;
+}
+
+double VirtualTime::toVirtual(double t, TimeValueType type)
+{
+    if(type == Config::time_type ||
+        Config::time_type == TimeValueType::ARBITRARY ||
+        type == TimeValueType::ARBITRARY
+    ) {
+        /* Nothing to convert. */
+        return t;
+    } else {
+        if(type == TimeValueType::SECONDS && Config::time_type == TimeValueType::JULIAN_DAYS) {
+            return t / (24.0 * 3600.0);
+        } else if(type == TimeValueType::JULIAN_DAYS && Config::time_type == TimeValueType::SECONDS) {
+            return t * 24.0 * 3600.0;
+        }
+    }
+    throw std::runtime_error("Error converting to virtual time");
 }

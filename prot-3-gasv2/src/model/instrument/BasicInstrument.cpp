@@ -14,19 +14,27 @@
 CREATE_LOGGER(BasicInstrument)
 
 BasicInstrument::BasicInstrument(void)
-    : BasicInstrument(Random::getUf(Config::agent_aperture_min, Config::agent_aperture_max))
+    : BasicInstrument(Random::getUf(Config::agent_aperture_min, Config::agent_aperture_max), -1.f)
 { }
 
-BasicInstrument::BasicInstrument(float aperture)
-    : m_aperture(std::fmod(aperture, 180.f))
-    , m_swath(-1.f)
+BasicInstrument::BasicInstrument(float aperture, float max_h)
+    : m_swath(-1.f)
     , m_energy_rate(Random::getUf(Config::instrument_energy_min, Config::instrument_energy_max))
     , m_storage_rate(Random::getUf(Config::instrument_storage_min, Config::instrument_storage_max))
     , m_enabled(false)
 {
-    if(aperture > 180.f) {
-        Log::warn << "Instrument constructed with an aperture of " << aperture
-            << " (> 180º). Fixed and set at " << m_aperture << ".\n";
+    setAperture(aperture, max_h);
+}
+
+void BasicInstrument::setAperture(float ap, float max_h)
+{
+    float max_ap = findMaxAperture(max_h);
+    if(ap > max_ap && Config::motion_model == AgentMotionType::ORBITAL) {
+        m_aperture = max_ap;
+        Log::warn << "Instrument aperture is too wide: " << ap
+            << " (> " << max_ap << "º). Ignored and set to " << m_aperture << "º.\n";
+    } else {
+        m_aperture = ap;
     }
 }
 
@@ -40,6 +48,16 @@ void BasicInstrument::setPosition(sf::Vector3f p)
     } else if(m_swath == -1.f && Config::motion_model != AgentMotionType::ORBITAL) {
         m_swath = m_aperture;
         Log::dbg << "Instrument has a swath/aperture of " << m_swath << " (2-d motion model).\n";
+    }
+}
+
+float BasicInstrument::findMaxAperture(float h)
+{
+    if(h >= 0.f) {
+        float ap_half = MathUtils::radToDeg(std::asin(Config::earth_radius / h));
+        return ap_half * 2.f;
+    } else {
+        return Config::agent_aperture_max;
     }
 }
 
@@ -157,9 +175,12 @@ void BasicInstrument::applyToDistance3D(
     check_cell(ox, oy);
     if(!at_r) {
         check_cell(ox, oy, true);
-        auto o_eci = CoordinateSystemUtils::fromECEFToECI(lut.at(ox).at(oy), t);
-        Log::warn << "Position in ECI = (" << p.x << ", " << p.y << ", " << p.z << ").\n";
-        Log::warn << "Origin   in ECI = (" << o_eci.x << ", " << o_eci.y << ", " << o_eci.z << ").\n";
+        auto o_ecef = lut.at(ox).at(oy);
+        auto o_eci = CoordinateSystemUtils::fromECEFToECI(o_ecef, t);
+        Log::warn << "Position in ECI  = (" << p.x << ", " << p.y << ", " << p.z << ").\n";
+        Log::warn << "Origin   in ECI  = (" << o_eci.x << ", " << o_eci.y << ", " << o_eci.z << ").\n";
+        Log::warn << "Position in ECEF = (" << p_ecef.x << ", " << p_ecef.y << ", " << p_ecef.z << ").\n";
+        Log::warn << "Origin   in ECEF = (" << o_ecef.x << ", " << o_ecef.y << ", " << o_ecef.z << ").\n";
         Log::warn << "Error: " << MathUtils::norm(p - o_eci) << ".\n";
     }
 
@@ -230,15 +251,15 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
     };
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         if(world_cells) {
-            ox = std::round(position.x);
-            oy = std::round(position.y);
+            ox = std::floor(position.x);
+            oy = std::floor(position.y);
             if(ox > (int)Config::world_width || oy > (int)Config::world_height || ox < 0 || oy < 0) {
                 Log::err << "Can't get visible cells for a point that is outside the world space O(" << ox << ", " << oy << ")\n";
                 throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
             }
         } else {
-            ox = std::round(position.x / m_env_info.rw);
-            oy = std::round(position.y / m_env_info.rh);
+            ox = std::floor(position.x / m_env_info.rw);
+            oy = std::floor(position.y / m_env_info.rh);
             if(ox > (int)m_env_info.mw || oy > (int)m_env_info.mh || ox < 0 || oy < 0) {
                 Log::err << "Can't get visible cells for a point that is outside the model space O(" << ox << ", " << oy << ")\n";
                 throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
@@ -260,14 +281,37 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
             ox = proj.x;
             oy = proj.y;
         } else {
-            ox = (int)std::round(proj.x / m_env_info.rw) % m_env_info.mw;
-            oy = (int)std::round(proj.y / m_env_info.rh) % m_env_info.mh;
+            ox = (int)std::floor(proj.x / m_env_info.rw) % m_env_info.mw;
+            oy = (int)std::floor(proj.y / m_env_info.rh) % m_env_info.mh;
         }
         applyToDistance3D(ox, oy, position, t, dist, world_cells, f, lut);
     }
     if(cells.size() == 0) {
         Log::err << "Could not find visible (" << (world_cells ? "world" : "model") << ") cells at distance " << dist << ".\n";
         Log::err << "  Will provide one (i.e. the projected position) and try to continue.\n";
+
+        /* DEBUG details: */
+        auto proj = AgentMotion::getProjection2D(position, t);
+        Log::err << "Origin calculation details: \n";
+        Log::err << "  Position (ECI) = (" << position.x << ", " << position.y << ", " << position.z << "), has given the following:\n";
+        Log::err << "  Projection     = (" << proj.x << ", " << proj.y << ")\n";
+        sf::Vector3f ecef_coord = CoordinateSystemUtils::fromECIToECEF(position, t);
+        sf::Vector3f geo_coord  = CoordinateSystemUtils::fromECEFToGeographic(ecef_coord); /* lat(x), lng(y), h(z). */
+        Log::err << "This operation has been computed with two sequential transformations: \n";
+        Log::err << "  ECI -> ECEF    = (" << ecef_coord.x << ", " << ecef_coord.y << ", " << ecef_coord.z << "), and then:\n";
+        Log::err << "  ECEF -> Geo.   = {\n";
+        Log::err << "    lng(y): " << geo_coord.y << "   -->   X: "
+            << ( World::getWidth() * ( geo_coord.y) / 360.f) + (World::getWidth() / 2.f) << ".\n";
+        Log::err << "    lat(x): " << geo_coord.x << "   -->   Y: "
+            << (World::getHeight() * (-geo_coord.x) / 180.f) + (World::getHeight() / 2.f) << ".\n";
+        Log::err << "  }\n";
+        Log::err << "This geographic values in World coordinates are then converted to Model coordinates:\n";
+        Log::err << "  std::round(proj.x / m_env_info.rw) = std::round("
+            << proj.x << " / " << m_env_info.rw << ") = " << (int)std::round(proj.x / m_env_info.rw) << "\n";
+        Log::err << "  std::round(proj.x / m_env_info.rw) = std::round("
+            << proj.y << " / " << m_env_info.rh << ") = " << (int)std::round(proj.y / m_env_info.rh) << ". And then:\n";
+        Log::err << "    modulo(" << m_env_info.mw << ")  = " << ox << ".\n";
+        Log::err << "    modulo(" << m_env_info.mh << ")  = " << oy << ".\n";
         cells.push_back(sf::Vector2i(ox, oy));
     }
     return cells;
