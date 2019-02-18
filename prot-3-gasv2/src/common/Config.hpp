@@ -34,6 +34,7 @@ public:
     static unsigned int agent_size;             /**< Size of an agent view. */
     static unsigned int n_agents;               /**< Total number of agents. */
     static double start_epoch;                  /**< Start epoch (in J2000) */
+    static double duration;                     /**< Units of time. */
     static double time_step;                    /**< Units of time per step. */
     static float max_revisit_time;              /**< Units of time. */
     static float target_revisit_time;           /**< Units of time. */
@@ -54,6 +55,7 @@ public:
     static float agent_range_max;               /**< Maximum range for links. */
     static float agent_datarate_min;            /**< Minimum range for links. */
     static float agent_datarate_max;            /**< Maximum range for links. */
+    static bool link_allow_during_capture;      /**< Whether links and payloads can be enabled simultaneously. */
     static float agent_speed;                   /**< Distance per time unit. */
     static unsigned int agent_planning_window;  /**< Steps. 540 ~= 1 orbit. */
     static float activity_size;                 /**< Size of a single agent msg. */
@@ -119,6 +121,7 @@ public:
 
     /* Global values: */
     static std::string root_path;   /**< Root path of the project. */
+    static std::string data_path;   /**< Path were simulation results will be saved to.*/
 
     /*******************************************************************************************//**
      *  Loads command arguments from console and parses them.
@@ -193,11 +196,11 @@ bool Config::getConfigParam(std::string pname, const YAML::Node& n, T& val)
     std::stringstream ss;
     if(n[pname].IsDefined()) {
         val = n[pname].as<T>();
-        ss << "Config. parameter \'" << pname << "\' is set to: " << val << ".\n";
+        ss << " -- Config. parameter \'" << pname << "\' is set to: " << std::boolalpha << val << ".\n";
         logProxyDbg(ss.str());
         return true;
     } else {
-        ss << "Config. parameter \'" << pname << "\' is not defined. Default value: " << val << ".\n";
+        ss << " -- Config. parameter \'" << pname << "\' is not defined. Default value: " << std::boolalpha << val << ".\n";
         logProxyWarn(ss.str());
         return false;
     }
@@ -210,17 +213,17 @@ bool Config::getConfigParam(std::string pname, const YAML::Node& n, T& val_a, T&
     if(n[pname].IsDefined() && n[pname].IsSequence() && n[pname].size() >= 2) {
         val_a = n[pname][0].as<T>();
         val_b = n[pname][1].as<T>();
-        ss << "Config. parameter \'" << pname << "\' is set to: [" << val_a << ", " << val_b << "].\n";
+        ss << " -- Config. parameter \'" << pname << "\' is set to: [" << val_a << ", " << val_b << "].\n";
         logProxyDbg(ss.str());
         return true;
     } else if(n[pname].IsDefined() && n[pname].IsScalar()) {
         val_a = n[pname].as<T>();
         val_b = n[pname].as<T>();
-        ss << "Config. parameter \'" << pname << "\' is set to: [" << val_a << ", " << val_b << "].\n";
+        ss << " -- Config. parameter \'" << pname << "\' is set to: [" << val_a << ", " << val_b << "].\n";
         logProxyDbg(ss.str());
         return true;
     } else {
-        ss << "Config. parameter \'" << pname << "\' is not defined. Default values: [" << val_a << ", " << val_b << "].\n";
+        ss << " -- Config. parameter \'" << pname << "\' is not defined. Default values: [" << val_a << ", " << val_b << "].\n";
         logProxyWarn(ss.str());
         return false;
     }

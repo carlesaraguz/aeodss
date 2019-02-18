@@ -66,6 +66,7 @@ private:
     bool m_link_energy_available;
     std::shared_ptr<ActivityHandler> m_activities;
     std::shared_ptr<Activity> m_current_activity;
+    std::map<std::string, std::vector<std::shared_ptr<Activity> > > m_activity_exchange_pool;
 
     /* State and resources: */
     std::shared_ptr<EnvModel> m_environment;
@@ -76,7 +77,13 @@ private:
     std::string m_id;
     bool m_display_resources;
 
-    std::shared_ptr<Activity> createActivity(double t0, double t1, float aperture);
+    std::vector<ActivityCell> findActiveCells(double t0,
+        const std::vector<sf::Vector3f>& ps,
+        const Instrument* instrument, std::map<double, sf::Vector3f>* a_pos = nullptr) const;
+    std::vector<ActivityCell> findActiveCells(double t0,
+        const std::vector<sf::Vector3f>::const_iterator& ps0, const std::vector<sf::Vector3f>::const_iterator& ps1,
+        const Instrument* instrument, std::map<double, sf::Vector3f>* a_pos = nullptr) const;
+    std::shared_ptr<Activity> createActivity(double t0, double t1);
     void initializeResources(void);
 
     void plan(void);
@@ -84,6 +91,7 @@ private:
     void execute(void);
     void consume(void);
     bool encounter(std::string aid);
+    void connected(std::string aid);
 };
 
 #endif /* AGENT_HPP */

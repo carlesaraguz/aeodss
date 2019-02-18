@@ -15,10 +15,11 @@
 #include "TimeStep.hpp"
 #include "HasView.hpp"
 #include "GridView.hpp"
+#include "ReportGenerator.hpp"
 
 class Agent;
 
-class World : public TimeStep, public HasView
+class World : public TimeStep, public HasView, public ReportGenerator
 {
 public:
     enum class Layer : unsigned int {
@@ -31,14 +32,13 @@ public:
     };
 
     World(void);
-    ~World(void);
 
     void addAgent(std::shared_ptr<Agent> aptr);
     void addAgent(std::vector<std::shared_ptr<Agent> > aptrs);
     void step(void) override;
     void display(Layer l);
+    void computeMetrics(void);
     const GridView& getView(void) const override { return m_self_view; }
-    void report(void);
 
     static const std::vector<std::vector<sf::Vector3f> >& getPositionLUT(void) { return m_world_positions; }
     static unsigned int getWidth(void) { return m_width; }
@@ -61,20 +61,17 @@ private:
     void updateLayer(Layer l, int x, int y, bool active);
     void updateAllLayers(int x, int y, bool active);
 
-    /* DEBUG ==================================================================================== */
-    float m_mean_best_revisit_time;
-    float m_min_best_revisit_time;
-    float m_max_best_revisit_time;
-    float m_mean_actual_revisit_time;
-    float m_min_actual_revisit_time;
-    float m_max_actual_revisit_time;
-    float m_mean_overlapping;
-    float m_max_overlapping;
-    float m_worst_overlapping;
-    float m_mean_best_coverage;
-    float m_mean_actual_coverage;
-    std::ofstream m_report_file;
-    /* ========================================================================================== */
+    // float m_mean_best_revisit_time;
+    // float m_min_best_revisit_time;
+    // float m_max_best_revisit_time;
+    // float m_mean_actual_revisit_time;
+    // float m_min_actual_revisit_time;
+    // float m_max_actual_revisit_time;
+    // float m_mean_overlapping;
+    // float m_max_overlapping;
+    // float m_worst_overlapping;
+    // float m_mean_best_coverage;
+    // float m_mean_actual_coverage;
 };
 
 #endif /* WORLD_HPP */

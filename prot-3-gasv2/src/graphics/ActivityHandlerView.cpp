@@ -29,14 +29,14 @@ void ActivityHandlerView::update(void)
             break;
         case ActivityDisplayType::ALL:
             for(auto& act : *m_act_own_ptr) {
-                segv_ptr = act->getView();
+                segv_ptr = act->getView(m_agent_id);
                 if(segv_ptr != nullptr) {
                     segs.push_back(segv_ptr);
                 }
             }
             for(auto& actmap : *m_act_others_ptr) {
                 for(auto& act : actmap.second) {
-                    segv_ptr = act->getView();
+                    segv_ptr = act.second->getView(m_agent_id);
                     if(segv_ptr != nullptr) {
                         segs.push_back(segv_ptr);
                     }
@@ -45,7 +45,7 @@ void ActivityHandlerView::update(void)
             break;
         case ActivityDisplayType::OWNED:
             for(auto& act : *m_act_own_ptr) {
-                segv_ptr = act->getView();
+                segv_ptr = act->getView(m_agent_id);
                 if(segv_ptr != nullptr) {
                     segs.push_back(segv_ptr);
                 }
@@ -54,7 +54,7 @@ void ActivityHandlerView::update(void)
         case ActivityDisplayType::CONFIRMED:
             for(auto& act : *m_act_own_ptr) {
                 if(act->isConfimed()) {
-                    segv_ptr = act->getView();
+                    segv_ptr = act->getView(m_agent_id);
                     if(segv_ptr != nullptr) {
                         segs.push_back(segv_ptr);
                     }
@@ -62,8 +62,8 @@ void ActivityHandlerView::update(void)
             }
             for(auto& actmap : *m_act_others_ptr) {
                 for(auto& act : actmap.second) {
-                    if(act->isConfimed()) {
-                        segv_ptr = act->getView();
+                    if(act.second->isConfimed()) {
+                        segv_ptr = act.second->getView(m_agent_id);
                         if(segv_ptr != nullptr) {
                             segs.push_back(segv_ptr);
                         }
@@ -75,7 +75,7 @@ void ActivityHandlerView::update(void)
             for(auto& f_elem : m_filter) {
                 if(f_elem.first == m_agent_id) {
                     for(auto& act : *m_act_own_ptr) {
-                        segv_ptr = act->getView();
+                        segv_ptr = act->getView(m_agent_id);
                         if(segv_ptr != nullptr) {
                             segs.push_back(segv_ptr);
                         }
@@ -85,7 +85,7 @@ void ActivityHandlerView::update(void)
                     if(m_act_others_ptr->find(f_elem.first) != m_act_others_ptr->end()) {
                         /* if it is, add all its segments: */
                         for(auto& act : m_act_others_ptr->at(f_elem.first)) {
-                            segv_ptr = act->getView();
+                            segv_ptr = act.second->getView(m_agent_id);
                             if(segv_ptr != nullptr) {
                                 segs.push_back(segv_ptr);
                             }
@@ -97,7 +97,7 @@ void ActivityHandlerView::update(void)
         case ActivityDisplayType::SET:
             for(auto& act : *m_act_own_ptr) {
                 if(std::find(m_filter.begin(), m_filter.end(), std::make_pair(act->getAgentId(), act->getId())) != m_filter.end()) {
-                    segv_ptr = act->getView();
+                    segv_ptr = act->getView(m_agent_id);
                     if(segv_ptr != nullptr) {
                         segs.push_back(segv_ptr);
                     }
@@ -105,8 +105,8 @@ void ActivityHandlerView::update(void)
             }
             for(auto& actmap : *m_act_others_ptr) {
                 for(auto& act : actmap.second) {
-                    if(std::find(m_filter.begin(), m_filter.end(), std::make_pair(actmap.first, act->getId())) != m_filter.end()) {
-                        segv_ptr = act->getView();
+                    if(std::find(m_filter.begin(), m_filter.end(), std::make_pair(actmap.first, act.first)) != m_filter.end()) {
+                        segv_ptr = act.second->getView(m_agent_id);
                         if(segv_ptr != nullptr) {
                             segs.push_back(segv_ptr);
                         }

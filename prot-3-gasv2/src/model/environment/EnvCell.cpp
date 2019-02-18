@@ -57,11 +57,38 @@ bool EnvCell::removeCellActivity(std::shared_ptr<Activity> aptr)
         m_activities.erase(it);
         return true;
     } else {
-        /*  This activity might have been automatically cleaned from thic cell with EnvCell::clean.
+        /*  This activity might have been automatically cleaned from this cell with EnvCell::clean.
          **/
         return false;
     }
 }
+
+bool EnvCell::removeCellActivityById(std::string agent_id, unsigned int activity_id)
+{
+    for(auto it = m_activities.begin(); it != m_activities.end(); ) {
+        if(it->first->getAgentId() == agent_id && it->first->getId() == activity_id) {
+            if(it->second.nts > 0) {
+                delete[] it->second.t0s;
+                delete[] it->second.t1s;
+            }
+            it = m_activities.erase(it);
+            break;
+        } else {
+            it++;
+        }
+    }
+}
+
+bool EnvCell::updateCellActivity(std::shared_ptr<Activity> aptr)
+{
+    for(auto& a : m_activities) {
+        if(a.first->getAgentId() == aptr->getAgentId() && a.first->getId() == aptr->getId()) {
+            a.first->clone(aptr);
+            break;
+        }
+    }
+}
+
 
 float EnvCell::computeCellPayoff(unsigned int fidx, double* at0s, double* at1s, int nts)
 {
@@ -130,14 +157,8 @@ void EnvCell::clean(unsigned int fidx, double t)
 {
     auto activities = m_clean_func[fidx](t, getAllActivities());
     for(auto& ac : activities) {
-        auto it = m_activities.find(ac);
-        m_activities.erase(it);
+        removeCellActivity(ac);
     }
-    /*  TODO:
-     *  Recompose t0s and t1s values with the activities that have not been cleaned/removed.
-     **/
-    Log::err << "EnvCell::clean is partially implemented. Aborting.\n";
-    throw std::runtime_error("EnvCell::clean is partially implemented");
 }
 
 std::size_t EnvCell::pushPayoffFunc(const EnvCellPayoffFunc fp, const EnvCellCleanFunc fc)

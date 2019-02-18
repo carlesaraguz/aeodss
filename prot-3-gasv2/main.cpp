@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 0;
-    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height / 2), "Autonomous Nano-Satellite Swarm", sf::Style::Titlebar | sf::Style::Close, settings);
+    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Autonomous Nano-Satellite Swarm", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(60);
     /*  NOTE:
      *  Update mechanism should be changed to something user controlled and rely upon sf::Clock and
@@ -113,10 +113,15 @@ int main(int argc, char** argv)
         world_map4.setPosition(Config::win_width / 2.f, Config::win_height / 2.f);
     }
 
+    ReportSet::getInstance().outputAllHeaders();
+
     int draw_it = 0;
     while(window.isOpen()) {
-        /* Event loop: -------------------------------------------------------------------------- */
-        handleEvents(window);
+        /* Check completion: -------------------------------------------------------------------- */
+        if(VirtualTime::finished()) {
+            Log::dbg << "Simulation reached end time. Exiting now.\n";
+            break;
+        }
 
         /* Update loop: ------------------------------------------------------------------------- */
         std::vector<std::thread> thread_pool;
@@ -130,33 +135,32 @@ int main(int argc, char** argv)
         /* Pre-draw loop: ----------------------------------------------------------------------- */
         mv1.drawViews();
         mv2.drawViews();
-        /*
+
         if(draw_it % 5 == 0) {
             world->display(World::Layer::REVISIT_TIME_ACTUAL);
             mv3.drawViews();
             world->display(World::Layer::REVISIT_TIME_BEST);
             mv4.drawViews();
-            world->display(World::Layer::OVERLAPPING_ACTUAL);
-            world->display(World::Layer::OVERLAPPING_WORST);
-            world->display(World::Layer::COVERAGE_BEST);
-            world->display(World::Layer::COVERAGE_ACTUAL);
-            world->report();
+
+            world->computeMetrics();
+            ReportSet::getInstance().outputAll();
         }
-        */
 
         /* Draw loop: --------------------------------------------------------------------------- */
         window.clear();
-        // window.draw(mv_world);
         window.draw(mv1);
         window.draw(mv2);
-        // window.draw(mv3);
-        // window.draw(mv4);
-        // window.draw(world_map1);
+        window.draw(mv3);
+        window.draw(mv4);
+        window.draw(world_map1);
         window.draw(world_map2);
-        // window.draw(world_map3);
-        // window.draw(world_map4);
+        window.draw(world_map3);
+        window.draw(world_map4);
         window.display();
         draw_it++;
+
+        /* Event loop: -------------------------------------------------------------------------- */
+        handleEvents(window);
     }
 
     return 0;

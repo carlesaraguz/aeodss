@@ -347,8 +347,8 @@ sf::Vector2f AgentMotion::getProjection2D(sf::Vector3f p, double t)
     sf::Vector3f ecef_coord = CoordinateSystemUtils::fromECIToECEF(p, t);
     sf::Vector3f geo_coord  = CoordinateSystemUtils::fromECEFToGeographic(ecef_coord); /* lat(x), lng(y), h(z). */
     return sf::Vector2f(
-        (float)( Config::world_width * ( geo_coord.y) / 360.f) + (World::getWidth() / 2.f),
-        (float)(Config::world_height * (-geo_coord.x) / 180.f) + (World::getHeight() / 2.f)
+        (float)( World::getWidth() * ( geo_coord.y) / 360.f) + (World::getWidth() / 2.f),
+        (float)(World::getHeight() * (-geo_coord.x) / 180.f) + (World::getHeight() / 2.f)
     );
 }
 
@@ -375,10 +375,28 @@ sf::Vector2f AgentMotion::getDirection2D(void)
     return retvec;
 }
 
+double AgentMotion::getMaxAltitude(void) const
+{
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        return m_orb_params.sma * (1.0 + m_orb_params.ecc);
+    } else {
+        return 0.0;
+    }
+}
+
+double AgentMotion::getMinAltitude(void) const
+{
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        return m_orb_params.sma * (1.0 - m_orb_params.ecc);
+    } else {
+        return 0.0;
+    }
+}
+
 double AgentMotion::getRadiusLength(double true_an) const
 {
-    double num = m_orb_params.sma * (1 - m_orb_params.ecc * m_orb_params.ecc);
-    double den = 1 + m_orb_params.ecc * std::cos(true_an);
+    double num = m_orb_params.sma * (1.0 - m_orb_params.ecc * m_orb_params.ecc);
+    double den = 1.0 + m_orb_params.ecc * std::cos(true_an);
 
     return num / den;
 }
@@ -424,4 +442,38 @@ double AgentMotion::transfMeanToEccentric(double mean_anomaly) const
 double AgentMotion::transfMeanToTrue(double mean_anomaly) const
 {
     return transfTrueToEccentric(transfMeanToEccentric(mean_anomaly));
+}
+
+void AgentMotion::debug(void) const
+{
+    Log::dbg << "Agent motion details for " << m_agent->getId() << ":\n";
+    if(Config::motion_model == AgentMotionType::ORBITAL) {
+        Log::dbg << "  Orbital parameters:\n";
+        Log::dbg << "    Semi-major axis = " << m_orb_params.sma << " meters.\n";
+        Log::dbg << "    Apogee radius   = " << getMaxAltitude() << " meters = ";
+        Log::dbg << (getMaxAltitude() - Config::earth_radius) / 1e3 << " kilometers above the Earth's surface ";
+        Log::dbg << "(max. aperture is " << BasicInstrument::findMaxAperture(getMaxAltitude()) << "º).\n";
+        Log::dbg << "    Perigee radius  = " << getMinAltitude() << " meters = ";
+        Log::dbg << (getMinAltitude() - Config::earth_radius) / 1e3 << " kilometers above the Earth's surface.\n";
+        Log::dbg << "    Eccentricity    = " << m_orb_params.ecc << ".\n";
+        Log::dbg << "    Inclination     = " << m_orb_params.inc << " degrees.\n";
+        Log::dbg << "    Arg. of perigee = " << m_orb_params.argp << " degrees.\n";
+        Log::dbg << "    RAAN            = " << m_orb_params.raan << " degrees.\n";
+        Log::dbg << "    Mean motion     = " << m_orb_params.mean_motion << " radians per second.\n";
+        Log::dbg << "  Orbital state (current):\n";
+        Log::dbg << "    Prop. states = " << m_orbital_state.size() << ".\n";
+        if(m_orbital_state.size() > 0) {
+            Log::dbg << "    Mean anomaly = " << m_orbital_state.front().mean_anomaly << " radians.\n";
+            Log::dbg << "    Radius       = " << m_orbital_state.front().radius << " meters.\n";
+        }
+    } else {
+        Log::dbg << "  2D Motion state (current):\n";
+        Log::dbg << "    Prop. states = " << m_position.size() << ".\n";
+    }
+    if(m_position.size() > 0) {
+        auto p = m_position.front();
+        auto v = m_velocity.front();
+        Log::dbg << "    Position     = (" << p.x << ", " << p.y << ", " << p.z << ").\n";
+        Log::dbg << "    Velocity     = (" << v.x << ", " << v.y << ", " << v.z << ").\n";
+    }
 }
