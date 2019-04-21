@@ -12,33 +12,79 @@
 
 CREATE_LOGGER(ReportGenerator)
 
-ReportGenerator::ReportGenerator(std::string name, bool publish)
+ReportGenerator::ReportGenerator(bool publish)
     : m_row_count(0)
-    , m_report_filename(Config::data_path + name)
     , m_enabled(false)
+    , m_initialized(false)
 {
     if(publish) {
         ReportSet::getInstance().publish(this);
     }
 }
 
+ReportGenerator::ReportGenerator(std::string name, bool publish)
+    : ReportGenerator(publish)
+{
+    initReport(name);
+}
+
+ReportGenerator::ReportGenerator(std::string dirname, std::string name, bool publish)
+    : ReportGenerator(publish)
+{
+    initReport(dirname, name);
+}
+
 ReportGenerator::~ReportGenerator(void)
 {
-    if(m_report_file.is_open()) {
-        m_report_file.close();
+    if(m_initialized) {
+        if(m_report_file.is_open()) {
+            m_report_file.close();
+        }
+        Log::dbg << "Output data file generated: " << m_report_filename << "\n";
     }
-    Log::dbg << "Output data file generated: " << m_report_filename << "\n";
+}
+
+void ReportGenerator::initReport(std::string name)
+{
+    m_report_filename = Config::data_path + name;
+    m_initialized = true;
+}
+
+void ReportGenerator::initReport(std::string dirname, std::string name)
+{
+    /* Ensure directory is correctly spelled: */
+    if(dirname[dirname.length() - 1] != '/') {
+        Log::warn << "Adding a \'/\' at the end of data directory: " << dirname << "\n";
+        dirname += "/";
+    }
+    m_report_filename = Config::data_path + dirname + name;
+
+    /* Ensure that the directory exists, or create it: */
+    std::string cmd = "mkdir -p " + Config::data_path + dirname;
+    if(std::system(cmd.c_str()) != 0) {
+        Log::err << "Unable to create data directory: " << Config::data_path + dirname << ". Check permissions.\n";
+        std::exit(-1);
+    }
+    m_initialized = true;
 }
 
 void ReportGenerator::enableReport(void)
 {
-    if(!m_report_file.is_open()) {
-        m_report_file.open(m_report_filename, std::ios_base::out);
+    if(m_initialized) {
         if(!m_report_file.is_open()) {
-            Log::err << "Error creating file " << m_report_filename << "\n";
+            m_report_file.open(m_report_filename, std::ios_base::out);
+            if(!m_report_file.is_open()) {
+                Log::err << "Error creating file: " << m_report_filename << "\n";
+                std::exit(-1);
+            } else {
+                Log::dbg << "Data file successfully created: " << m_report_filename << "\n";
+            }
         }
+        m_enabled = true;
+    } else {
+        Log::err << "Unable to enable a report that has not been previously initialized. Aborting.\n";
+        std::exit(-1);
     }
-    m_enabled = true;
 }
 
 void ReportGenerator::disableReport(void)
@@ -59,7 +105,7 @@ unsigned int ReportGenerator::addReportColumn(std::string colname)
 
 void ReportGenerator::setReportColumnValue(unsigned int col_idx, std::string value)
 {
-    if(!m_enabled) {
+    if(!m_enabled || !m_initialized) {
         return;
     }
     try {
@@ -72,7 +118,7 @@ void ReportGenerator::setReportColumnValue(unsigned int col_idx, std::string val
 
 void ReportGenerator::setReportColumnValue(std::string col_name, std::string value)
 {
-    if(!m_enabled) {
+    if(!m_enabled || !m_initialized) {
         return;
     }
     auto it = std::find(m_column_names.begin(), m_column_names.end(), col_name);
@@ -98,30 +144,46 @@ void ReportGenerator::setReportColumnValue(std::string col_name, float value)
     setReportColumnValue(col_name, ss.str());
 }
 
+void ReportGenerator::setReportColumnValue(unsigned int col_idx, int value)
+{
+    std::stringstream ss;
+    ss << value;
+    setReportColumnValue(col_idx, ss.str());
+}
+
+void ReportGenerator::setReportColumnValue(std::string col_name, int value)
+{
+    std::stringstream ss;
+    ss << value;
+    setReportColumnValue(col_name, ss.str());
+}
+
 void ReportGenerator::outputReport(void)
 {
-    if(m_enabled && m_report_file.is_open()) {
-        m_report_file << std::fixed << std::setprecision(6) << VirtualTime::now() << ",";
-        for(auto c = m_column_values.begin(); c != m_column_values.end(); c++) {
-            m_report_file << *c;
-            if(std::next(c) != m_column_values.end()) {
-                m_report_file << ",";
-            } else {
-                m_report_file << std::endl;
+    if(m_initialized) {
+        if(m_enabled && m_report_file.is_open()) {
+            m_report_file << std::fixed << std::setprecision(6) << VirtualTime::now() << ",";
+            for(auto c = m_column_values.begin(); c != m_column_values.end(); c++) {
+                m_report_file << *c;
+                if(std::next(c) != m_column_values.end()) {
+                    m_report_file << ",";
+                } else {
+                    m_report_file << std::endl;
+                }
+                *c = ""; /* Clears this value. */
             }
-            *c = ""; /* Clears this value. */
-        }
-        m_report_file << std::flush;
-        if(++m_row_count >= 50) {
-            flush();
-            m_row_count = 0;
+            m_report_file << std::flush;
+            if(++m_row_count >= 50) {
+                flush();
+                m_row_count = 0;
+            }
         }
     }
 }
 
 void ReportGenerator::flush(void)
 {
-    if(!m_enabled) {
+    if(!m_enabled || !m_initialized) {
         return;
     }
     if(m_report_file.is_open()) {
@@ -132,16 +194,18 @@ void ReportGenerator::flush(void)
 
 void ReportGenerator::outputReportHeader(void)
 {
-    if(m_enabled && m_report_file.is_open()) {
-        m_report_file << "t,";
-        for(auto c = m_column_names.begin(); c != m_column_names.end(); c++) {
-            m_report_file << *c;
-            if(std::next(c) != m_column_names.end()) {
-                m_report_file << ",";
-            } else {
-                m_report_file << "\n";
+    if(m_initialized) {
+        if(m_enabled && m_report_file.is_open()) {
+            m_report_file << "t,";
+            for(auto c = m_column_names.begin(); c != m_column_names.end(); c++) {
+                m_report_file << *c;
+                if(std::next(c) != m_column_names.end()) {
+                    m_report_file << ",";
+                } else {
+                    m_report_file << "\n";
+                }
             }
+            m_report_file << std::flush;
         }
-        m_report_file << std::flush;
     }
 }

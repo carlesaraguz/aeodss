@@ -53,6 +53,7 @@ EnvModel::EnvModel(Agent* aptr, unsigned int mw, unsigned int mh)
         for(unsigned int j = 0; j < m_model_h; j++) {
             EnvCell c(i, j);
             c.pushPayoffFunc(PayoffFunctions::f_revisit_time_backwards);
+            c.pushPayoffFunc(PayoffFunctions::f_revisit_time_forwards);
             column.push_back(c);
             if(Config::motion_model == AgentMotionType::ORBITAL) {
                 lng =   (360.f * (i * m_ratio_w) / World::getWidth()) - 180.f;
@@ -92,11 +93,14 @@ void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_
     int nts;
 
     auto cells = tmp_act->getActiveCells();
-    #pragma omp parallel for
+    /*  #pragma omp parallel for
+     *  NOTE: I don't think it is a good idea to parallelise here, because a lot of accesses to
+     *  shared objects is done inside this loop (i.e. functions getCellTimes and computeCellPayoff).
+     **/
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
         nts = tmp_act->getCellTimes(c.x, c.y, &t0s, &t1s);
-        po = m_cells[c.x][c.y].computeCellPayoff(0, t0s, t1s, nts);
+        po = m_cells[c.x][c.y].computeCellPayoff(t0s, t1s, nts);
         if(display_in_view && m_payoff_view) {
             m_payoff_view->setValue(c.x, c.y, po);
         }
@@ -171,7 +175,7 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
             EnvCell& c = m_cells[it->x][it->y];
             bool remove_cell = true;
             for(auto p : c.getAllPayoffs()) {
-                if(p.second > Config::min_payoff) {
+                if(p.second > 0.f) {
                     remove_cell = false;
                     break;
                 }

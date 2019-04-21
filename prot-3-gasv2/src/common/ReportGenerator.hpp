@@ -17,7 +17,9 @@
 class ReportGenerator
 {
 public:
+    ReportGenerator(std::string dirname, std::string name, bool publish = true);
     ReportGenerator(std::string name, bool publish = true);
+    ReportGenerator(bool publish = true);
     ~ReportGenerator(void);
 
     unsigned int addReportColumn(std::string colname);
@@ -25,10 +27,17 @@ public:
     void setReportColumnValue(std::string col_name, std::string value);
     void setReportColumnValue(unsigned int col_idx, float value);
     void setReportColumnValue(std::string col_name, float value);
+    void setReportColumnValue(unsigned int col_idx, int value);
+    void setReportColumnValue(std::string col_name, int value);
     void outputReport(void);
     void outputReportHeader(void);
     void enableReport(void);
+    void enableReport(std::string name);
+    void enableReport(std::string dirname, std::string name);
     void disableReport(void);
+    bool isReportEnabled(void) const { return m_enabled; }
+    void initReport(std::string name);
+    void initReport(std::string dirname, std::string name);
 
 private:
     std::vector<std::string> m_column_names;
@@ -37,8 +46,10 @@ private:
     std::string m_report_filename;
     std::ofstream m_report_file;
     bool m_enabled;
+    bool m_initialized;
 
     void flush(void);
+
 };
 
 #endif /* REPORT_GENERATOR_HPP */

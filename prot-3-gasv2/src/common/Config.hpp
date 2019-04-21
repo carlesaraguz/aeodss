@@ -36,10 +36,14 @@ public:
     static double start_epoch;                  /**< Start epoch (in J2000) */
     static double duration;                     /**< Units of time. */
     static double time_step;                    /**< Units of time per step. */
-    static float max_revisit_time;              /**< Units of time. */
-    static float target_revisit_time;           /**< Units of time. */
-    static float min_payoff;                    /**< Unit-less (payoff RT < target) */
-    static float max_payoff;                    /**< Unit-less (payoff RT > max.) */
+
+    /* System goals and payoff model: */
+    static double goal_target;                  /**< Units of time. */
+    static double goal_min;                     /**< Units of time. */
+    static double goal_max;                     /**< Units of time. */
+    static PayoffModel payoff_model;            /**< Model used to compute payoff. */
+    static float payoff_mid;                    /**< Unit-less (payoff RT = target) */
+    static float payoff_steepness;              /**< Steepness of logistic curve. */
 
     /* Earth WGS84 parameters: */
     static const double earth_radius;           /**< Standard radius of the Earth (in meters). */
@@ -111,6 +115,7 @@ public:
     static unsigned int ga_generations;         /**< Max. absolute number of iterations. */
     static unsigned int ga_timeout;             /**< Max. number of iterations without improvement. */
     static float ga_min_improvement_rate;       /**< Min. fitness/iteration rate to complete. */
+    static Aggregate ga_payoff_aggregate;       /**< Aggregation method for activity payoff values. */
     static unsigned int ga_population_size;     /**< Number of individuals in the population. */
     static unsigned int ga_crossover_points;    /**< Points of chromosome crossover. */
     static unsigned int ga_tournament_k;        /**< Parameter K in tournament selection operator. */

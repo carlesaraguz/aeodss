@@ -14,12 +14,12 @@
 CREATE_LOGGER(ActivityHandler)
 
 ActivityHandler::ActivityHandler(Agent* aptr)
-    : m_agent(aptr)
+    : ReportGenerator(false)
+    , m_agent(aptr)
     , m_activity_count(0)
     , m_update_view(false)
     , m_current_activity_idx(-1)
     , m_aperture(0.f)
-    , m_env_model_ptr(nullptr)
 {
     m_self_view.setOwnActivityList(&m_activities_own);
     m_self_view.setOthersActivityList(&m_activities_others);
@@ -30,31 +30,85 @@ void ActivityHandler::setAgentId(std::string aid)
 {
     m_agent_id = aid;
     m_self_view.setAgentId(aid);
+    initReport("agents/" + aid + "/", "knowledgebase.csv");
+    addReportColumn("known_facts_own");     /* 0 */
+    addReportColumn("known_facts_others");  /* 1 */
+    addReportColumn("confirmed_own");       /* 2 */
+    addReportColumn("confirmed_others");    /* 3 */
+    addReportColumn("undecided_own");       /* 4 */
+    addReportColumn("undecided_others");    /* 5 */
+}
+
+void ActivityHandler::report(void)
+{
+    if(!isReportEnabled()) {
+        return;
+    }
+    int count_confirmed_own = 0;
+    int count_facts_own = 0;
+    int count_undecided_own = 0;
+    for(auto& ac : m_activities_own) {
+        if(ac->isFact()) {
+            count_facts_own++;
+            if(ac->isConfimed()) {
+                count_confirmed_own++;
+            }
+        } else {
+            count_undecided_own++;
+        }
+    }
+    int count_confirmed_others = 0;
+    int count_facts_others = 0;
+    int count_undecided_others = 0;
+    for(auto& acmap : m_activities_others) {
+        for(auto& ac : acmap.second) {
+            if(ac.second->isFact()) {
+                count_facts_others++;
+                if(ac.second->isConfimed()) {
+                    count_confirmed_others++;
+                }
+            } else {
+                count_undecided_others++;
+            }
+        }
+    }
+    setReportColumnValue(0, count_facts_own);
+    setReportColumnValue(1, count_facts_others);
+    setReportColumnValue(2, count_confirmed_own);
+    setReportColumnValue(3, count_confirmed_others);
+    setReportColumnValue(4, count_undecided_own);
+    setReportColumnValue(5, count_undecided_others);
 }
 
 void ActivityHandler::purge(void)
 {
-    double t_horizon = VirtualTime::now() - Config::max_revisit_time;
+    bool bflag = false;
+    double t_horizon = VirtualTime::now() - Config::goal_target;
     for(auto it = m_activities_own.begin(); it != m_activities_own.end(); ) {
         if((*it)->getEndTime() < t_horizon) {
             /* We shall remove it: */
             it = m_activities_own.erase(it);
             m_current_activity_idx -= 1;
+            bflag = true;
         } else {
             /* We're done, provided that activities are properly sorted. */
             break;
         }
     }
-
     for(auto& act_others : m_activities_others) {
-        for(auto act_it = act_others.begin(); act_it != act_others.end(); ) {
+        for(auto act_it = act_others.second.begin(); act_it != act_others.second.end(); ) {
             if(act_it->second->getEndTime() < t_horizon) {
                 /* We shall remove it: */
-                act_it = act_others.erase(act_it);
+                act_it = act_others.second.erase(act_it);
+                bflag = true;
             } else {
                 act_it++;
             }
         }
+    }
+    if(bflag) {
+        report();
+        bflag = false;
     }
 }
 
@@ -280,7 +334,7 @@ void ActivityHandler::displayInView(ActivityDisplayType adt, std::vector<std::pa
 std::vector<std::shared_ptr<Activity> > ActivityHandler::getActivitiesToExchange(std::string aid)
 {
     std::vector<std::shared_ptr<Activity> > retvec;
-    double time_th = VirtualTime::now() - Config::max_revisit_time;     /* Time threshold. */
+    double time_th = VirtualTime::now() - Config::goal_target;     /* Time threshold. */
 
     /* Start by including all owned activities that are relevant: */
     if(aid != m_agent_id) {

@@ -14,7 +14,7 @@
 
 CREATE_LOGGER(Config)
 
-#define CONF_VERSION  1
+#define CONF_VERSION  2
 
 /*  NOTE:
  *  Some of the following are variables might be ODR-used somewhere and, therefore, could need a
@@ -39,10 +39,14 @@ unsigned int    Config::n_agents = 1;
 double          Config::start_epoch = 2451545.0;
 double          Config::duration = 30.0;
 double          Config::time_step = 10.0 / 86400.0;
-float           Config::max_revisit_time = 0.7f;
-float           Config::target_revisit_time = 0.2f;
-float           Config::min_payoff = 1e-3f;
-float           Config::max_payoff = 1.f;
+
+/* System goals and payoff model: */
+double          Config::goal_target = 0.5;      /* 12 hours.   */
+double          Config::goal_min = 0.2;         /* 4.8 hours.  */
+double          Config::goal_max = 0.7;         /* 16.8 hours. */
+PayoffModel     Config::payoff_model = PayoffModel::SIGMOID;
+float           Config::payoff_mid = 0.5f;
+float           Config::payoff_steepness = 20.f;
 
 /* Earth WGS84 parameters: */
 const double    Config::earth_radius  = 6371000.0;
@@ -111,6 +115,7 @@ unsigned int    Config::max_tasks = 25;
 double          Config::max_task_duration = 7.0 * 60.0 / 86400.0;    /* 7 min. in JD */
 
 /* Genetic Algorithm configuration: */
+Aggregate       Config::ga_payoff_aggregate = Aggregate::SUM_VALUE;
 unsigned int    Config::ga_generations = 10000;
 unsigned int    Config::ga_timeout = 1000;
 float           Config::ga_min_improvement_rate = 0.01f;
@@ -135,7 +140,7 @@ void Config::loadCmdArgs(int argc, char** argv)
             opt_val = argv[cmd_idx + 1];
             try {
                 YAML::Node conf = YAML::LoadFile(root_path + "conf/" + opt_val);
-                Log::dbg << "Loading configuration from \'PROJECT_ROOT/" << ("conf/" + opt_val) << "\'.\n";
+                Log::dbg << "Loading configuration from \'" << root_path << ("conf/" + opt_val) << "\'.\n";
                 if(conf["version"].IsDefined()) {
                     unsigned int conf_ver = conf["version"].as<unsigned int>();
                     if(conf_ver < CONF_VERSION) {
@@ -163,18 +168,18 @@ void Config::loadCmdArgs(int argc, char** argv)
                                     float days = time_node["days"].as<float>();
                                     time_step  = days + (hour / 24.f) + (min / 1440.f) + (sec / 86400.f);
                                     time_type = TimeValueType::JULIAN_DAYS;
-                                    Log::dbg << "Config. parameter \'time_type\' is set to JULIAN_DAYS.\n";
+                                    Log::dbg << " -- Config. parameter \'time_type\' is set to JULIAN_DAYS.\n";
                                     getConfigParam("start_epoch", time_node, start_epoch);
-                                    Log::dbg << "Config. parameter \'time_step\' is set to " << time_step << " => "
+                                    Log::dbg << " -- Config. parameter \'time_step\' is set to " << time_step << " => "
                                         << days << " days, " << hour << " hours, " << min << " min, " << sec << " sec.\n";
                                 } else if(time_node["type"].as<std::string>() == "arbitrary") {
                                     time_type = TimeValueType::ARBITRARY;
-                                    Log::dbg << "Config. param \'time_type\' is set to ARBITRARY.\n";
+                                    Log::dbg << " -- Config. param \'time_type\' is set to ARBITRARY.\n";
                                     start_epoch = 0.0;
                                     getConfigParam("value", time_node, time_step);
                                 } else if(time_node["type"].as<std::string>() == "seconds") {
                                     time_type = TimeValueType::SECONDS;
-                                    Log::dbg << "Config. param \'time_type\' is set to SECONDS.\n";
+                                    Log::dbg << " -- Config. param \'time_type\' is set to SECONDS.\n";
                                     start_epoch = 0.0;
                                     getConfigParam("sec", time_node, time_step);
                                 } else {
@@ -299,6 +304,27 @@ void Config::loadCmdArgs(int argc, char** argv)
                             } else {
                                 throw std::runtime_error("GA Scheduler crossover operator options have not been provided");
                             }
+                            if(gasch_node["payoff_aggregation"].IsDefined()) {
+                                if(gasch_node["payoff_aggregation"].as<std::string>() == "min") {
+                                    ga_payoff_aggregate = Aggregate::MIN_VALUE;
+                                    Log::dbg << " -- Config. parameter \'payoff_aggregate\' is set to: MIN.\n";
+                                } else if(gasch_node["payoff_aggregation"].as<std::string>() == "max") {
+                                    ga_payoff_aggregate = Aggregate::MAX_VALUE;
+                                    Log::dbg << " -- Config. parameter \'payoff_aggregate\' is set to: MAX.\n";
+                                } else if(gasch_node["payoff_aggregation"].as<std::string>() == "avg") {
+                                    ga_payoff_aggregate = Aggregate::MEAN_VALUE;
+                                    Log::dbg << " -- Config. parameter \'payoff_aggregate\' is set to: MEAN.\n";
+                                } else if(gasch_node["payoff_aggregation"].as<std::string>() == "sum") {
+                                    ga_payoff_aggregate = Aggregate::SUM_VALUE;
+                                    Log::dbg << " -- Config. parameter \'payoff_aggregate\' is set to: SUM.\n";
+                                } else {
+                                    ga_payoff_aggregate = Aggregate::SUM_VALUE;
+                                    Log::warn << "GA Scheduler configuration is wrong: payoff aggregation, setting to SUM.\n";
+                                }
+                            } else {
+                                ga_payoff_aggregate = Aggregate::SUM_VALUE;
+                                Log::warn << " -- Config. parameter \'payoff_aggregate\' is not defined. Default value: SUM.\n";
+                            }
                             if(gasch_node["parent_sel"].IsDefined() && gasch_node["parent_sel"]["type"].IsDefined()) {
                                 if(gasch_node["parent_sel"]["type"].as<std::string>() == "tournament") {
                                     ga_parentsel_op = GASSelectionOp::TOURNAMENT;
@@ -338,10 +364,35 @@ void Config::loadCmdArgs(int argc, char** argv)
                         getConfigParam("model_unity_size", node_it.second, model_unity_size);
                         getConfigParam("world_width", node_it.second, world_width);
                         getConfigParam("world_height", node_it.second, world_height);
-                        getConfigParam("max_revisit_time", node_it.second, max_revisit_time);
-                        getConfigParam("target_revisit_time", node_it.second, target_revisit_time);
-                        getConfigParam("min_payoff", node_it.second, min_payoff);
-                        getConfigParam("max_payoff", node_it.second, max_payoff);
+                        if(node_it.second["payoff"].IsDefined()) {
+                            YAML::Node payoff_node = node_it.second["payoff"];
+                            getConfigParam("goal_target", payoff_node, goal_target);
+                            if(payoff_node["type"].IsDefined()) {
+                                if(payoff_node["type"].as<std::string>() == "sigmoid") {
+                                    payoff_model = PayoffModel::SIGMOID;
+                                    Log::dbg << " -- Config. parameter \'payoff.type\' is set to: SIGMOID.\n";
+                                } else if(payoff_node["type"].as<std::string>() == "sigmoid") {
+                                    payoff_model = PayoffModel::LINEAR;
+                                    Log::dbg << " -- Config. parameter \'payoff.type\' is set to: LINEAR.\n";
+                                } else {
+                                    payoff_model = PayoffModel::SIGMOID;
+                                    Log::warn << " -- Config. parameter \'payoff.type\' is not defined. Default value: SIGMOID.\n";
+                                }
+                            }
+                            switch(payoff_model) {
+                                case PayoffModel::SIGMOID:
+                                    getConfigParam("steepness", payoff_node, payoff_steepness);
+                                    break;
+                                case PayoffModel::LINEAR:
+                                    getConfigParam("payoff_mid", payoff_node, payoff_mid);
+                                    getConfigParam("goal_min", payoff_node, goal_min);
+                                    getConfigParam("goal_max", payoff_node, goal_max);
+                                    break;
+                            }
+                        } else {
+                            Log::err << "System goals and payoff model have not been defined.\n";
+                            std::exit(-1);
+                        }
                     } else {
                         Log::warn << "=== Skipping unrecognized configuration category \'" << node_it.first.as<std::string>() << "\'.\n";
                     }

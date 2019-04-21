@@ -33,7 +33,7 @@ class Activity
 {
 public:
     /*******************************************************************************************//**
-     *  Constructs and activity created by agent `agent_id` without giving it an activity
+     *  Constructs an activity created by agent `agent_id` without giving it an activity
      *  identifier. Both the creation time and the last-update time are set to VirtualTime::now().
      **********************************************************************************************/
     Activity(std::string agent_id, int id = -1);
@@ -135,12 +135,13 @@ public:
     /*******************************************************************************************//**
      *  Getter for the trajectory of this activity, as set by its creating agent.
      **********************************************************************************************/
-    const std::map<double, sf::Vector3f>& getTrajectory(void) const { return m_trajectory; }
+    std::shared_ptr<std::map<double, sf::Vector3f> > getTrajectory(void) const { return m_trajectory; }
+    // const std::map<double, sf::Vector3f>& getTrajectory(void) const { return m_trajectory; }
 
     /*******************************************************************************************//**
      *  Returns the number of points in the trajectory of this activity.
      **********************************************************************************************/
-    std::size_t getPositionCount(void) const { return m_trajectory.size(); }
+    std::size_t getPositionCount(void) const { return m_trajectory->size(); }
 
     /*******************************************************************************************//**
      *  Sets the trajectory and the active cells for this activity. This function is meant to be

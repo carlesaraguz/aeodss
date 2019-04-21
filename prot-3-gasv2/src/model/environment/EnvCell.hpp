@@ -59,7 +59,7 @@ public:
     bool removeCellActivityById(std::string agent_id, unsigned int activity_id);
     bool updateCellActivity(std::shared_ptr<Activity> aptr);
     std::vector<std::shared_ptr<Activity> > getAllActivities(void) const;
-    float computeCellPayoff(unsigned int fidx, double* at0s, double* at1s, int nts);
+    float computeCellPayoff(double* at0s, double* at1s, int nts);
     void clean(unsigned int fidx, double t);
     std::size_t pushPayoffFunc(const EnvCellPayoffFunc fp, const EnvCellCleanFunc fc);
     std::size_t pushPayoffFunc(const std::pair<EnvCellPayoffFunc, EnvCellCleanFunc> f);

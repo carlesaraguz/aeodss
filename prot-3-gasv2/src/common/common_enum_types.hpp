@@ -32,4 +32,9 @@ enum class TimeValueType {
     SECONDS             /* Unit is seconds. */
 };
 
+enum class PayoffModel {
+    SIGMOID,            /* Sigmoid model (i.e. logitic function). */
+    LINEAR              /* Linear normalisation with min-mid-max points.*/
+};
+
 #endif /* COMMON_ENUM_TYPES_HPP */

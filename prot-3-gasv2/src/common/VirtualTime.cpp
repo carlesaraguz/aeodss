@@ -54,6 +54,9 @@ std::string VirtualTime::toString(double t, bool is_absolute_time)
         int min  = (int)(t * 60 * 24) % 60;
         int hour = (int)(t * 24) % 24;
         int days = (int)t;
+        if(60.0 - sec < 0.001) {
+            sec = 59.999;    /* Just for visalisation purposes. */
+        }
         ss << "\'" << days << "d"
             << std::setw(2) << std::setfill('0') << hour << ":"
             << std::setw(2) << std::setfill('0') << min  << ":"
