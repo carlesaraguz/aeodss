@@ -106,6 +106,11 @@ std::vector<std::pair<double, double> > GAScheduler::schedule(void)
     for(unsigned int i = 0; i < m_population.size(); i++) {
         computeFitness(m_population[i]);
     }
+    /* DEBUG Baseline chromosomes:
+     *  for(auto cbaseline = m_population.begin(); cbaseline != m_population.begin() + m_individual_info.size() + 1; cbaseline++) {
+     *      Log::warn << "C. baseline: " << *cbaseline << "\n";
+     *  }
+     **/
     while(iterate(g, best)) {
         /* Repopulate in case we lost too many invalid options. */
         while(m_population.size() < Config::ga_population_size) {
@@ -200,6 +205,10 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s,
         for(unsigned int i = 0; i < l; i++) {
             GASInfo gas_info;
             gas_info.t_start = t0s[i];
+            if(s[i] < 1) {
+                Log::err << "GA Scheduler is not capable of scheduling tasks the duration of which is less than 1 step. Aborting.\n";
+                throw std::runtime_error("Genetic Algorithm Scheduler failure. Unable to solve for small activities.");
+            }
             gas_info.t_steps = s[i];
             m_individual_info.push_back(gas_info);
         }
@@ -245,11 +254,10 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s,
 
 void GAScheduler::setAggregatedPayoff(unsigned int idx,
     const std::vector<sf::Vector2i>& /* cells */,
-    const std::vector<float>& payoff,
-    Aggregate type)
+    const std::vector<float>& payoff)
 {
     float po;
-    switch(type) {
+    switch(Config::ga_payoff_aggregate) {
         case Aggregate::MAX_VALUE:
         case Aggregate::MEAN_VALUE:
         case Aggregate::SUM_VALUE:
@@ -260,7 +268,7 @@ void GAScheduler::setAggregatedPayoff(unsigned int idx,
             break;
     }
     for(auto& p : payoff) {
-        switch(type) {
+        switch(Config::ga_payoff_aggregate) {
             case Aggregate::MAX_VALUE:
                 po = std::max(p, po);
                 break;
@@ -268,14 +276,12 @@ void GAScheduler::setAggregatedPayoff(unsigned int idx,
                 po = std::min(p, po);
                 break;
             case Aggregate::MEAN_VALUE:
-                po += p;
-                break;
             case Aggregate::SUM_VALUE:
                 po += p;
                 break;
         }
     }
-    if(type == Aggregate::MEAN_VALUE) {
+    if(Config::ga_payoff_aggregate == Aggregate::MEAN_VALUE) {
         po /= payoff.size();
     }
     m_individual_info[idx].ag_payoff = po;
@@ -342,7 +348,8 @@ float GAScheduler::computeFitness(GASChromosome& c)
         }
 
         po /= m_max_payoff;
-        fitness = (po + r) / 2.f;
+        // fitness = (po + r) / 2.f;
+        fitness = po;
         // Log::warn << "Chromosome " << c << ": f=" << po << ", r=" << r << " --> " << fitness << "\n";
     } else {
         fitness = po / m_big_coeff;
@@ -362,13 +369,15 @@ GASChromosome GAScheduler::select(std::vector<GASChromosome>& mating_pool) const
             case GASSelectionOp::TOURNAMENT:
                 {
                     bool bflag = false;
+                    std::vector<GASChromosome>::iterator ind;
                     for(unsigned int k = 0; k < Config::ga_tournament_k; k++) {
-                        GASChromosome ind = mating_pool[Random::getUi(0, mating_pool.size() - 1)];
-                        if(!bflag || ind > retval) {
-                            retval = ind;
+                        ind = mating_pool.begin() + Random::getUi(0, mating_pool.size() - 1);
+                        if(!bflag || *ind > retval) {
+                            retval = *ind;
+                            bflag = true;
                         }
                     }
-                    mating_pool.erase(std::find(mating_pool.begin(), mating_pool.end(), retval));
+                    mating_pool.erase(ind);
                 }
                 break;
             case GASSelectionOp::FITNESS_PROPORTIONATE_ROULETTE_WHEEL:

@@ -1,6 +1,6 @@
-version: 1
+version: 2
 system:
-    n_agents: 5
+    n_agents: 1 # 50
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -22,10 +22,13 @@ environment:
     model_unity_size: 10
     world_width: 1800
     world_height: 900
-    max_revisit_time: 0.7
-    target_revisit_time: 0.2
-    min_payoff: 1e-3
-    max_payoff: 1
+    payoff:
+        goal_target: 0.7        # System goal: revisit time target (in time units).
+        type: sigmoid           # Model [sigmoid, linear]
+        payoff_mid: 0           # Linear model: center payoff value (revisit time = target).
+        goal_max: 0.7           # Linear model: maximum revisit time to generate payoff.
+        goal_min: 0.2           # Linear model: minimum revisit time to generate payoff.
+        steepness: 20           # Sigmoid model: steepness of logistic curve.
 
 # -- Agent configuration: --------------------------------------------------------------------------
 agent:
@@ -53,17 +56,18 @@ agent:
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1000             # Amount of information to transmit.
     planning_window: 1080           # Time-steps.
-    max_tasks: 25                   # Max. tasks to generate.
-    max_task_duration: 4.861111e-3  # 7 min. (in JD)
+    max_tasks: 70                   # Max. tasks to generate.
+    max_task_duration: 1.388888e-3  # 2 min. (in JD)
     ga_scheduler:                   # Genetic Algorithm Scheduler paramaters.
         generations: 10000          # Max. number of iterations in the search.
-        timeout: 1000               # Timeout (in iterations) as # of iterations without improvement.
+        timeout: 5000               # Timeout (in iterations) as # of iterations without improvement.
+        payoff_aggregation: sum     # Aggregation of payoff in tasks [min, max, avg, sum].
         min_improvement_rate: 0.01  # Minimum improvement rate.
-        population_size: 500        # Number of individuals in the population.
+        population_size: 600        # Number of individuals in the population.
         mutation_rate: 0.2          # Mutation probability for each chromosome's allele.
         crossover:                  # Crossover operator options:
             type: multiple          # multiple, single, or uniform.
-            n_points: 5             # Crossover points in multiple mode.
+            n_points: 10            # Crossover points in multiple mode.
         parent_sel:                 # Parent selection operator options:
             type: tournament        # tournament, fitness_proportionate, elitist or stochastic_universal
             k: 2                    # tournament K constant.

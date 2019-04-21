@@ -167,7 +167,7 @@ std::ostream& operator<<(std::ostream& os, const GASChromosome& chr)
         os << (int)a;
         count_active += (int)a;
     }
-    os << " : " << count_active << " : " << std::fixed << std::setprecision(6) << std::setw(13) << chr.fitness << std::defaultfloat;
+    os << " : " << count_active << " : " << std::fixed << std::setprecision(4) << std::setw(6) << chr.fitness << std::defaultfloat;
     if(!chr.valid) {
         os << "*";
     }

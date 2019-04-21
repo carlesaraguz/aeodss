@@ -214,9 +214,9 @@ float Activity::getPriority(ActivityPriorityModel pmodel_type) const
             d = std::fabs(d - t_now);
 
             /* Normalize and saturate times: */
-            a /= Config::max_revisit_time;
-            b /= Config::max_revisit_time;
-            d /= Config::max_revisit_time * 2.0;
+            a /= Config::goal_target;
+            b /= Config::goal_target;
+            d /= Config::goal_target * 2.0;
             a = std::min(std::max(1.0 - a, 0.0), 1.0);
             b = std::min(std::max(1.0 - b, 0.0), 1.0);
             d = std::min(std::max(1.0 - d, 0.0), 1.0);

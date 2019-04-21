@@ -14,7 +14,8 @@
 CREATE_LOGGER(Agent)
 
 Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
-    : m_id(id)
+    : ReportGenerator("agents/" + id + "/", std::string("state.csv"))
+    , m_id(id)
     , m_self_view(id)
     , m_motion(this, {init_pos.x, init_pos.y, 0.f}, {init_vel.x, init_vel.y, 0.f})
     , m_environment(std::make_shared<EnvModel>(this, (Config::world_width / Config::model_unity_size), (Config::world_height / Config::model_unity_size)))
@@ -24,6 +25,7 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_display_resources(false)
     , m_link_energy_available(false)
 {
+    configAgentReport();
     if(Config::motion_model == AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n";
         Log::err << "The world is modelled in 3-d (i.e. `motion_model` is set to AgentMotionType::ORBITAL). Please use a different constructor.\n";
@@ -43,7 +45,8 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
 }
 
 Agent::Agent(std::string id)
-    : m_id(id)
+    : ReportGenerator("agents/" + id + "/", std::string("state.csv"))
+    , m_id(id)
     , m_self_view(id)
     , m_motion(this, -1.0)
     , m_environment(std::make_shared<EnvModel>(this, (Config::world_width / Config::model_unity_size), (Config::world_height / Config::model_unity_size)))
@@ -53,6 +56,7 @@ Agent::Agent(std::string id)
     , m_display_resources(false)
     , m_link_energy_available(false)
 {
+    configAgentReport();
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
         Log::err << "The world is modelled in 2-d (i.e. `motion_model` is not set to AgentMotionType::ORBITAL). Please use a different constructor.\n";
@@ -70,6 +74,17 @@ Agent::Agent(std::string id)
     m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
     m_link->setConnectedCallback([this](std::string aid) { return connected(aid); });
     initializeResources();
+}
+
+void Agent::configAgentReport(void)
+{
+    addReportColumn("energy");      /* 0 */
+    enableReport();
+}
+
+void Agent::updateAgentReport(void)
+{
+    setReportColumnValue(0, std::to_string(m_resources["energy"]->getCapacity()));
 }
 
 void Agent::initializeResources(void)
@@ -112,22 +127,25 @@ void Agent::step(void)
     m_self_view.setLocation(m_motion.getProjection2D());
     m_self_view.setDirection(m_motion.getDirection2D());
     m_self_view.setFootprint(m_payload.getFootprint());
+
+    updateAgentReport();
 }
+
 
 void Agent::plan(void)
 {
     /* Schedule activities: */
     double tv_now = VirtualTime::now();
     bool resources_ok = true;
-    for(auto& r : m_resources) {
-        if(r.second->getCapacity() / r.second->getMaxCapacity() < 0.25f) {
-            resources_ok = false;
-            break;
-        }
-    }
+    // for(auto& r : m_resources) {
+    //     if(r.second->getCapacity() / r.second->getMaxCapacity() < 0.25f) {
+    //         resources_ok = false;
+    //         break;
+    //     }
+    // }
     if(m_activities->pending() == 0 && m_current_activity == nullptr && resources_ok) {
         /* Ensures that old activities are removed from the agent's knowledge base: */
-        m_activities->purgeOld();
+        m_activities->purge();
 
         /* Create a temporal activity (won't be added to the Activities Handler): */
         double t_end = tv_now + Config::agent_planning_window * Config::time_step;
@@ -181,13 +199,18 @@ void Agent::plan(void)
         std::vector<int> steps;
         for(auto& act : acts) {
             t0s.push_back(act->getStartTime());
-            steps.push_back((act->getEndTime() - act->getStartTime()) / Config::time_step);
+            double steps_exact = (act->getEndTime() - act->getStartTime()) / Config::time_step;
+            int steps_int = std::round(steps_exact);
+            if(steps_exact < 1.0 && steps_int < 1) {
+                Log::err << "Activity duration is smaller than 1 step, but rounding did not solve this. After rounding: " << steps_int << " steps.\n";
+            }
+            steps.push_back(steps_int);
         }
         scheduler.setChromosomeInfo(t0s, steps, m_payload.getResourceRates());
 
         /* Configure activity/chromosome payoffs for fitness calculation: */
         for(unsigned int i = 0; i < act_gens.size(); i++) {
-            scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, Aggregate::SUM_VALUE);
+            scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs);
         }
 
         /* Run the scheduler: */
@@ -199,7 +222,9 @@ void Agent::plan(void)
                 auto new_act = createActivity(setimes.first, setimes.second);
                 m_activities->add(new_act);
             } else {
-                Log::warn << "[" << m_id << "] Was trying to create an activity where tstart >= tend (2). Skipping.\n";
+                Log::warn << "[" << m_id << "] Was trying to create an activity where "
+                    << "tstart(" << VirtualTime::toString(setimes.first) << ") >= "
+                    << "tend(" << VirtualTime::toString(setimes.second) << ") (2). Skipping.\n";
             }
         }
     }
@@ -230,12 +255,12 @@ void Agent::listen(void)
         for(auto& act : rcv) {
             std::vector<sf::Vector3f> traj_vec;
             auto traj = act->getTrajectory();
-            for(auto& p : traj) {
+            for(auto& p : *traj) {
                 traj_vec.push_back(p.second);
             }
             BasicInstrument tmp_imodel(act->getAperture(), -1.f);
             tmp_imodel.setDimensions(m_environment->getEnvModelInfo());
-            auto active_cells = findActiveCells(traj.cbegin()->first, traj_vec, &tmp_imodel);
+            auto active_cells = findActiveCells(traj->cbegin()->first, traj_vec, &tmp_imodel);
             act->setActiveCells(active_cells);
             m_activities->add(act);
         }

@@ -15,7 +15,7 @@
 #include "Activity.hpp"
 #include "ActivityHandlerView.hpp"
 
-class ActivityHandler : public HasView
+class ActivityHandler : public HasView, public ReportGenerator
 {
 public:
     /*******************************************************************************************//**
@@ -103,7 +103,7 @@ public:
     /*******************************************************************************************//**
      *  Sets the pointer to the environment object of the agent that owns the activity handler.
      **********************************************************************************************/
-    void setEnvironment(EnvModel* eptr) { m_env_model_ptr = eptr; }
+    void setEnvironment(std::shared_ptr<EnvModel> eptr) { m_env_model_ptr = eptr; }
 
     /*******************************************************************************************//**
      *  Implements the HasView interface.
@@ -136,7 +136,9 @@ private:
     ActivityHandlerView m_self_view;
     unsigned int m_activity_count;
     float m_aperture;
-    EnvModel* m_env_model_ptr;
+    std::shared_ptr<EnvModel> m_env_model_ptr;
+
+    void report(void);
 };
 
 #endif /* ACTIVITY_HANDLER_HPP */

@@ -50,12 +50,10 @@ public:
      *  @param  idx     Activity index (i.e. chromosome allele).
      *  @param  cells   Cells affected or that would be captured during the activity `idx`.
      *  @param  payoff  Payoff values for these cells.
-     *  @param  type    The type of payoff aggregation function to perform.
      **********************************************************************************************/
     void setAggregatedPayoff(unsigned int idx,
         const std::vector<sf::Vector2i>& cells,
-        const std::vector<float>& payoff,
-        Aggregate type = Aggregate::MEAN_VALUE);
+        const std::vector<float>& payoff);
 
     /*******************************************************************************************//**
      *  Shows debug information related to potential activities. Should allow finding the optimal

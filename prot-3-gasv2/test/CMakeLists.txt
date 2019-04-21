@@ -37,6 +37,4 @@ endfunction(add_test_subdirectory)
 # --    CMakeLists.txt file. You "should not" provide additional dependencies unless they are
 # --    external to the module itself.
 # -- NOTE: folder/module names MUST match those in the sources.
-add_test_subdirectory(common)
 add_test_subdirectory(model     common_test graphics_test utils_test scheduler_test)
-add_test_subdirectory(scheduler common_test graphics_test model_test)

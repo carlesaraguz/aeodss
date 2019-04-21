@@ -72,11 +72,12 @@ bool EnvCell::removeCellActivityById(std::string agent_id, unsigned int activity
                 delete[] it->second.t1s;
             }
             it = m_activities.erase(it);
-            break;
+            return true;
         } else {
             it++;
         }
     }
+    return false;
 }
 
 bool EnvCell::updateCellActivity(std::shared_ptr<Activity> aptr)
@@ -84,40 +85,49 @@ bool EnvCell::updateCellActivity(std::shared_ptr<Activity> aptr)
     for(auto& a : m_activities) {
         if(a.first->getAgentId() == aptr->getAgentId() && a.first->getId() == aptr->getId()) {
             a.first->clone(aptr);
-            break;
+            return true;
         }
     }
+    return false;
 }
 
 
-float EnvCell::computeCellPayoff(unsigned int fidx, double* at0s, double* at1s, int nts)
+float EnvCell::computeCellPayoff(double* at0s, double* at1s, int nts)
 {
-    if(fidx < m_payoff_func.size() && nts > 0) {
-        m_payoff.clear();
-        for(int i = 0; i < nts; i++) {
-            /*  Payoff function for one cell:
-             *  Arg. #0:                   pair<double, double>  --> t0 & t1 of the potential new activity.
-             *  Arg. #1: vector<vector<pair<double, double> > >  --> vector of t0 & t1 of the activities for this cell.
-             *  Arg. #2:          vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
-             **/
-            auto arg1 = std::make_pair(at0s[i], at1s[i]);
-            std::vector<std::vector<std::pair<double, double> > > arg2;
-            std::vector<std::shared_ptr<Activity> > arg3;
-            for(auto& ra : m_activities) {
-                std::vector<std::pair<double, double> > vec_ts;
-                for(int j = 0; j < ra.second.nts; j++) {
-                    vec_ts.push_back({ra.second.t0s[j], ra.second.t1s[j]});
-                }
-                arg2.push_back(vec_ts);
-                arg3.push_back(ra.first);
+    m_payoff.clear();
+    for(int i = 0; i < nts; i++) {
+        /*  Payoff function for one cell:
+         *  Arg. #0:                   pair<double, double>  --> t0 & t1 of the potential new activity.
+         *  Arg. #1: vector<vector<pair<double, double> > >  --> vector of t0 & t1 of the activities for this cell.
+         *  Arg. #2:          vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
+         **/
+        auto arg1 = std::make_pair(at0s[i], at1s[i]);
+        std::vector<std::vector<std::pair<double, double> > > arg2;
+        std::vector<std::shared_ptr<Activity> > arg3;
+        for(auto& ra : m_activities) {
+            std::vector<std::pair<double, double> > vec_ts;
+            for(int j = 0; j < ra.second.nts; j++) {
+                vec_ts.push_back({ra.second.t0s[j], ra.second.t1s[j]});
             }
-            m_payoff[at0s[i]] = m_payoff_func[fidx](arg1, arg2, arg3);
+            arg2.push_back(vec_ts);
+            arg3.push_back(ra.first);
         }
-        return m_payoff.crbegin()->second;   /* Returns the "last" payoff. */
-    } if(fidx >= m_payoff_func.size()) {
-        Log::err << *this << " Error calculating payoff, wrong function index.\n";
+        /*  IMPORTANT NOTE:
+         *  The following conditions are necessary:
+         *  - Forwards revisit time payoff needs arg2/arg3 to be sorted with start time asc.
+         *  - Backwards revisit time payoff needs arg2/arg3 to be sorted with end time asc.
+         *  The conditions are always met, as long as EnvCellState objects are sorted. Given
+         *  that these intervals are provided in an activity basis (i.e. several activities are
+         *  not mixed, because we create independent vectors), then it is just a matter of
+         *  ensuring that EnvCellState times are sorted.
+         **/
+        float po = 0.f;
+        for(unsigned int po_func_idx = 0; po_func_idx < m_payoff_func.size(); po_func_idx++) {
+            po = std::max(po, m_payoff_func[po_func_idx](arg1, arg2, arg3));
+        }
+        m_payoff[at0s[i]] = po;
     }
-    return -1.f;
+    return m_payoff.crbegin()->second;   /* Returns the "last" payoff. */
 }
 
 float EnvCell::getPayoff(double t) const

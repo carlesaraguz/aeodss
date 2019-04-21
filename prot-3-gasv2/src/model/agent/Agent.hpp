@@ -28,7 +28,7 @@
 
 #include "GAScheduler.hpp"
 
-class Agent : public TimeStep, public HasView
+class Agent : public TimeStep, public HasView, public ReportGenerator
 {
 public:
     Agent(std::string id);
@@ -92,6 +92,10 @@ private:
     void consume(void);
     bool encounter(std::string aid);
     void connected(std::string aid);
+
+    void configAgentReport(void);
+    void updateAgentReport(void);
+
 };
 
 #endif /* AGENT_HPP */
