@@ -34,7 +34,8 @@ struct ActivityGen {
     double t1;                          /* End time. */
     unsigned int steps;                 /* Duration of the activity, in steps. */
     std::vector<sf::Vector2i> c_coord;  /* Coordinates for all the visible cells of the activity. */
-    std::vector<float> c_payoffs;       /* Cell payoffs for all the visible cells og the activity. */
+    std::vector<float> c_payoffs;       /* Cell payoffs for all the visible cells of the activity. */
+    std::vector<float> c_utility;       /* Cell utilities for all the visible cells of the activity. */
 };
 
 class EnvModel : public HasView

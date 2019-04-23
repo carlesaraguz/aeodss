@@ -84,6 +84,7 @@ void EnvModel::clearView(void)
 
 void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_view)
 {
+    Log::dbg << "Agent " << m_agent->getId() << " is computing payoff\n";
     double* t0s;
     double* t1s;
     float po;
@@ -105,6 +106,7 @@ void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_
             m_payoff_view->setValue(c.x, c.y, po);
         }
     }
+    Log::dbg << "Agent " << m_agent->getId() << " has completed computing payoff\n";
 }
 
 void EnvModel::addActivity(std::shared_ptr<Activity> act)
@@ -147,7 +149,7 @@ void EnvModel::cleanActivities(double t)
     for(unsigned int xx = 0; xx < m_model_w; xx++) {
         #pragma omp parallel for
         for(unsigned int yy = 0; yy < m_model_h; yy++) {
-            m_cells[xx][yy].clean(0, t);
+            m_cells[xx][yy].clean(t);
         }
     }
 }
@@ -175,7 +177,7 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
             EnvCell& c = m_cells[it->x][it->y];
             bool remove_cell = true;
             for(auto p : c.getAllPayoffs()) {
-                if(p.second > 0.f) {
+                if(p.second.first > Config::min_payoff) {
                     remove_cell = false;
                     break;
                 }
@@ -199,14 +201,20 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
                  **/
                 std::vector<sf::Vector2i> vec_selected_cells(selected_cells.begin(), selected_cells.end());
                 std::vector<float> vec_payoffs;
+                std::vector<float> vec_utility;
+                float po, ut;
                 for(auto& vsc : vec_selected_cells) {
-                    vec_payoffs.push_back(m_cells.at(vsc.x).at(vsc.y).getPayoff((t0 + t1) / 2.f));     /* COMBAK */
+                    /* COMBAK: Check that asking for payoff between t0 and t1 is correct: */
+                    m_cells.at(vsc.x).at(vsc.y).getPayoff(((t0 + t1) / 2.f), po, ut);
+                    vec_payoffs.push_back(po);
+                    vec_utility.push_back(ut);
                 }
                 ActivityGen ag;
                 ag.t0 = t0;
                 ag.t1 = t1;
                 ag.c_coord   = vec_selected_cells;
                 ag.c_payoffs = vec_payoffs;
+                ag.c_utility = vec_utility;
                 retval.push_back(ag);
             }
             selected_cells.clear();

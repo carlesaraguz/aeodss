@@ -37,4 +37,9 @@ enum class PayoffModel {
     LINEAR              /* Linear normalisation with min-mid-max points.*/
 };
 
+enum class SandboxMode {
+    SIMULATE,           /* Runs a simulation with the configured parameters. */
+    TEST_PAYOFF         /* Enters a test mode and shows payoff values. */
+};
+
 #endif /* COMMON_ENUM_TYPES_HPP */

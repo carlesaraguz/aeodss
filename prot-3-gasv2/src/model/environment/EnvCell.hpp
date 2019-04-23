@@ -29,9 +29,11 @@ public:
      *  Arg. #1: vector<vector<pair<double, double> > >  --> vector of t0 & t1 of the activities for this cell.
      *  Arg. #2:          vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
      *
-     *  Return: the (potential) partial payoff value for this cell.
+     *  Return: a pair of floats:
+     *      first  -> the (potential) partial payoff value for this cell.
+     *      second -> the sum of confidence utilities that contributed to the payoff.
      **/
-    typedef std::function<float(
+    typedef std::function<std::pair<float, float>(
         std::pair<double, double>,
         std::vector<std::vector<std::pair<double, double> > >,
         std::vector<std::shared_ptr<Activity> >
@@ -60,12 +62,12 @@ public:
     bool updateCellActivity(std::shared_ptr<Activity> aptr);
     std::vector<std::shared_ptr<Activity> > getAllActivities(void) const;
     float computeCellPayoff(double* at0s, double* at1s, int nts);
-    void clean(unsigned int fidx, double t);
+    void clean(double t);
     std::size_t pushPayoffFunc(const EnvCellPayoffFunc fp, const EnvCellCleanFunc fc);
     std::size_t pushPayoffFunc(const std::pair<EnvCellPayoffFunc, EnvCellCleanFunc> f);
     std::size_t getPayoffFuncCount(void) { return m_payoff_func.size(); }
-    float getPayoff(double t) const;
-    std::map<double, float> getAllPayoffs(void) const { return m_payoff; }
+    void getPayoff(double t, float& payoff, float& utility) const;
+    std::map<double, std::pair<float, float> > getAllPayoffs(void) const { return m_payoff; }
     std::size_t getPayoffCount(void) const { return m_payoff.size(); }
 
     /* Friend debug functions: */
@@ -75,7 +77,7 @@ private:
     std::map<std::shared_ptr<Activity>, EnvCellState> m_activities;
     std::vector<EnvCellPayoffFunc> m_payoff_func;
     std::vector<EnvCellCleanFunc> m_clean_func;
-    std::map<double, float> m_payoff;    /**< Time of payoff <-> Payoff value. */
+    std::map<double, std::pair<float, float> > m_payoff;    /**< Time of payoff <-> {Payoff value, Avg. utility}. */
 };
 
 #endif /* ENV_CELL_HPP */

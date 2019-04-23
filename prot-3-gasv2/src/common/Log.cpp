@@ -49,12 +49,17 @@ LogStream::LogStream(std::basic_ostream<char>& out, Level level, std::string cna
 
 LogStream::int_type LogStream::overflow(int_type c)
 {
-    if(c == traits_type::eof()) {
-        return traits_type::eof();
-    } else {
-        char_type ch = traits_type::to_char_type(c);
-        return xsputn(&ch, 1) == 1 ? c : traits_type::eof();
+    LogStream::int_type n;
+    #pragma omp critical
+    {
+        if(c == traits_type::eof()) {
+            n = traits_type::eof();
+        } else {
+            char_type ch = traits_type::to_char_type(c);
+            n = xsputn(&ch, 1) == 1 ? c : traits_type::eof();
+        }
     }
+    return n;
 }
 
 std::streamsize LogStream::xsputn(const char* s, std::streamsize n)

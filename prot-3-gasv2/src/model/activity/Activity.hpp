@@ -65,6 +65,23 @@ public:
     Activity& operator=(Activity&& other) = default;
 
     /*******************************************************************************************//**
+     *  Computes the utility for the confidence c, normalised between 1 and `fl`. Utility is
+     *  computed with the logistic function (σ(·)) in two parts:
+     *      For c <= 0.5, U = σ(1-2c)
+     *      For c > 0.5,  U = σ(2(c-0.5))
+     *  @param  c       Confidence value; must be in the range [0,1].
+     *  @param  fl      Minimum utility (between 0 and 1). This does not guarantee that the minum
+     *                  obtained by the model is actually this value, but only acts as a normalising
+     *                  factor that computes U'=fl+(1-fl)U. For fl=0, U'=U.
+     **********************************************************************************************/
+    static float utility(float c, float fl = 0.f);
+
+    /*******************************************************************************************//**
+     *  Computes the decay value for a given time `t`.
+     **********************************************************************************************/
+    static float decay(double t);
+
+    /*******************************************************************************************//**
      *  Getter for the confirmed activity flag. Activities that are confirmed have confidence of 1,
      *  and are confirmed to be carried out (either in the future, present or past).
      **********************************************************************************************/
@@ -186,12 +203,24 @@ public:
      *  @note           This action updates the last-update time value.
      *  @param  c       The new confidence value, in the range [0, 1].
      **********************************************************************************************/
-    void setConfidence(float c);
+    void setConfidenceBaseline(float c);
+
+    /*******************************************************************************************//**
+     *  Updates the confidence value from the confidence baseline to the current value, which is
+     *  necessarily closer to confirmation u(a)=1. This updates the internal confidence variable
+     *  that will be read by other agents with reportConfidence.
+     **********************************************************************************************/
+    void setConfidence(void);
 
     /*******************************************************************************************//**
      *  Getter for the static confidence value set by the creating agent.
      **********************************************************************************************/
-    float getConfidence(void) const { return m_confidence; }
+    float reportConfidence(void) const { return m_confidence; }
+
+    /*******************************************************************************************//**
+     *  Getter for the static confidence value set by the creating agent.
+     **********************************************************************************************/
+    float getConfidenceBaseline(void) const { return m_confidence_baseline; }
 
     /*******************************************************************************************//**
      *  Computes the priority of this activity using the model type defined in `pmodel_type`.
@@ -280,6 +309,7 @@ private:
     bool m_ready;
     bool m_active;
     float m_confidence;
+    float m_confidence_baseline;
     float m_aperture;
     double m_last_update;
     double m_creation_time;

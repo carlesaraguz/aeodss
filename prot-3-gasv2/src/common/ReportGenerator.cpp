@@ -162,7 +162,7 @@ void ReportGenerator::outputReport(void)
 {
     if(m_initialized) {
         if(m_enabled && m_report_file.is_open()) {
-            m_report_file << std::fixed << std::setprecision(6) << VirtualTime::now() << ",";
+            m_report_file << std::fixed << std::setprecision(6) << VirtualTime::now() - Config::start_epoch << ",";
             for(auto c = m_column_values.begin(); c != m_column_values.end(); c++) {
                 m_report_file << *c;
                 if(std::next(c) != m_column_values.end()) {

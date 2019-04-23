@@ -103,12 +103,12 @@ void Agent::updatePosition(void)
     m_link->setPosition(m_motion.getPosition());
 }
 
+
 void Agent::step(void)
 {
+    m_activities->update();
     m_link->update();
     m_link->step();
-
-    plan();
     listen();
     execute();
     consume();
@@ -137,15 +137,10 @@ void Agent::plan(void)
     /* Schedule activities: */
     double tv_now = VirtualTime::now();
     bool resources_ok = true;
-    // for(auto& r : m_resources) {
-    //     if(r.second->getCapacity() / r.second->getMaxCapacity() < 0.25f) {
-    //         resources_ok = false;
-    //         break;
-    //     }
-    // }
     if(m_activities->pending() == 0 && m_current_activity == nullptr && resources_ok) {
         /* Ensures that old activities are removed from the agent's knowledge base: */
         m_activities->purge();
+        m_environment->cleanActivities();
 
         /* Create a temporal activity (won't be added to the Activities Handler): */
         double t_end = tv_now + Config::agent_planning_window * Config::time_step;
@@ -208,9 +203,16 @@ void Agent::plan(void)
         }
         scheduler.setChromosomeInfo(t0s, steps, m_payload.getResourceRates());
 
-        /* Configure activity/chromosome payoffs for fitness calculation: */
+        /*  The following loop configures two things:
+         *    (1) Activity/chromosome payoffs for fitness calculation.
+         *    (2) Baseline confidence levels. These are just passed to the scheduler to allow it to
+         *        recompose the baseline confidence if two activities are merged.
+         **/
         for(unsigned int i = 0; i < act_gens.size(); i++) {
-            scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs);
+            /* Compute baseline confidence: */
+            float bc = std::accumulate(act_gens[i].c_utility.begin(), act_gens[i].c_utility.end(), 0.f);
+            bc /= act_gens[i].c_utility.size();
+            scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, bc);
         }
 
         /* Run the scheduler: */
@@ -218,15 +220,20 @@ void Agent::plan(void)
 
         /* Store the result: */
         for(auto& setimes : result) {
-            if(setimes.first < setimes.second) {
-                auto new_act = createActivity(setimes.first, setimes.second);
+            double new_ts = std::get<0>(setimes);
+            double new_te = std::get<1>(setimes);
+            float new_bc  = std::get<2>(setimes);
+            if(new_ts < new_te) {
+                auto new_act = createActivity(new_ts, new_te);
+                new_act->setConfidenceBaseline(new_bc);
                 m_activities->add(new_act);
             } else {
                 Log::warn << "[" << m_id << "] Was trying to create an activity where "
-                    << "tstart(" << VirtualTime::toString(setimes.first) << ") >= "
-                    << "tend(" << VirtualTime::toString(setimes.second) << ") (2). Skipping.\n";
+                    << "tstart(" << VirtualTime::toString(new_ts) << ") >= "
+                    << "tend(" << VirtualTime::toString(new_te) << ") (2). Skipping.\n";
             }
         }
+        m_activities->update();
     }
 }
 

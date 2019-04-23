@@ -127,8 +127,8 @@ public:
     void purge(void);
 
 private:
-    int m_current_activity_idx;
-    std::vector<std::shared_ptr<Activity> > m_activities_own;   /* Sorted by start time. */
+    std::map<double, unsigned int> m_act_own_lut;               /* Activity LUT (own) indexed by start time. */
+    std::vector<std::shared_ptr<Activity> > m_activities_own;   /* Unsorted. */
     std::map<std::string, std::map<unsigned int, std::shared_ptr<Activity> > > m_activities_others;
     std::string m_agent_id;
     Agent* m_agent;

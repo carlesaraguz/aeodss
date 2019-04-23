@@ -40,6 +40,10 @@ double          Config::start_epoch = 2451545.0;
 double          Config::duration = 30.0;
 double          Config::time_step = 10.0 / 86400.0;
 
+/* Concurrency settings: */
+bool            Config::parallel_nested = true;
+unsigned int    Config::parallel_planners = 1;
+
 /* System goals and payoff model: */
 double          Config::goal_target = 0.5;      /* 12 hours.   */
 double          Config::goal_min = 0.2;         /* 4.8 hours.  */
@@ -113,6 +117,14 @@ ColorGradient   Config::color_gradient_blue;
 /* Scheduling hard constraints: */
 unsigned int    Config::max_tasks = 25;
 double          Config::max_task_duration = 7.0 * 60.0 / 86400.0;    /* 7 min. in JD */
+float           Config::min_payoff = 0.f;
+double          Config::activity_confirm_window = 0.05; /* 1.2h in JD. */
+float           Config::confidence_mod_exp = 2.f;
+float           Config::utility_floor = 0.f;
+float           Config::utility_k = 10.f;   /* Should be higher than 10. */
+float           Config::utility_unknown = 0.75f;
+float           Config::utility_weight = 0.5f;
+float           Config::decay_weight = 0.5f;
 
 /* Genetic Algorithm configuration: */
 Aggregate       Config::ga_payoff_aggregate = Aggregate::SUM_VALUE;
@@ -130,13 +142,18 @@ GASSelectionOp  Config::ga_environsel_op = GASSelectionOp::ELITIST;
 /* Global values: */
 std::string Config::root_path;
 std::string Config::data_path;
+SandboxMode Config::mode = SandboxMode::SIMULATE;
 
 void Config::loadCmdArgs(int argc, char** argv)
 {
     std::string opt, opt_val;
     for(int cmd_idx = 1; cmd_idx < argc; cmd_idx++) {
         opt = argv[cmd_idx];
-        if(opt == "-f" && (cmd_idx + 1) < argc) {
+        if(opt == "-tp") {
+            /* Will enter in 'test payoff' mode. */
+            Log::dbg << "TEST_PAYOFF mode selected.\n";
+            mode = SandboxMode::TEST_PAYOFF;
+        } else if(opt == "-f" && (cmd_idx + 1) < argc) {
             opt_val = argv[cmd_idx + 1];
             try {
                 YAML::Node conf = YAML::LoadFile(root_path + "conf/" + opt_val);
@@ -187,6 +204,14 @@ void Config::loadCmdArgs(int argc, char** argv)
                                 }
                             }
                         }
+                        YAML::Node parallel_node = node_it.second["parallel"];
+                        if(parallel_node.IsDefined()) {
+                            getConfigParam("nested", parallel_node, parallel_nested);
+                            getConfigParam("planners", parallel_node, parallel_planners);
+                            if(parallel_planners == 0) {
+                                parallel_planners = 1;
+                            }
+                        }
 
                     } else if(node_it.first.as<std::string>() == "graphics") {
                         Log::dbg << "=== Loading graphics configuration...\n";
@@ -200,8 +225,14 @@ void Config::loadCmdArgs(int argc, char** argv)
                         getConfigParam("activity_size", node_it.second, activity_size);
                         getConfigParam("energy_generation", node_it.second, agent_energy_generation_rate);
                         getConfigParam("planning_window", node_it.second, agent_planning_window);
+                        Log::dbg << "Planning window is set to: " << VirtualTime::toString(agent_planning_window * Config::time_step, false);
+                        Log::dbg << ", " << activity_confirm_window << " steps.\n";
+                        getConfigParam("confirm_window", node_it.second, activity_confirm_window);
+                        Log::dbg << "Activity confirmation window is set to: " << VirtualTime::toString(activity_confirm_window, false);
+                        Log::dbg << ", " << std::round(activity_confirm_window / time_step) << " steps.\n";
                         getConfigParam("max_tasks", node_it.second, max_tasks);
                         getConfigParam("max_task_duration", node_it.second, max_task_duration);
+                        getConfigParam("min_payoff", node_it.second, min_payoff);
 
                         if(node_it.second["instrument"].IsDefined()) {
                             YAML::Node instrument_node = node_it.second["instrument"];
@@ -281,7 +312,32 @@ void Config::loadCmdArgs(int argc, char** argv)
                         } else {
                             throw std::runtime_error("Agent motion model parameters have not been provided.");
                         }
-
+                        if(node_it.second["confidence"].IsDefined()) {
+                            YAML::Node confidence_node = node_it.second["confidence"];
+                            getConfigParam("exp", confidence_node, confidence_mod_exp);
+                        } else {
+                            throw std::runtime_error("Agent confidence update model parameters have not been provided.");
+                        }
+                        if(node_it.second["utility"].IsDefined()) {
+                            YAML::Node utility_node = node_it.second["utility"];
+                            getConfigParam("steepness", utility_node, utility_k);
+                            getConfigParam("unknown", utility_node, utility_unknown);
+                        } else {
+                            throw std::runtime_error("Agent utility model parameters have not been provided.");
+                        }
+                        if(node_it.second["priority"].IsDefined()) {
+                            YAML::Node priority_node = node_it.second["priority"];
+                            getConfigParam("utility_floor", priority_node, utility_floor);
+                            getConfigParam("utility_weight", priority_node, utility_weight);
+                            getConfigParam("decay_weight", priority_node, decay_weight);
+                            float wsum = decay_weight + utility_weight;
+                            utility_weight /= wsum;
+                            decay_weight /= wsum;
+                            Log::dbg << "Decay weight after normalisation is: " << decay_weight << ".\n";
+                            Log::dbg << "Utility weight after normalisation is: " << utility_weight << ".\n";
+                        } else {
+                            throw std::runtime_error("Activity priority model parameters have not been provided.");
+                        }
                         if(node_it.second["ga_scheduler"].IsDefined()) {
                             YAML::Node gasch_node = node_it.second["ga_scheduler"];
                             getConfigParam("generations", gasch_node, ga_generations);
@@ -367,6 +423,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                         if(node_it.second["payoff"].IsDefined()) {
                             YAML::Node payoff_node = node_it.second["payoff"];
                             getConfigParam("goal_target", payoff_node, goal_target);
+                            Log::dbg << "The system target revisit time is: " << VirtualTime::toString(goal_target, false, true) << ".\n";
                             if(payoff_node["type"].IsDefined()) {
                                 if(payoff_node["type"].as<std::string>() == "sigmoid") {
                                     payoff_model = PayoffModel::SIGMOID;
@@ -387,6 +444,8 @@ void Config::loadCmdArgs(int argc, char** argv)
                                     getConfigParam("payoff_mid", payoff_node, payoff_mid);
                                     getConfigParam("goal_min", payoff_node, goal_min);
                                     getConfigParam("goal_max", payoff_node, goal_max);
+                                    Log::dbg << "The system min. revisit time is: " << VirtualTime::toString(goal_min, false, true) << ".\n";
+                                    Log::dbg << "The system max. revisit time is: " << VirtualTime::toString(goal_max, false, true) << ".\n";
                                     break;
                             }
                         } else {

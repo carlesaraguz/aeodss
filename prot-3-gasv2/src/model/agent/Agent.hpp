@@ -36,6 +36,7 @@ public:
 
     /* Public member functions: */
     void step(void) override;
+    void plan(void);
     void updatePosition(void);
     void showResources(bool d = true);
 
@@ -86,7 +87,6 @@ private:
     std::shared_ptr<Activity> createActivity(double t0, double t1);
     void initializeResources(void);
 
-    void plan(void);
     void listen(void);
     void execute(void);
     void consume(void);

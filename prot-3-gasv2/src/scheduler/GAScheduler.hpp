@@ -31,9 +31,9 @@ public:
     /*******************************************************************************************//**
      *  Starts the GA Scheduler algorithm. Needs to (previously) having spwaned population and
      *  configured payoffs.
-     *  @return Start and end times of scheduled activities.
+     *  @return Start and end times of scheduled activities and baseline confidence.
      **********************************************************************************************/
-    std::vector<std::pair<double, double> > schedule(void);
+    std::vector<std::tuple<double, double, float> > schedule(void);
 
     /*******************************************************************************************//**
      *  Spawn population. Creates individuals (i.e. GASChromosome's) based on predefined activities/
@@ -50,10 +50,12 @@ public:
      *  @param  idx     Activity index (i.e. chromosome allele).
      *  @param  cells   Cells affected or that would be captured during the activity `idx`.
      *  @param  payoff  Payoff values for these cells.
+     *  @param  baseline_confidence The baseline confidence computed for this chromosome.
      **********************************************************************************************/
     void setAggregatedPayoff(unsigned int idx,
         const std::vector<sf::Vector2i>& cells,
-        const std::vector<float>& payoff);
+        const std::vector<float>& payoff,
+        float baseline_confidence);
 
     /*******************************************************************************************//**
      *  Shows debug information related to potential activities. Should allow finding the optimal
@@ -66,6 +68,14 @@ private:
         double t_start;                         /**< Start time of the allele. */
         int t_steps;                            /**< Steps of duration of this allele. */
         float ag_payoff;                        /**< Aggregated payoff that would be obtained. */
+        float baseline_confidence;              /**< The baseline confidence for this chromosome. */
+    };
+    struct GASPrevSolution {
+        double t_start;                         /**< Start time of the previously scheduled activity. */
+        double t_end;                           /**< End time of the previously scheduled activity. */
+        unsigned int a_start;                   /**< Index of starting allele (current chromosome). */
+        unsigned int a_end;                     /**< Index of ending allele (current chrm.), included. */
+        float confidence;                       /**< Confidence reported so far for this activity. */
     };
     const float m_big_coeff = 1e6f;             /**< Ensure big enough to discard resource violations. */
     const float m_small_coeff = 1e-4f;          /**< Ensure small. */

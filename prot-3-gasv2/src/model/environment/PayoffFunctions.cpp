@@ -19,7 +19,7 @@ CREATE_LOGGER(PayoffFunctions)
  *  Arg. #0:                   pair<double, double>  --> t0 & t1 of the potential new activity.
  *  Arg. #1: vector<vector<pair<double, double> > >  --> vector of t0 & t1 of the activities for this cell.
  *  Arg. #2:          vector<shared_ptr<Activity> >  --> Pointer to the activities (same index than arg2).
- *  Returns: the (potential) partial payoff value for this cell.
+ *  Returns: the (potential) partial payoff value for this cell and the sum of confidence utilities.
  *  ------------------------------------------------------------------------------------------------
  *  EnvCellCleanFunc === Cleaning function for one cell:
  *  Arg. #0:                        double  --> The current time.
@@ -69,7 +69,6 @@ float PayoffFunctions::payoff(double rev_time)
 void PayoffFunctions::bindPayoffFunctions(void)
 {
     Log::dbg << "Binding global payoff functions.\n";
-
     /* Revisit time forwards: ------------------------------------------------------------------- */
     f_revisit_time_forwards.first = [](PFArg0 ats, PFArg1 bts, PFArg2 bs) {
         /*  REMINDER:
@@ -107,7 +106,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
                 if(b_act_ptr->isFact() && b_act_ptr->isConfimed()) {
                     if(tea >= tsb && tea <= teb) {
                         /* These activities are overlapping. Revisit time is 0 and so is payoff. */
-                        return payoff(0.0);
+                        return std::make_pair(payoff(0.0), 1.f);
                     }
                     if( (t_diff == -1.0 && t_diff_i >= 0.0) ||                      /* <--- Is the first value. */
                         (t_diff > -1.0 && t_diff_i >= 0.0 && t_diff_i < t_diff)) {  /* <--- Is a min value. */
@@ -154,7 +153,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
          **/
         if((!next_act || t_diff == -1.0) && t_horizon_overlap == -1.0) {
             /* There weren't activities to check with. Payoff is minimum. */
-            return 0.f;
+            return std::make_pair(0.f, Config::utility_unknown);
         } else {
             if(t_horizon == -1.0 && t_diff == -1.0 && t_horizon_overlap != -1.0) {
                 t_horizon = t_horizon_overlap;
@@ -202,19 +201,39 @@ void PayoffFunctions::bindPayoffFunctions(void)
             std::sort(selected.begin(), selected.end(), sort_by_start());
 
             /* Compute differentially-weighted revisit time: */
-            float po = payoff(t_diff); /* Revisit time backwards. This is the worst case. */
+            float po = payoff(t_diff); /* Revisit time forwards. This is the worst case. */
             float poi, dist_po;
+            float utility_sum = 0.f;
             for(auto& s : selected) {
                 tsb = s.first;
                 poi = payoff(tsb - tea);  /* Must be smaller or equal than po. */
                 if(poi > po) { /* TODO: Remove this after debugging. */
-                    Log::err << "Error computing intermediate payoff values (F). Aborting.\n";
+                    Log::err << "Error computing intermediate payoff values (F). Printing debug information and aborting.\n";
+                    Log::err << "Initial RV(F) = " << VirtualTime::toString(t_diff) << " --> PO0 = " << payoff(t_diff) << ".\n";
+                    Log::err << "Current PO = " << po << ". Activities selected:\n";
+                    for(auto& act : selected) {
+                        Log::err << " -- Selected activity [" << act.second->getAgentId() << ":" << act.second->getId() << "]:";
+                        Log::err << " interval start time = " << VirtualTime::toString(tsb) << ";";
+                        Log::err << " POi = " << poi << "\n";
+                    }
                     std::exit(-1);
                 }
                 dist_po = po - poi;
-                po -= dist_po * s.second->getConfidence();
+                po -= dist_po * s.second->reportConfidence();
+                utility_sum += Activity::utility(s.second->reportConfidence());
             }
-            return po;
+            if(next_act != nullptr) {
+                utility_sum += Activity::utility(next_act->reportConfidence());
+                utility_sum /= ((float)selected.size() + 1);
+            } else {
+                if(selected.size() > 0) {
+                    utility_sum /= (float)selected.size();
+                } else {
+                    Log::err << "ERROR DEBUG\n";
+                    std::exit(-1);
+                }
+            }
+            return std::make_pair(po, utility_sum);
         }
     };
     f_revisit_time_forwards.second = [](CFArg0 t, CFArg1 as) {
@@ -262,7 +281,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
                 if(b_act_ptr->isFact() && b_act_ptr->isConfimed()) {
                     if(tsa >= tsb && tsa <= teb) {
                         /* These activities are overlapping. Revisit time is 0 and so is payoff. */
-                        return payoff(0.0);
+                        return std::make_pair(payoff(0.0), 1.f);
                     }
                     if( (t_diff == -1.0 && t_diff_i >= 0.0) ||                      /* <--- Is the first value. */
                         (t_diff > -1.0 && t_diff_i >= 0.0 && t_diff_i < t_diff)) {  /* <--- Is a min value. */
@@ -313,7 +332,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
          **/
         if((!prev_act || t_diff == -1.0) && t_horizon_overlap == -1.0) {
             /* There weren't activities to check with. Payoff is maximum. */
-            return 1.f;
+            return std::make_pair(1.f, Config::utility_unknown);
         } else {
             if(t_horizon == -1.0 && t_diff == -1.0 && t_horizon_overlap != -1.0) {
                 t_horizon = t_horizon_overlap;
@@ -360,17 +379,44 @@ void PayoffFunctions::bindPayoffFunctions(void)
             /* Compute differentially-weighted revisit time: */
             float po = payoff(t_diff); /* Revisit time backwards. This is the worst case. */
             float poi, dist_po;
+            float utility_sum = 0.f;
             for(auto& s : selected) {
                 teb = s.first;
                 poi = payoff(tsa - teb);  /* Must be smaller or equal than po. */
                 if(poi > po) { /* TODO: Remove this after debugging. */
-                    Log::err << "Error computing intermediate payoff values (B). Aborting.\n";
-                    std::exit(-1);
+                    Log::err << "Error computing intermediate payoff values (B). Printing debug information and aborting.\n";
+                    Log::err << "Initial RV(B) = " << t_diff << " = " << VirtualTime::toString(t_diff, false) << " --> PO0 = " << payoff(t_diff) << ".\n";
+                    Log::err << "Current PO = " << po << ". Tsa = " << (tsa - Config::start_epoch) << ". Selected activities:\n";
+                    for(auto& act : selected) {
+                        Log::err << " -- [" << act.second->getAgentId() << ":" << act.second->getId() << "]:";
+                        Log::err << " Teb = " << (teb - Config::start_epoch) << " = " << VirtualTime::toString(teb) << ";";
+                        Log::err << " POi = " << poi << "\n";
+                    }
+                    if(po < 0.0f) {
+                        po = 0.f;
+                    }
+                    poi = po;
                 }
                 dist_po = po - poi;
-                po -= dist_po * s.second->getConfidence();
+                po -= dist_po * s.second->reportConfidence();
+                if(po < 0.f) { /* TODO: Remove this after debugging: */
+                    Log::err << "ERROR: Got a negative payoff! po -= " << dist_po << " * " << s.second->reportConfidence() << " = " << po << "\n";
+                    std::exit(-1);
+                }
+                utility_sum += Activity::utility(s.second->reportConfidence());
             }
-            return po;
+            if(prev_act != nullptr) {
+                utility_sum += Activity::utility(prev_act->reportConfidence());
+                utility_sum /= ((float)selected.size() + 1);
+            } else {
+                if(selected.size() > 0) {
+                    utility_sum /= (float)selected.size();
+                } else {
+                    Log::err << "ERROR DEBUG\n";
+                    std::exit(-1);
+                }
+            }
+            return std::make_pair(po, utility_sum);
         }
     };
     f_revisit_time_backwards.second = [](CFArg0 t, CFArg1 as) {
@@ -385,7 +431,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
 
     /* Coverage: -------------------------------------------------------------------------------- */
     f_coverage.first = [](PFArg0 /* ats */, PFArg1 /* bts */, PFArg2 /* bs */) {
-        return Random::getUf(0.f, 1.f);
+        return std::make_pair(Random::getUf(0.f, 1.f), Random::getUf(0.f, 1.f));
     };
     f_coverage.second = [](CFArg0 /* t */, CFArg1 /* as */) {
         return CFArg1();
@@ -393,7 +439,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
 
     /* Latency: --------------------------------------------------------------------------------- */
     f_latency.first = [](PFArg0 /* ats */, PFArg1 /* bts */, PFArg2 /* bs */) {
-        return Random::getUf(0.f, 1.f);
+        return std::make_pair(Random::getUf(0.f, 1.f), Random::getUf(0.f, 1.f));
     };
     f_latency.second = [](CFArg0 /* t */, CFArg1 /* as */) {
         return CFArg1();

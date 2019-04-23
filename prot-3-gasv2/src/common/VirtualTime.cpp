@@ -31,7 +31,7 @@ void VirtualTime::doInit(double t)
     m_initialized = true;
 }
 
-std::string VirtualTime::toString(double t, bool is_absolute_time)
+std::string VirtualTime::toString(double t, bool is_absolute_time, bool simplified)
 {
     std::stringstream ss;
     std::string retval;
@@ -44,7 +44,11 @@ std::string VirtualTime::toString(double t, bool is_absolute_time)
     if(Config::time_type == TimeValueType::JULIAN_DAYS) {
         if(is_absolute_time) {
             if(!m_initialized) {
-                ss << "\'?d??:??:??\'";
+                if(simplified) {
+                    ss << "?d??:??:??";
+                } else {
+                    ss << "\'?d??:??:??.???\'";
+                }
                 return ss.str();
             } else {
                 t -= Config::start_epoch;
@@ -57,10 +61,21 @@ std::string VirtualTime::toString(double t, bool is_absolute_time)
         if(60.0 - sec < 0.001) {
             sec = 59.999;    /* Just for visalisation purposes. */
         }
-        ss << "\'" << days << "d"
+        int precision = 3;
+        int numberwidth = 6;
+        if(simplified) {
+            precision = 0;
+            numberwidth = 2;
+        } else {
+            ss << "\'";
+        }
+        ss << days << "d"
             << std::setw(2) << std::setfill('0') << hour << ":"
             << std::setw(2) << std::setfill('0') << min  << ":"
-            << std::fixed << std::setprecision(3) << std::setw(6) << std::setfill('0') << sec << "\'";
+            << std::fixed << std::setprecision(precision) << std::setw(numberwidth) << std::setfill('0') << sec;
+        if(!simplified) {
+            ss << "\'";
+        }
     } else {
         ss << std::fixed << std::setprecision(3) << m_vtime;
     }

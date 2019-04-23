@@ -37,6 +37,10 @@ public:
     static double duration;                     /**< Units of time. */
     static double time_step;                    /**< Units of time per step. */
 
+    /* Concurrency settings: */
+    static bool parallel_nested;                /**< Wether to use OMP nested loops or not. */
+    static unsigned int parallel_planners;      /**< Max number of parallel GAs planners. */
+
     /* System goals and payoff model: */
     static double goal_target;                  /**< Units of time. */
     static double goal_min;                     /**< Units of time. */
@@ -107,9 +111,17 @@ public:
     static ColorGradient color_gradient_blue;
     static unsigned int fnt_size;
 
-    /* Scheduling hard constraints: */
-    static unsigned int max_tasks;
-    static double max_task_duration;
+    /* Activity management, scheduling configuration, and knowledge base parameters: */
+    static unsigned int max_tasks;              /**< Maximum number of tasks (i.e. chromosome length). */
+    static float min_payoff;                    /**< Payoff threshold below which tasks will not be generated. */
+    static double max_task_duration;            /**< Max. task duration (in time units). */
+    static double activity_confirm_window;      /**< Length of the confirmation window (in time units). */
+    static float confidence_mod_exp;            /**< Exponent of the confidence modifier. */
+    static float utility_floor;                 /**< Minimum utility for confidence in priority. */
+    static float utility_k;                     /**< Utility function (logitic sigmoid func): steepness. */
+    static float utility_unknown;               /**< Utility obtained for payoff computed without other activities. */
+    static float utility_weight;                /**< Priority function: weight for utility. */
+    static float decay_weight;                  /**< Priority function: weight for decay. */
 
     /* Genetic Algorithm configuration: */
     static unsigned int ga_generations;         /**< Max. absolute number of iterations. */
@@ -127,6 +139,7 @@ public:
     /* Global values: */
     static std::string root_path;   /**< Root path of the project. */
     static std::string data_path;   /**< Path were simulation results will be saved to.*/
+    static SandboxMode mode;        /**< The mode of this sandbox. */
 
     /*******************************************************************************************//**
      *  Loads command arguments from console and parses them.

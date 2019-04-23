@@ -21,6 +21,7 @@ Activity::Activity(std::string agent_id, int id)
     , m_discarded(false)
     , m_active(false)
     , m_confidence(0.f)
+    , m_confidence_baseline(0.f)
     , m_ready(false)
     , m_self_view(nullptr)
     , m_aperture(0.f)
@@ -45,6 +46,7 @@ Activity::Activity(const Activity& other)
     /* m_active_cells is not copied. */
     , m_ready(false)
     , m_confidence(other.m_confidence)
+    , m_confidence_baseline(other.m_confidence_baseline)
     , m_last_update(other.m_last_update)
     , m_self_view(nullptr)
     , m_aperture(other.m_aperture)
@@ -60,6 +62,7 @@ Activity& Activity::operator=(const Activity& other)
     /* m_active_cells is not copied. */
     m_ready = false;
     m_confidence = other.m_confidence;
+    m_confidence_baseline = other.m_confidence_baseline;
     m_last_update = other.m_last_update;
     m_self_view = nullptr;
     m_aperture = other.m_aperture;
@@ -68,10 +71,12 @@ Activity& Activity::operator=(const Activity& other)
 
 void Activity::clone(std::shared_ptr<Activity> aptr)
 {
-    setConfidence(aptr->getConfidence());
-    setConfirmed(aptr->isConfimed());
-    m_last_update = aptr->getLastUpdateTime();
-    m_creation_time = aptr->getCreationTime();
+    m_confidence = aptr->m_confidence;
+    m_confidence_baseline = aptr->m_confidence_baseline;
+    m_confirmed = aptr->m_confirmed;
+    m_discarded = aptr->m_discarded;
+    m_creation_time = aptr->m_creation_time;
+    m_last_update = aptr->m_last_update;
     /*  NOTE: the following members are not modified/cloned:
      *  - Agent ID & activity ID: these are supposed to be equal or we don't care.
      *  - Trajectory: we're only updating state. Trajectory is expected to remain the same.
@@ -84,22 +89,36 @@ void Activity::clone(std::shared_ptr<Activity> aptr)
 
 void Activity::setConfirmed(bool c)
 {
-    m_confirmed = c;
-    if(c) {
-        m_discarded = false;
-        m_confidence = 1.f;
+    if(!isFact()) {
+        m_confirmed = c;
+        if(c) {
+            m_discarded = false;
+            m_confidence = 1.f;
+            m_confidence_baseline = 1.f;
+        }
+        m_last_update = VirtualTime::now();
+        Log::dbg << "Activity [" << m_agent_id << ":" << m_id << "] has been confirmed.\n";
+    } else {
+        Log::err << "Trying to change fact [" << m_agent_id << ":" << m_id << "]; setting confirmed to \'"
+            << std::boolalpha << c << "\'. This call has no effect.\n";
     }
-    m_last_update = VirtualTime::now();
 }
 
 void Activity::setDiscarded(bool d)
 {
-    m_discarded = d;
-    if(d) {
-        m_confirmed = false;
-        m_confidence = 0.f;
+    if(!isFact()) {
+        m_discarded = d;
+        if(d) {
+            m_confirmed = false;
+            m_confidence = 0.f;
+            m_confidence_baseline = 0.f;
+        }
+        m_last_update = VirtualTime::now();
+        Log::dbg << "Activity [" << m_agent_id << ":" << m_id << "] has been discarded.\n";
+    } else {
+        Log::err << "Trying to change fact [" << m_agent_id << ":" << m_id << "]; setting discarded to \'"
+            << std::boolalpha << d << "\'. This call has no effect.\n";
     }
-    m_last_update = VirtualTime::now();
 }
 
 std::vector<sf::Vector2i> Activity::getActiveCells(void) const
@@ -175,17 +194,34 @@ void Activity::setId(int id)
 
 void Activity::setActive(bool a)
 {
-    m_active = a;
-    if(a) {
+    if(!isFact() && a) {
         setConfirmed(true);
     }
+    m_active = a;
     if(m_self_view != nullptr) {
         m_self_view->setActive(a);
     }
 }
 
-void Activity::setConfidence(float c)
+void Activity::setConfidence(void)
 {
+    if(!isFact()) {
+        double m_last_update = VirtualTime::now();
+        double t_ref = getStartTime() - Config::activity_confirm_window;
+        double delta = t_ref - m_last_update;
+        if(delta < 0.0) {
+            /* This activity should have been confirmed, but it's not. */
+            Log::err << "Activity [" << m_agent_id << ":" << m_id << "] has not been confirmed and time has exceeded "
+                << "the confirmation window. This is unexpected.\n";
+            delta = 0.0;
+        }
+        m_confidence = std::pow(m_confidence_baseline, (1.f - std::pow(delta, Config::confidence_mod_exp)));
+    } /* ... else is a fact and we cannot make changes. */
+}
+
+void Activity::setConfidenceBaseline(float c)
+{
+    m_confidence_baseline = c;
     m_confidence = c;
     m_last_update = VirtualTime::now();
 }
@@ -196,44 +232,30 @@ float Activity::getPriority(ActivityPriorityModel pmodel_type) const
     switch(pmodel_type) {
         case ActivityPriorityModel::BASIC:
         {
-            double t_now = VirtualTime::now();
-            double a = t_now - m_creation_time;     /* Age (1).     */
-            double b = t_now - m_last_update;       /* Age (2).     */
-            double c = 0.0;                         /* Confidence.  */
-            double d;                               /* Delta-time.  */
-            if(m_confidence >= 0.8f) {
-                c = (m_confidence - 0.8f) / 0.2;
-            } else if(m_confidence <= 0.2f) {
-                c = 1.0 - (m_confidence / 0.2);
-            }
-            d = getStartTime();
-            if(!m_ready || d < 0.0) {
-                Log::err << "Can't compute priority of " << *this << ", because it is not ready.\n";
-                throw std::runtime_error("Can't compute priority of an activity that is not ready.");
-            }
-            d = std::fabs(d - t_now);
-
-            /* Normalize and saturate times: */
-            a /= Config::goal_target;
-            b /= Config::goal_target;
-            d /= Config::goal_target * 2.0;
-            a = std::min(std::max(1.0 - a, 0.0), 1.0);
-            b = std::min(std::max(1.0 - b, 0.0), 1.0);
-            d = std::min(std::max(1.0 - d, 0.0), 1.0);
-
-            double wa = 3.0;
-            double wb = 4.0;
-            double wc = 0.0;
-            double wd = 3.0;
-            double wsum = wa + wb + wc + wd;
-            wa /= wsum;
-            wb /= wsum;
-            wc /= wsum;
-            wd /= wsum;
-            retval = (wa * a) + (wb * b) + (wc * c) + (wd * d);
+            float d = decay(m_last_update); /* Decay: time since last update. */
+            float u = utility(m_confidence, Config::utility_floor);  /* Confidence-utility.  */
+            retval = (Config::decay_weight * d) + (Config::utility_weight * u);
+            /* decay_weight + utility_weight should be = 1. */
         }
     }
     return retval;
+}
+
+float Activity::decay(double t)
+{
+    return 0.f;
+}
+
+float Activity::utility(float c, float fl)
+{
+    float utility, mod_c;
+    if(c <= 0.5f) {
+        mod_c = 1.f - 2.f * c;
+    } else {
+        mod_c = 2.f * (c - 0.5f);
+    }
+    utility = 1.f/(1.f + std::exp(-Config::utility_k * (mod_c - 0.5f)));
+    return fl + (1.f - fl) * utility;
 }
 
 std::shared_ptr<SegmentView> Activity::getView(std::string owner)
@@ -306,10 +328,17 @@ std::ostream& operator<<(std::ostream& os, const Activity& act)
     os << "actc:" << act.m_active_cells.size() << " cells, ";
     if(act.m_ready) {
         os << std::fixed << std::setprecision(2);
-        os << "S:" << VirtualTime::toString(act.getStartTime()) << " E:" << VirtualTime::toString(act.getEndTime());
+        os << "S:" << VirtualTime::toString(act.getStartTime(), true, true) << " ";
+        os << "E:" << VirtualTime::toString(act.getEndTime(), true, true) << ", ";
     } else {
-        os << "not ready";
+        os << "not ready, ";
     }
-    os << "}";
+    if(act.isConfimed()) {
+        os << "Fact, Confirmed}";
+    } else if(act.isDiscarded()) {
+        os << "Fact, Discarded}";
+    } else {
+        os << "BC: " << act.m_confidence_baseline << " C: " << act.m_confidence << "}";
+    }
     return os;
 }

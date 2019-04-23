@@ -69,7 +69,7 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
     return do_continue;
 }
 
-std::vector<std::pair<double, double> > GAScheduler::schedule(void)
+std::vector<std::tuple<double, double, float> > GAScheduler::schedule(void)
 {
     if(m_population.size() == 0) {
         Log::err << "Cannot start scheduling before population has been spawned.\n";
@@ -150,31 +150,43 @@ std::vector<std::pair<double, double> > GAScheduler::schedule(void)
          *  prev_best_valid = best.valid;
          **/
     }
-    std::vector<std::pair<double, double> > retvec;
+    std::vector<std::tuple<double, double, float> > retvec;
     if(best.valid) {
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
         double t0 = -1.0, t1 = -1.0;
         bool bflag = false;
+        float bc = 0.f;
+        int bc_count = 1;
         for(unsigned int i = 0; i < best.alleles.size(); i++) {
             if(best.alleles[i] && !bflag) {
                 /* Start a new activity: */
                 t0 = m_individual_info[i].t_start;
                 t1 = m_individual_info[i].t_start + m_individual_info[i].t_steps * Config::time_step;
+                bc = m_individual_info[i].baseline_confidence;
+                bc_count = 1;
                 bflag = true;
             } else if(best.alleles[i] && bflag) {
                 /* Continue/extend a previous activity: */
                 t1 += m_individual_info[i].t_steps * Config::time_step;
+                bc += m_individual_info[i].baseline_confidence;
+                bc_count++;
             } else if(!best.alleles[i] && bflag) {
                 /* Record the activity: */
-                retvec.push_back(std::make_pair(t0, t1));
-                Log::dbg << " # Activity " << (retvec.size() - 1) << ": [" << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1) << ").\n";
+                bc /= (float)bc_count;
+                retvec.push_back(std::make_tuple(t0, t1, bc));
+                Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
+                    << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
+                    << "). B.conf: " << bc << "\n";
                 bflag = false;
             }
         }
         if(bflag) {
             /* Record the last activity: */
-            retvec.push_back(std::make_pair(t0, t1));
-            Log::dbg << " # Activity " << (retvec.size() - 1) << ": [" << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1) << ").\n";
+            bc /= (float)bc_count;
+            retvec.push_back(std::make_tuple(t0, t1, bc));
+            Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
+                << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
+                << "). B.conf: " << bc << "\n";
         }
     } else {
         Log::warn << "GA Scheduler completed after " << g << " iterations, but could not find a solution.\n";
@@ -254,7 +266,8 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s,
 
 void GAScheduler::setAggregatedPayoff(unsigned int idx,
     const std::vector<sf::Vector2i>& /* cells */,
-    const std::vector<float>& payoff)
+    const std::vector<float>& payoff,
+    float baseline_confidence)
 {
     float po;
     switch(Config::ga_payoff_aggregate) {
@@ -285,6 +298,7 @@ void GAScheduler::setAggregatedPayoff(unsigned int idx,
         po /= payoff.size();
     }
     m_individual_info[idx].ag_payoff = po;
+    m_individual_info[idx].baseline_confidence = baseline_confidence;
 }
 
 float GAScheduler::computeFitness(GASChromosome& c)

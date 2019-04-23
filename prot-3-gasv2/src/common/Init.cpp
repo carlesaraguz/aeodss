@@ -67,6 +67,8 @@ void Init::doInit(void)
     Log::dbg << "Results directory: " << Config::data_path << "\n";
 
     PayoffFunctions::bindPayoffFunctions();
+
+    omp_set_nested(Config::parallel_nested);
 }
 
 std::string Init::getRootPath(void)

@@ -48,6 +48,7 @@ void EnvCell::addCellActivity(std::shared_ptr<Activity> aptr)
 
 bool EnvCell::removeCellActivity(std::shared_ptr<Activity> aptr)
 {
+    // Log::err << "Removing activity " << *aptr << " from cell " << *this << ".\n";
     auto it = m_activities.find(aptr);
     if(it != m_activities.end()) {
         if(it->second.nts > 0) {
@@ -59,6 +60,7 @@ bool EnvCell::removeCellActivity(std::shared_ptr<Activity> aptr)
     } else {
         /*  This activity might have been automatically cleaned from this cell with EnvCell::clean.
          **/
+        // Log::warn << "The activity " << *aptr << " was no longer allocated in the cell " << *this << ".\n";
         return false;
     }
 }
@@ -122,35 +124,43 @@ float EnvCell::computeCellPayoff(double* at0s, double* at1s, int nts)
          *  ensuring that EnvCellState times are sorted.
          **/
         float po = 0.f;
+        float uavg = 0.f;
+        std::pair<float, float> po_uavg;
         for(unsigned int po_func_idx = 0; po_func_idx < m_payoff_func.size(); po_func_idx++) {
-            po = std::max(po, m_payoff_func[po_func_idx](arg1, arg2, arg3));
+            po_uavg = m_payoff_func[po_func_idx](arg1, arg2, arg3);
+            if(po_uavg.first > po) {
+                po   = po_uavg.first;   /* Update payoff.       */
+                uavg = po_uavg.second;  /* Update utility avg.  */
+            }
         }
-        m_payoff[at0s[i]] = po;
+        m_payoff[at0s[i]].first  = po;      /* Set final value. */
+        m_payoff[at0s[i]].second = uavg;    /* Set final value. */
     }
-    return m_payoff.crbegin()->second;   /* Returns the "last" payoff. */
+    return m_payoff.crbegin()->second.first;   /* Returns the "last" payoff. */
 }
 
-float EnvCell::getPayoff(double t) const
+void EnvCell::getPayoff(double t, float& payoff, float& utility) const
 {
-    double t_diff, retval;
+    double t_diff;
     bool started = false;
     for(auto& po : m_payoff) {
         if(!started) {
             t_diff = std::abs(po.first - t);
-            retval = po.second;
+            payoff  = po.second.first;
+            utility = po.second.second;
             started = true;
         } else {
             if(std::abs(po.first - t) < t_diff) {
                 t_diff = std::abs(po.first - t);
-                retval = po.second;
+                payoff  = po.second.first;
+                utility = po.second.second;
             }
         }
     }
     if(!started) {
         Log::warn << "Cell " << *this << " does not have payoffs to retrieve.\n";
-        return -1.0;
-    } else {
-        return retval;
+        payoff  = -1.f;
+        utility = -1.f;
     }
 }
 
@@ -163,11 +173,13 @@ std::vector<std::shared_ptr<Activity> > EnvCell::getAllActivities(void) const
     return retval;
 }
 
-void EnvCell::clean(unsigned int fidx, double t)
+void EnvCell::clean(double t)
 {
-    auto activities = m_clean_func[fidx](t, getAllActivities());
-    for(auto& ac : activities) {
-        removeCellActivity(ac);
+    for(unsigned int fidx = 0; fidx < m_clean_func.size(); fidx++) {
+        auto activities = m_clean_func[fidx](t, getAllActivities());
+        for(auto& ac : activities) {
+            removeCellActivity(ac);
+        }
     }
 }
 
@@ -188,7 +200,7 @@ std::ostream& operator<<(std::ostream& os, const EnvCell& ec)
 {
     os << "(" << ec.x << "," << ec.y << ")[" << ec.m_payoff.size() << " PO";
     for(auto po : ec.m_payoff) {
-        os << ":(" << po.first << "|" << po.second << ")";
+        os << ":(" << po.first << "|" << po.second.first << "|" << po.second.second << ")";
     }
     os << "]";
     return os;

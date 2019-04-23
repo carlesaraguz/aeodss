@@ -37,6 +37,25 @@ namespace
             time_intervals.clear();
             bs.clear();
         }
+
+        float pobwrapper(
+            std::pair<double, double> ats,
+            std::vector<std::vector<std::pair<double, double> > > bts,
+            std::vector<std::shared_ptr<Activity> > bs)
+        {
+            auto retval = f_po_backward(ats, bts, bs);
+            return retval.first;
+        }
+
+        float pofwrapper(
+            std::pair<double, double> ats,
+            std::vector<std::vector<std::pair<double, double> > > bts,
+            std::vector<std::shared_ptr<Activity> > bs)
+        {
+            auto retval = f_po_forward(ats, bts, bs);
+            return retval.first;
+        }
+
         void helper(std::vector<std::vector<std::pair<double, double> > >& bts,
             std::vector<std::shared_ptr<Activity> >& bs,
             bool confirmed, double ts, double te, float confidence = 0.5f)
@@ -45,7 +64,7 @@ namespace
             if(confirmed) {
                 act->setConfirmed(confirmed);
             } else {
-                act->setConfidence(confidence);
+                act->setConfidenceBaseline(confidence);
             }
             bs.push_back(act);
             std::vector<std::pair<double, double> > t_ints;
@@ -142,21 +161,21 @@ namespace
 
         /* Basic payoff: one single fact to check with (I): */
         helper(bts, bs, true, -2.5, -2.0);
-        EXPECT_NEAR(f_po_backward(std::make_pair(1.0, 1.5), bts, bs), 1.0, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(1.0, 1.5), bts, bs), 1.0, EPSILON);
         helper(bts, bs, true, -1.0, 0.0);
-        EXPECT_NEAR(f_po_backward(std::make_pair(1.0, 1.5), bts, bs), 0.5, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(1.0, 1.5), bts, bs), 0.5, EPSILON);
         helper(bts, bs, true, -1.0, 0.5);
-        EXPECT_NEAR(f_po_backward(std::make_pair(1.0, 1.5), bts, bs), 0.25, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(1.0, 1.5), bts, bs), 0.25, EPSILON);
         helper(bts, bs, true, -1.0, 1.0);
-        EXPECT_NEAR(f_po_backward(std::make_pair(1.0, 1.5), bts, bs), 0.0, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(1.0, 1.5), bts, bs), 0.0, EPSILON);
         clearAll();
 
         /* Basic payoff: one single fact to check with (II): */
         helper(bts, bs, true, 0.0, 0.5);
         helper(bts, bs, true, 1.5, 1.6);    /* Starts later than 1.0. */
-        EXPECT_NEAR(f_po_backward(std::make_pair(1.0, 1.5), bts, bs), 0.25, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(1.0, 1.5), bts, bs), 0.25, EPSILON);
         helper(bts, bs, true, 0.9, 1.2);    /* Overlaps. */
-        EXPECT_NEAR(f_po_backward(std::make_pair(1.0, 1.5), bts, bs), 0.0, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(1.0, 1.5), bts, bs), 0.0, EPSILON);
         clearAll();
     }
 
@@ -172,9 +191,9 @@ namespace
         helper(bts, bs, true,  0.0,  5.0);          /* RT(worst) = 10.0 --> PO(best) = 0.5. */
         helper(bts, bs, false, 0.0,  2.5, 0.5f);    /* Ignored. */
         helper(bts, bs, false, 6.0, 10.0, 0.5f);    /* RT = 5.0 --> PO = 0.5-0.25/2 = 0.375 */
-        EXPECT_NEAR(f_po_backward(std::make_pair(15.0, 16.0), bts, bs), 0.5-0.25/2, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(15.0, 16.0), bts, bs), 0.5-0.25/2, EPSILON);
         helper(bts, bs, false, 6.0, 10.0, 0.5f);    /* RT = 5.0 --> PO = 0.375-(0.375-0.25)/2 = 0.3125 */
-        EXPECT_NEAR(f_po_backward(std::make_pair(15.0, 16.0), bts, bs), 0.3125, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(15.0, 16.0), bts, bs), 0.3125, EPSILON);
 
         /* Multiple undecided, no facts: */
         Config::goal_min = 0.0;     /* PO = 0.0 */
@@ -192,7 +211,7 @@ namespace
         helper(bts, bs, false, 0.0, 4.0, 0.5f);     /* RT = 1.0 --> PO = 0.39921875-(0.39921875-1.0/5)*0.5 = 0.299609375 */
         helper(bts, bs, false, 0.0, 4.5, 0.5f);     /* RT = 0.5 --> PO = 0.299609375-(0.299609375-0.5/5)*0.5 = 0.1998046875 */
         helper(bts, bs, false, 0.0, 5.0, 0.5f);     /* RT = 0.0 --> PO = 0.1998046875-(0.1998046875-0.0/5)*0.5 = 0.09990234375 */
-        EXPECT_NEAR(f_po_backward(std::make_pair(5.0, 6.0), bts, bs), 0.09990234375, EPSILON);
+        EXPECT_NEAR(pobwrapper(std::make_pair(5.0, 6.0), bts, bs), 0.09990234375, EPSILON);
     }
 
     TEST_F(PayoffFunctionsTest, BackwardsOverlap)
@@ -204,34 +223,34 @@ namespace
         Config::goal_max = 20.0;    /* PO = 1.0 */
 
         helper(bts, bs, true, 0.0, 10.0);  /* Fact overlaps activity completely: */
-        EXPECT_NEAR(f_po_backward(std::make_pair(5.0, 9.0), bts, bs), 0.0, EPSILON)
+        EXPECT_NEAR(pobwrapper(std::make_pair(5.0, 9.0), bts, bs), 0.0, EPSILON)
             << "Fact overlaps activity completely.";
         clearAll();
 
         helper(bts, bs, true, 0.0, 10.0);  /* Fact overlaps activity partially: */
-        EXPECT_NEAR(f_po_backward(std::make_pair(5.0, 15.0), bts, bs), 0.0, EPSILON)
+        EXPECT_NEAR(pobwrapper(std::make_pair(5.0, 15.0), bts, bs), 0.0, EPSILON)
             << "Fact overlaps activity partially.";
         clearAll();
 
         helper(bts, bs, true, 0.0, 10.0);  /* Fact overlaps activity at start time: */
-        EXPECT_NEAR(f_po_backward(std::make_pair(0.0, 5.0), bts, bs), 0.0, EPSILON)
+        EXPECT_NEAR(pobwrapper(std::make_pair(0.0, 5.0), bts, bs), 0.0, EPSILON)
             << "Fact overlaps activity at start time.";
         clearAll();
 
         helper(bts, bs, false, 0.0, 10.0, 0.5f);  /* A single undecided overlaps activity completely: */
-        EXPECT_NEAR(f_po_backward(std::make_pair(5.0, 9.0), bts, bs), 0.5, EPSILON)
+        EXPECT_NEAR(pobwrapper(std::make_pair(5.0, 9.0), bts, bs), 0.5, EPSILON)
             << "A single undecided overlaps activity completely.";
         clearAll();
 
         helper(bts, bs, false, 0.0, 10.0, 0.5f);  /* A single undecided overlaps activity partially: */
-        EXPECT_NEAR(f_po_backward(std::make_pair(5.0, 15.0), bts, bs), 0.5, EPSILON)
+        EXPECT_NEAR(pobwrapper(std::make_pair(5.0, 15.0), bts, bs), 0.5, EPSILON)
             << "A single undecided overlaps activity partially.";
         clearAll();
 
         /* Two undecided; one overlaps activity partially: */
         helper(bts, bs, false,  0.0,  7.5, 0.5f);   /* RT(worst) = 17.5 --> PO(best) = 0.875 */
         helper(bts, bs, false, 20.0, 26.0, 0.5f);   /* Overlaps partially --> TEnd = 25 --> RT = 0 --> 0.875-(0.875)*0.5 */
-        EXPECT_NEAR(f_po_backward(std::make_pair(25.0, 27.0), bts, bs), 0.4375, EPSILON)
+        EXPECT_NEAR(pobwrapper(std::make_pair(25.0, 27.0), bts, bs), 0.4375, EPSILON)
             << "Two undecided; one overlaps activity partially.";
         clearAll();
     }
@@ -245,21 +264,21 @@ namespace
 
         /* Basic payoff: one single fact to check with (I): */
         helper(bts, bs, true, 12.0, 12.5);
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 10.0), bts, bs), 1.0, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 10.0), bts, bs), 1.0, EPSILON);
         helper(bts, bs, true, 11.0, 11.5);
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 10.0), bts, bs), 0.5, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 10.0), bts, bs), 0.5, EPSILON);
         helper(bts, bs, true, 10.5, 11.0);
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 10.0), bts, bs), 0.25, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 10.0), bts, bs), 0.25, EPSILON);
         helper(bts, bs, true, 10.0, 10.5);
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 10.0), bts, bs), 0.0, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 10.0), bts, bs), 0.0, EPSILON);
         clearAll();
 
         /* Basic payoff: one single fact to check with (II): */
         helper(bts, bs, true, 2.5, 3.5);    /* RT=0.5 --> PO=0.25*/
         helper(bts, bs, true, 0.5, 1.5);    /* Ends earlier than 2.0. */
-        EXPECT_NEAR(f_po_forward(std::make_pair(1.0, 2.0), bts, bs), 0.25, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(1.0, 2.0), bts, bs), 0.25, EPSILON);
         helper(bts, bs, true, 1.9, 2.2);    /* Overlaps. */
-        EXPECT_NEAR(f_po_forward(std::make_pair(1.0, 2.0), bts, bs), 0.0, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(1.0, 2.0), bts, bs), 0.0, EPSILON);
         clearAll();
     }
 
@@ -275,9 +294,9 @@ namespace
         helper(bts, bs, true,  15.0, 20.0);         /* RT(worst) = 10.0 --> PO(best) = 0.5. */
         helper(bts, bs, false, 16.0, 21.0, 0.5f);   /* Ignored. */
         helper(bts, bs, false, 10.0, 11.0, 0.5f);   /* RT = 5.0 --> PO = 0.5-0.25/2 = 0.375 */
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 5.0), bts, bs), 0.5-0.25/2, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 5.0), bts, bs), 0.5-0.25/2, EPSILON);
         helper(bts, bs, false, 10.0, 11.0, 0.5f);   /* RT = 5.0 --> PO = 0.375-(0.375-0.25)/2 = 0.3125 */
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 5.0), bts, bs), 0.3125, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 5.0), bts, bs), 0.3125, EPSILON);
 
         /* Multiple undecided, no facts: */
         Config::goal_min = 0.0;     /* PO = 0.0 */
@@ -295,7 +314,7 @@ namespace
         helper(bts, bs, false,  6.0,  6.5, 0.5f);   /* RT = 1.0 --> PO = 0.39921875-(0.39921875-1.0/5)*0.5 = 0.299609375 */
         helper(bts, bs, false,  5.5,  6.0, 0.5f);   /* RT = 0.5 --> PO = 0.299609375-(0.299609375-0.5/5)*0.5 = 0.1998046875 */
         helper(bts, bs, false,  5.0,  5.5, 0.5f);   /* RT = 0.0 --> PO = 0.1998046875-(0.1998046875-0.0/5)*0.5 = 0.09990234375 */
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 5.0), bts, bs), 0.09990234375, EPSILON);
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 5.0), bts, bs), 0.09990234375, EPSILON);
     }
 
     TEST_F(PayoffFunctionsTest, ForwardsOverlap)
@@ -307,34 +326,34 @@ namespace
         Config::goal_max = 20.0;    /* PO = 1.0 */
 
         helper(bts, bs, true, 0.0, 10.0);  /* Fact overlaps activity completely: */
-        EXPECT_NEAR(f_po_forward(std::make_pair(5.0, 9.0), bts, bs), 0.0, EPSILON)
+        EXPECT_NEAR(pofwrapper(std::make_pair(5.0, 9.0), bts, bs), 0.0, EPSILON)
             << "Fact overlaps activity completely.";
         clearAll();
 
         helper(bts, bs, true, 5.0, 15.0);  /* Fact overlaps activity partially: */
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 10.0), bts, bs), 0.0, EPSILON)
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 10.0), bts, bs), 0.0, EPSILON)
             << "Fact overlaps activity partially.";
         clearAll();
 
         helper(bts, bs, true, 5.0, 10.0);  /* Fact overlaps activity at end time: */
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 10.0), bts, bs), 0.0, EPSILON)
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 10.0), bts, bs), 0.0, EPSILON)
             << "Fact overlaps activity at end time.";
         clearAll();
 
         helper(bts, bs, false, 0.0, 10.0, 0.5f);  /* A single undecided overlaps activity completely: */
-        EXPECT_NEAR(f_po_forward(std::make_pair(5.0, 9.0), bts, bs), 0.5, EPSILON)
+        EXPECT_NEAR(pofwrapper(std::make_pair(5.0, 9.0), bts, bs), 0.5, EPSILON)
             << "A single undecided overlaps activity completely.";
         clearAll();
 
         helper(bts, bs, false, 5.0, 15.0, 0.5f);  /* A single undecided overlaps activity partially: */
-        EXPECT_NEAR(f_po_forward(std::make_pair(0.0, 10.0), bts, bs), 0.5, EPSILON)
+        EXPECT_NEAR(pofwrapper(std::make_pair(0.0, 10.0), bts, bs), 0.5, EPSILON)
             << "A single undecided overlaps activity partially.";
         clearAll();
 
         /* Two undecided; one overlaps activity partially: */
         helper(bts, bs, false, 27.5, 28.0, 0.5f);   /* RT(worst) = 17.5 --> PO(best) = 0.875 */
         helper(bts, bs, false,  7.5, 15.0, 0.5f);   /* Overlaps partially --> TStart = 5 --> RT = 0 --> 0.875-(0.875)*0.5 */
-        EXPECT_NEAR(f_po_forward(std::make_pair(5.0, 10.0), bts, bs), 0.4375, EPSILON)
+        EXPECT_NEAR(pofwrapper(std::make_pair(5.0, 10.0), bts, bs), 0.4375, EPSILON)
             << "Two undecided; one overlaps activity partially.";
         clearAll();
     }

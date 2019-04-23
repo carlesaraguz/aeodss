@@ -18,7 +18,6 @@ ActivityHandler::ActivityHandler(Agent* aptr)
     , m_agent(aptr)
     , m_activity_count(0)
     , m_update_view(false)
-    , m_current_activity_idx(-1)
     , m_aperture(0.f)
 {
     m_self_view.setOwnActivityList(&m_activities_own);
@@ -83,29 +82,40 @@ void ActivityHandler::report(void)
 void ActivityHandler::purge(void)
 {
     bool bflag = false;
+    int count = 0;
     double t_horizon = VirtualTime::now() - Config::goal_target;
     for(auto it = m_activities_own.begin(); it != m_activities_own.end(); ) {
-        if((*it)->getEndTime() < t_horizon) {
+        auto act = *it;
+        if(act->getEndTime() < t_horizon) {
             /* We shall remove it: */
             it = m_activities_own.erase(it);
-            m_current_activity_idx -= 1;
             bflag = true;
+            count++;
         } else {
-            /* We're done, provided that activities are properly sorted. */
-            break;
+            it++;
         }
     }
+    if(bflag || (m_act_own_lut.size() != m_activities_own.size())) {
+        m_act_own_lut.clear();
+        for(unsigned int i = 0; i < m_activities_own.size(); i++) {
+            m_act_own_lut[m_activities_own[i]->getStartTime()] = i;
+        }
+    }
+    Log::dbg << "Agent " << m_agent_id << " has purged " << count << " old activities (owned).\n";
+    count = 0;
     for(auto& act_others : m_activities_others) {
         for(auto act_it = act_others.second.begin(); act_it != act_others.second.end(); ) {
             if(act_it->second->getEndTime() < t_horizon) {
                 /* We shall remove it: */
                 act_it = act_others.second.erase(act_it);
                 bflag = true;
+                count++;
             } else {
                 act_it++;
             }
         }
     }
+    Log::dbg << "Agent " << m_agent_id << " has purged " << count << " old activities (others).\n";
     if(bflag) {
         report();
         bflag = false;
@@ -114,47 +124,23 @@ void ActivityHandler::purge(void)
 
 void ActivityHandler::update(void)
 {
+    // Log::dbg << "Agent " << m_agent_id << " will update its activities.\n";
     double t = VirtualTime::now();
-    if(m_current_activity_idx < 0) {
-        /* We have no clue about the current activity: */
-        for(unsigned int idx = 0; idx < m_activities_own.size(); idx++) {
-            if(m_activities_own[idx]->getStartTime() <= t && m_activities_own[idx]->getEndTime() < t) {
-                /* This is the current activity: */
-                m_current_activity_idx = idx;
-                break;
-            }
-        }
-    } else {
-        /* There was an index set before: */
-        int previdx = m_current_activity_idx;
-        m_current_activity_idx = -1;
-        if(previdx < (int)m_activities_own.size()) {
-            auto aptr = m_activities_own[previdx];
-            if(aptr->getEndTime() <= t) {
-                for(int idx = previdx; idx < (int)m_activities_own.size(); idx++) {
-                    if(m_activities_own[idx]->getStartTime() <= t && m_activities_own[idx]->getEndTime() < t) {
-                        m_current_activity_idx = idx;
-                        break;
-                    }
-                }
-            } else if(aptr->getStartTime() > t) {
-                for(int idx = previdx; idx >= 0; idx--) {
-                    if(m_activities_own[idx]->getStartTime() <= t && m_activities_own[idx]->getEndTime() < t) {
-                        m_current_activity_idx = idx;
-                        break;
-                    }
-                }
-            } else {
-                /* The index is still valid. */
-                m_current_activity_idx = previdx;
+    for(auto ait = m_activities_own.rbegin(); ait != m_activities_own.rend(); ait++) {
+        auto aptr = *ait;
+        if(!aptr->isFact()) {
+            /* Is neither discarded nor confirmed: */
+            if(aptr->getStartTime() - t <= Config::activity_confirm_window) {
+                /* Can be confirmed now: */
+                aptr->setConfirmed(true);
             }
         }
     }
-    if(m_current_activity_idx >= 0) {
-        m_activities_own[m_current_activity_idx]->setConfirmed();
-        if(m_current_activity_idx + 1 < (int)m_activities_own.size()) {
-            /* Also confirm the next one: */
-            m_activities_own[m_current_activity_idx + 1]->setConfirmed();
+    if(m_act_own_lut.size() != m_activities_own.size()) {
+        Log::err << "Agent " << m_agent_id << " found an inconsistency in its activity look-up table. Rebuilding.\n";
+        m_act_own_lut.clear();
+        for(unsigned int i = 0; i < m_activities_own.size(); i++) {
+            m_act_own_lut[m_activities_own[i]->getStartTime()] = i;
         }
     }
 }
@@ -162,29 +148,11 @@ void ActivityHandler::update(void)
 bool ActivityHandler::isCapturing(void)
 {
     double t = VirtualTime::now();
-    if(m_current_activity_idx >= 0 && m_current_activity_idx < (int)m_activities_own.size()) {
-        auto aptr = m_activities_own.at(m_current_activity_idx);
-        if(aptr->getStartTime() <= t && aptr->getEndTime() > t) {
-            return true;
-        } else if(aptr->getEndTime() <= t) {
-            /* The current activity has ended, check for next: */
-            if(m_current_activity_idx + 1 < (int)m_activities_own.size()) {
-                aptr = m_activities_own.at(m_current_activity_idx + 1);
-                if(aptr->getStartTime() <= t && aptr->getEndTime() > t) {
-                    /* This is the new current activity: */
-                    m_current_activity_idx++;
-                    return true;
-                } else if(aptr->getStartTime() > t) {
-                    /* The index is still valid, but next activity has not started: */
-                    return false;
-                }
-            }
-        } /* ...else the index is no longer valid for some reason. */
-        m_current_activity_idx = -1;
-    }
     for(unsigned int idx = 0; idx < m_activities_own.size(); idx++) {
-        if(m_activities_own[idx]->getStartTime() <= t && m_activities_own[idx]->getEndTime() > t) {
-            m_current_activity_idx = idx;
+        if( m_activities_own[idx]->getStartTime() <= t  &&
+            m_activities_own[idx]->getEndTime() > t     &&
+            !m_activities_own[idx]->isDiscarded()
+        ) {
             return true;
         }
     }
@@ -202,9 +170,9 @@ std::shared_ptr<Activity> ActivityHandler::getNextActivity(double t) const
      *  - Activities are sorted by start time.
      *  - Start and end times of activities for an agent do not overlap.
      **/
-    for(auto& ac : m_activities_own) {
-        if(ac->getStartTime() > t) {
-            retval = ac;
+    for(auto& idx : m_act_own_lut) {
+        if(m_activities_own[idx.second]->getStartTime() > t) {
+            retval = m_activities_own[idx.second];
             break;
         }
     }
@@ -219,7 +187,8 @@ std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) const
      *  - Activities are sorted by start time.
      *  - Start and end times of activities for an agent do not overlap.
      **/
-    for(auto& ac : m_activities_own) {
+    for(auto& idx : m_act_own_lut) {
+        auto ac = m_activities_own[idx.second];
         if(ac->getStartTime() <= t && ac->getEndTime() >= t) {
             retval = ac;
             break;
@@ -231,7 +200,7 @@ std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) const
 std::shared_ptr<Activity> ActivityHandler::getLastActivity(void) const
 {
     if(m_activities_own.size() > 0) {
-        return m_activities_own.back();
+        return m_activities_own[m_act_own_lut.rbegin()->second];
     } else {
         return nullptr;
     }
@@ -286,12 +255,7 @@ void ActivityHandler::add(std::shared_ptr<Activity> pa)
         if(m_env_model_ptr != nullptr) {
             m_env_model_ptr->addActivity(pa);
         }
-        if(m_activities_own.size() == 1) {
-            m_current_activity_idx = 0;
-        } else if(m_current_activity_idx == (int)m_activities_own.size() - 2) {
-            m_current_activity_idx = m_activities_own.size() - 1;
-        }
-        std::sort(m_activities_own.begin(), m_activities_own.end());
+        m_act_own_lut[pa->getStartTime()] = m_activities_own.size() - 1;
         Log::dbg << "Agent " << m_agent_id << " added a new activity: " << *pa << "\n";
     } else {
         /* It has been received: */
@@ -340,6 +304,7 @@ std::vector<std::shared_ptr<Activity> > ActivityHandler::getActivitiesToExchange
     if(aid != m_agent_id) {
         for(auto aptr : m_activities_own) {
             if(aptr->getEndTime() >= time_th) {
+                aptr->setConfidence();  /* Updates the confidence that will be reported if undecided. */
                 retvec.push_back(aptr);
             }
         }
