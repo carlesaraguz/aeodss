@@ -24,6 +24,7 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_current_activity(nullptr)
     , m_display_resources(false)
     , m_link_energy_available(false)
+    , m_replan_horizon(VirtualTime::now())
 {
     configAgentReport();
     if(Config::motion_model == AgentMotionType::ORBITAL) {
@@ -55,6 +56,7 @@ Agent::Agent(std::string id)
     , m_current_activity(nullptr)
     , m_display_resources(false)
     , m_link_energy_available(false)
+    , m_replan_horizon(VirtualTime::now())
 {
     configAgentReport();
     if(Config::motion_model != AgentMotionType::ORBITAL) {
@@ -136,8 +138,7 @@ void Agent::plan(void)
 {
     /* Schedule activities: */
     double tv_now = VirtualTime::now();
-    bool resources_ok = true;
-    if(m_activities->pending() == 0 && m_current_activity == nullptr && resources_ok) {
+    if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr) {
         /* Ensures that old activities are removed from the agent's knowledge base: */
         m_activities->purge();
         m_environment->cleanActivities();
@@ -165,8 +166,9 @@ void Agent::plan(void)
         /* ====================================================================================== */
         #endif
 
-        /* Based on previously computed payoff, generate potential activities: */
-        auto act_gens = m_environment->generateActivities(tmp_act);
+        /* Based on previously computed payoff and pending activities, generate potential activities: */
+        auto pending_activities = m_activities->getPending();
+        auto act_gens = m_environment->generateActivities(tmp_act, pending_activities);
         std::vector<std::shared_ptr<Activity> > acts;
         for(auto& ag : act_gens) {
             if(ag.t0 < ag.t1) {
@@ -216,7 +218,8 @@ void Agent::plan(void)
         }
 
         /* Run the scheduler: */
-        auto result = scheduler.schedule();
+        std::vector<std::shared_ptr<Activity> > adis;
+        auto result = scheduler.schedule(adis);
 
         /* Store the result: */
         for(auto& setimes : result) {
@@ -233,7 +236,12 @@ void Agent::plan(void)
                     << "tend(" << VirtualTime::toString(new_te) << ") (2). Skipping.\n";
             }
         }
+        for(auto& act_dis : adis) {
+            act_dis->setDiscarded();
+        }
         m_activities->update();
+        m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
+        Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
     }
 }
 

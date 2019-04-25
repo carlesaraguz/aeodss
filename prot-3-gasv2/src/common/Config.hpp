@@ -66,6 +66,7 @@ public:
     static bool link_allow_during_capture;      /**< Whether links and payloads can be enabled simultaneously. */
     static float agent_speed;                   /**< Distance per time unit. */
     static unsigned int agent_planning_window;  /**< Steps. 540 ~= 1 orbit. */
+    static unsigned int agent_replanning_window;/**< Steps. 540 ~= 1 orbit. */
     static float activity_size;                 /**< Size of a single agent msg. */
     static AgentMotionType motion_model;        /**< Type of trajectory and motion model. */
     static TimeValueType time_type;             /**< Type of units in time magnitudes. */
@@ -135,6 +136,8 @@ public:
     static GASCrossoverOp ga_crossover_op;      /**< Crossover operator. */
     static GASSelectionOp ga_parentsel_op;      /**< Parent selection operator. */
     static GASSelectionOp ga_environsel_op;     /**< Environment/combination operator. */
+    static float ga_payoff_k;                   /**< P.O. multiplier for previous activities. */
+    static float ga_confidence_th;              /**< Min. confidence to use the P.O. multiplier. */
 
     /* Global values: */
     static std::string root_path;   /**< Root path of the project. */

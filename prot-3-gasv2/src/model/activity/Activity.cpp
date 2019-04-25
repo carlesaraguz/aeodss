@@ -114,7 +114,7 @@ void Activity::setDiscarded(bool d)
             m_confidence_baseline = 0.f;
         }
         m_last_update = VirtualTime::now();
-        Log::dbg << "Activity [" << m_agent_id << ":" << m_id << "] has been discarded.\n";
+        Log::err << "Activity [" << m_agent_id << ":" << m_id << "] has been discarded.\n";
     } else {
         Log::err << "Trying to change fact [" << m_agent_id << ":" << m_id << "]; setting discarded to \'"
             << std::boolalpha << d << "\'. This call has no effect.\n";
@@ -241,7 +241,7 @@ float Activity::getPriority(ActivityPriorityModel pmodel_type) const
     return retval;
 }
 
-float Activity::decay(double t)
+float Activity::decay(double /* t */)
 {
     return 0.f;
 }

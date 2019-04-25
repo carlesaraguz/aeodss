@@ -16,10 +16,18 @@
 #include "Resource.hpp"
 #include "GASChromosome.hpp"
 #include "GASOperators.hpp"
+#include "Activity.hpp"
 
 class GAScheduler
 {
 public:
+    /*******************************************************************************************//**
+     *  (1) double: start time of a new task.
+     *  (2) double: end time of a new task.
+     *  (3) float: baseline confidence of the new task.
+     **********************************************************************************************/
+    typedef std::vector<std::tuple<double, double, float> > Solution;
+
     /*******************************************************************************************//**
      *  Constructor.
      *  @param  t0      Start time (usually: VirtualTime::now()).
@@ -29,11 +37,15 @@ public:
     GAScheduler(double t0, double t1, std::map<std::string, std::shared_ptr<const Resource> > res);
 
     /*******************************************************************************************//**
-     *  Starts the GA Scheduler algorithm. Needs to (previously) having spwaned population and
-     *  configured payoffs.
-     *  @return Start and end times of scheduled activities and baseline confidence.
+     *  Starts the GA Scheduler algorithm. Before calling this function the population has to be
+     *  spawned (with setChromosomeInfo) and the payoff information has to be configured (with
+     *  setAggregatedPayoff). Note that previously scheduled activities that are no longer part of
+     *  the solution, are not discarded in this routine. They are added to adis and are a return
+     *  value that should be used by the agent.
+     *  @param  adis    List of discarded activities.
+     *  @return         Start and end times of scheduled activities and baseline confidence.
      **********************************************************************************************/
-    std::vector<std::tuple<double, double, float> > schedule(void);
+    Solution schedule(std::vector<std::shared_ptr<Activity> >& adis);
 
     /*******************************************************************************************//**
      *  Spawn population. Creates individuals (i.e. GASChromosome's) based on predefined activities/
@@ -58,6 +70,16 @@ public:
         float baseline_confidence);
 
     /*******************************************************************************************//**
+     *  Defines a chromosome range to belong to a previous scheduling solution (i.e. an existing
+     *  activity).
+     *  @param  a_start     The index of the allele where this task starts.
+     *  @param  a_end       The index of the allele where this task ends (inclusive). If it only
+     *                      takes one allele, then a_start = a_end.
+     *  @param  aptr        The actual activity.
+     **********************************************************************************************/
+    void setPreviousSolution(unsigned int a_start, unsigned int a_end, std::shared_ptr<Activity> aptr);
+
+    /*******************************************************************************************//**
      *  Shows debug information related to potential activities. Should allow finding the optimal
      *  solution manually and may assist in a debugging endeavor.
      **********************************************************************************************/
@@ -71,11 +93,10 @@ private:
         float baseline_confidence;              /**< The baseline confidence for this chromosome. */
     };
     struct GASPrevSolution {
-        double t_start;                         /**< Start time of the previously scheduled activity. */
-        double t_end;                           /**< End time of the previously scheduled activity. */
         unsigned int a_start;                   /**< Index of starting allele (current chromosome). */
         unsigned int a_end;                     /**< Index of ending allele (current chrm.), included. */
-        float confidence;                       /**< Confidence reported so far for this activity. */
+        std::shared_ptr<Activity> activity;     /**< The pointer to the actual activity. */
+        float lambda;                           /**< The payoff augmentation factor. */
     };
     const float m_big_coeff = 1e6f;             /**< Ensure big enough to discard resource violations. */
     const float m_small_coeff = 1e-4f;          /**< Ensure small. */
@@ -88,6 +109,7 @@ private:
     std::vector<GASChromosome> m_population;    /**< Chromosomes/individuals. */
     std::map<std::string, float> m_costs;       /**< Resource consumptions. */
     std::vector<GASInfo> m_individual_info;     /**< Info about chromosomes and their alleles. */
+    std::vector<GASPrevSolution> m_previous_solutions;  /* Infor about previous solutions that have been encoded in the chromosome. */
     double m_tstart;                            /**< Scheduling window start time. */
     double m_tend;                              /**< Scheduling window end time. */
     std::map<std::string, std::shared_ptr<const Resource> > m_resources_init;   /* Agent resources at start time. */
@@ -128,6 +150,22 @@ private:
      *          in Config::ga_environsel_op.
      **********************************************************************************************/
     GASChromosome combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children);
+
+    /*******************************************************************************************//**
+     *  Protects chromosome values for activities that are belong to previous solutions and are
+     *  confirmed. This should be called once after the initial population has been generated.
+     **********************************************************************************************/
+    void protectPopulation(void);
+
+    /*******************************************************************************************//**
+     *  Generates a solution from chromosome `c` and identifies activities that are no longer part
+     *  of the solution (and hence need be discarded by their owning agent).
+     *  @param  c       The best individual/solution.
+     *  @param  adis    A reference to a list of discarded activities (will be cleared at the
+     *                  beginning).
+     *  @return         Set of values that are needed to create NEW activities.
+     **********************************************************************************************/
+    Solution generateSolution(GASChromosome c, std::vector<std::shared_ptr<Activity> >& adis);
 
     /*******************************************************************************************//**
      *  Determines whether to continue iterating (i.e. trying to improve solution) or not.

@@ -36,6 +36,7 @@ struct ActivityGen {
     std::vector<sf::Vector2i> c_coord;  /* Coordinates for all the visible cells of the activity. */
     std::vector<float> c_payoffs;       /* Cell payoffs for all the visible cells of the activity. */
     std::vector<float> c_utility;       /* Cell utilities for all the visible cells of the activity. */
+    std::shared_ptr<Activity> prev_act; /* If is enclosed within an existing activity, a pointer to it. */
 };
 
 class EnvModel : public HasView
@@ -70,13 +71,18 @@ public:
      *  (with EnvModel::computePayoff). Iterates over tmp_act's active times and finds intervals
      *  where the cells' payoff is above Config::min_payoff. Based on the previous intervals this
      *  function generates, at most, Config::max_tasks tasks and ensures that their duration is
-     *  shorter or equal to Config::max_task_duration.
+     *  shorter or equal to Config::max_task_duration. The newly generated activities consider the
+     *  time of existing activities, but these can actually be split into multiple other activities.
+     *
      *  @param  tmp_act     A temporal activity used to iterate in time and generate activities that
      *                      are "sub-tasks" of tmp_act.
-     *  @return A vector of activity generation information.
+     *  @param  prev_acts   List of existing (pending) activities that will be considered while
+     *                      generating new ones.
+     *  @return             A vector of activity generation information.
      *  @see ActivityGen.
      **********************************************************************************************/
-    std::vector<ActivityGen> generateActivities(std::shared_ptr<Activity> tmp_act);
+    std::vector<ActivityGen> generateActivities(std::shared_ptr<Activity> tmp_act,
+        std::vector<std::shared_ptr<Activity> > prev_acts);
 
     /*******************************************************************************************//**
      *  Stores a newly created or received activity, to its active cells. This function should be

@@ -26,7 +26,7 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
 {
     bool do_continue = true;
     if(m_iteration_profile.size() == 0) {
-        m_iteration_profile.push_back(std::make_pair(g, best.fitness));
+        m_iteration_profile.push_back(std::make_pair(g, best.getFitness()));
     }
     if(best == m_best) {
         m_generation_timeout++;
@@ -41,7 +41,7 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
     if(g >= Config::ga_generations) {
         do_continue = false;
         Log::dbg << "GA Scheduler reached the maximum amount of generations, stopping now.\n";
-    } else if(/* (g > Config::ga_generations / 3) && */ m_best.valid && (m_generation_timeout >= Config::ga_timeout)) {
+    } else if(/* (g > Config::ga_generations / 3) && */ m_best.isValid() && (m_generation_timeout >= Config::ga_timeout)) {
         do_continue = false;
         Log::dbg << "GA Scheduler timed out after " << g << " generations, stopping now.\n";
         /*  NOTE:
@@ -69,11 +69,35 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
     return do_continue;
 }
 
-std::vector<std::tuple<double, double, float> > GAScheduler::schedule(void)
+GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity> >& adis)
 {
     if(m_population.size() == 0) {
         Log::err << "Cannot start scheduling before population has been spawned.\n";
         throw std::runtime_error("GA Scheduler failed to start because population is not ready.");
+    } else {
+        if(m_previous_solutions.size() > 0) {
+            /*  We have encoded some previous solutions. Check whether we have to protect
+             *  some alleles corresponding to confirmed activities.
+             **/
+            bool protect = false;
+            std::vector<unsigned int> protected_alleles_idx;
+            for(auto& ps : m_previous_solutions) {
+                if(ps.activity->isConfimed()) {
+                    protect = true;
+                    for(unsigned int psaidx = ps.a_start; psaidx <= ps.a_end; psaidx++) {
+                        protected_alleles_idx.push_back(psaidx);
+                    }
+                }
+            }
+            if(protect) {
+                for(auto& ind : m_population) {
+                    for(auto& ps : protected_alleles_idx) {
+                        ind.setAllele(ps, true);    /* Forces this allele to true. */
+                    }
+                    ind.protect(protected_alleles_idx);
+                }
+            }
+        }
     }
 
     if(m_individual_info.size() < 2) {
@@ -97,8 +121,13 @@ std::vector<std::tuple<double, double, float> > GAScheduler::schedule(void)
          *  Log::dbg << "Max. \'" << cost.first << "\' cost: " << m_max_cost[cost.first] << ".\n";
          **/
     }
-    for(auto& inf : m_individual_info) {
-        m_max_payoff += inf.ag_payoff;
+    for(unsigned int j = 0; j < m_individual_info.size(); j++) {
+        m_max_payoff += m_individual_info[j].ag_payoff;
+        for(auto ps : m_previous_solutions) {
+            if(ps.a_start <= j && j <= ps.a_end) {
+                m_max_payoff += m_individual_info[j].ag_payoff * ps.lambda;
+            }
+        }
     }
 
     /* Initialize population fitness: */
@@ -142,54 +171,90 @@ std::vector<std::tuple<double, double, float> > GAScheduler::schedule(void)
         best = combine(m_population, children);     /* Environment selection: updates population. */
 
         /*  DEBUG:
-         *  if(!prev_best_valid && best.valid) {
+         *  if(!prev_best_valid && best.isValid()) {
          *      Log::dbg << "GA Scheduler found a valid solution at generation " << std::setw(4) << g << ": " << best << ".\n";
-         *  } else if(prev_best_valid && !best.valid) {
+         *  } else if(prev_best_valid && !best.isValid()) {
          *      Log::err << "GA Scheduler errored at " << std::setw(4) << g << ": best solution is no longer valid: " << best << ".\n";
          *  }
-         *  prev_best_valid = best.valid;
+         *  prev_best_valid = best.isValid();
          **/
     }
-    std::vector<std::tuple<double, double, float> > retvec;
-    if(best.valid) {
+    if(best.isValid()) {
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
-        double t0 = -1.0, t1 = -1.0;
-        bool bflag = false;
-        float bc = 0.f;
-        int bc_count = 1;
-        for(unsigned int i = 0; i < best.alleles.size(); i++) {
-            if(best.alleles[i] && !bflag) {
-                /* Start a new activity: */
-                t0 = m_individual_info[i].t_start;
-                t1 = m_individual_info[i].t_start + m_individual_info[i].t_steps * Config::time_step;
-                bc = m_individual_info[i].baseline_confidence;
-                bc_count = 1;
-                bflag = true;
-            } else if(best.alleles[i] && bflag) {
-                /* Continue/extend a previous activity: */
-                t1 += m_individual_info[i].t_steps * Config::time_step;
-                bc += m_individual_info[i].baseline_confidence;
-                bc_count++;
-            } else if(!best.alleles[i] && bflag) {
-                /* Record the activity: */
-                bc /= (float)bc_count;
-                retvec.push_back(std::make_tuple(t0, t1, bc));
-                Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
-                    << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
-                    << "). B.conf: " << bc << "\n";
-                bflag = false;
+        return generateSolution(best, adis);
+    } else {
+        Log::warn << "GA Scheduler completed after " << g << " iterations, but could not find a solution.\n";
+        return GAScheduler::Solution();
+    }
+}
+
+GAScheduler::Solution GAScheduler::generateSolution(GASChromosome c, std::vector<std::shared_ptr<Activity> >& adis)
+{
+    GAScheduler::Solution retvec;
+    if(!c.isValid()) {
+        return retvec;
+    }
+    adis.clear();
+
+    /*  Detect whether previous solutions have been kept or not, and modify chromosome to prevent
+     *  creating them again:
+     **/
+    c.protect({});  /* Unprotects all the alleles in this chromosome. */
+    for(auto& ps : m_previous_solutions) {
+        /* Check wether this solution is kept: */
+        bool sol_kept = true;
+        for(unsigned int psa = ps.a_start; psa <= ps.a_end; psa++) {
+            if(!c.getAllele(psa)) {
+                sol_kept = false;
+                break;
             }
         }
-        if(bflag) {
-            /* Record the last activity: */
+        if(sol_kept) {
+            /* Unset the alleles to prevent new activities to be created with this info. */
+            for(unsigned int psa = ps.a_start; psa <= ps.a_end; psa++) {
+                c.setAllele(psa, false);
+            }
+        } else {
+            /* Does not modify the alleles and adds this activity to the discarded list. */
+            adis.push_back(ps.activity);
+        }
+    }
+
+    /* Now the chromosome only has alleles set for strictly NEW tasks: */
+    double t0 = -1.0, t1 = -1.0;
+    bool bflag = false;
+    float bc = 0.f;
+    int bc_count = 1;
+    for(unsigned int i = 0; i < c.getChromosomeLength(); i++) {
+        if(c.getAllele(i) && !bflag) {
+            /* Start a new activity: */
+            t0 = m_individual_info[i].t_start;
+            t1 = m_individual_info[i].t_start + m_individual_info[i].t_steps * Config::time_step;
+            bc = m_individual_info[i].baseline_confidence;
+            bc_count = 1;
+            bflag = true;
+        } else if(c.getAllele(i) && bflag) {
+            /* Continue/extend a previous activity: */
+            t1 += m_individual_info[i].t_steps * Config::time_step;
+            bc += m_individual_info[i].baseline_confidence;
+            bc_count++;
+        } else if(!c.getAllele(i) && bflag) {
+            /* Record the activity: */
             bc /= (float)bc_count;
             retvec.push_back(std::make_tuple(t0, t1, bc));
             Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
                 << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
                 << "). B.conf: " << bc << "\n";
+            bflag = false;
         }
-    } else {
-        Log::warn << "GA Scheduler completed after " << g << " iterations, but could not find a solution.\n";
+    }
+    if(bflag) {
+        /* Record the last activity: */
+        bc /= (float)bc_count;
+        retvec.push_back(std::make_tuple(t0, t1, bc));
+        Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
+            << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
+            << "). B.conf: " << bc << "\n";
     }
     return retvec;
 }
@@ -244,16 +309,18 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s,
     /*  We always insert two types of baseline options:
      *  - `l` solutions with a single activity enabled; and
      *  - one solution where all activities are enabled.
+     *  Note that this happens without checking protected alleles because it is supposed to happen
+     *  before alleles are actually protected.
      **/
     for(unsigned int b = 0; b < l + 1; b++) {
         GASChromosome cbaseline(l);
-        for(unsigned int a = 0; a < cbaseline.alleles.size(); a++) {
+        for(unsigned int a = 0; a < cbaseline.getChromosomeLength(); a++) {
             if(a == b && b < l) {
-                cbaseline.alleles[a] = true;
+                cbaseline.setAllele(a, true);
             } else if(a != b && b < l) {
-                cbaseline.alleles[a] = false;
+                cbaseline.setAllele(a, false);
             } else {
-                cbaseline.alleles[a] = true;
+                cbaseline.setAllele(a, true);
             }
         }
         m_population.push_back(cbaseline);
@@ -301,6 +368,17 @@ void GAScheduler::setAggregatedPayoff(unsigned int idx,
     m_individual_info[idx].baseline_confidence = baseline_confidence;
 }
 
+void GAScheduler::setPreviousSolution(unsigned int a_start, unsigned int a_end, std::shared_ptr<Activity> aptr)
+{
+    GASPrevSolution ga_ps = { a_start, a_end, aptr, 0.f };
+    /* Compute lambda: */
+    if(aptr->reportConfidence() >= Config::ga_confidence_th) {
+        ga_ps.lambda = (aptr->reportConfidence() - Config::ga_confidence_th) * Config::ga_payoff_k;
+    }
+    m_previous_solutions.push_back(ga_ps);
+}
+
+
 float GAScheduler::computeFitness(GASChromosome& c)
 {
     float po = 0.f;                     /* Payoff. */
@@ -311,6 +389,7 @@ float GAScheduler::computeFitness(GASChromosome& c)
      *  R(k) = Σ consumption over t --> absolute accumulated consumption of resource `k`.
      *  R_norm(k) = R(k) / capacity.
      *  `r` = (1/N) · Σ R_norm(k)
+     *  NOTE (2) : `r` is no longer used, but we keep it's implementation for reference.
      **/
 
     std::map<std::string, std::unique_ptr<Resource> > res_cpy;
@@ -319,21 +398,21 @@ float GAScheduler::computeFitness(GASChromosome& c)
         rk[r.first] = 0.f;  /* Initialises normalized consumption counter.*/
     }
     int count_active_alleles = 0;
-    for(unsigned int i = 0; i < c.alleles.size(); i++) {
-        if(c.alleles.at(i)) {
-            /* Allele is active: add payoff. */
+    for(unsigned int i = 0; i < c.getChromosomeLength(); i++) {
+        if(c.getAllele(i)) {
+            /* The allele is active, add its payoff: */
             po += m_individual_info[i].ag_payoff;
             count_active_alleles++;
         }
 
-        if(c.valid) {
-            if(c.alleles.at(i)) {
+        if(c.isValid()) {
+            if(c.getAllele(i)) {
                 /* Allele is active: apply consumptions: */
                 for(auto cost : m_costs) {
                     if(res_cpy[cost.first]->applyUntil(cost.second, m_individual_info[i].t_steps)) {
                         rk[cost.first] += cost.second * Config::time_step * m_individual_info[i].t_steps;
                     } else {
-                        c.valid = false;
+                        c.setValid(false);
                         break;
                     }
                 }
@@ -346,32 +425,45 @@ float GAScheduler::computeFitness(GASChromosome& c)
         }
     }
     if(count_active_alleles == 0) {
-        c.valid = false;
+        c.setValid(false);
     }
     float fitness = 0.f;
-    if(c.valid) {
-        /* There hasn't been resource violations: */
+    if(c.isValid()) {
+        /* There hasn't been resource violations, complete the calculation of the metric `r` */
         for(auto rit : rk) {
             r += rit.second / m_max_cost[rit.first];
         }
         r /= rk.size();
         r = 1.f - r;
         if(r == 0.f && count_active_alleles > 0) {
-            // Log::err << "Chromosome " << c << " is valid but does not consume resources.\n";
             r = m_small_coeff;
         }
+        /**************************************************************************************** */
 
-        po /= m_max_payoff;
-        // fitness = (po + r) / 2.f;
-        fitness = po;
-        // Log::warn << "Chromosome " << c << ": f=" << po << ", r=" << r << " --> " << fitness << "\n";
+        /* Add additional payoff in case previous solutions have been maintained: *************** */
+        for(auto& ps : m_previous_solutions) {
+            /* Check wether this solution is kept: */
+            bool sol_kept = true;
+            float augmented_payoff = 0.f;
+            for(unsigned int psa = ps.a_start; psa <= ps.a_end; psa++) {
+                if(!c.getAllele(psa)) {
+                    sol_kept = false;
+                    break;
+                } else {
+                    augmented_payoff += m_individual_info[psa].ag_payoff * ps.lambda;
+                }
+            }
+            if(sol_kept) {
+                /* The solution (i.e. activity) has been kept. Augment the chromosome payoff: */
+                po += augmented_payoff;
+            }
+        }
+        po /= m_max_payoff; /* Normalise (not strictly necessary for this version). */
+        fitness = po;       /* Before it was: [(po + r) / 2]. Could also be substituted by a Weighted Sum. */
     } else {
-        fitness = po / m_big_coeff;
+        fitness = 0.f;
     }
-    c.fitness = fitness;
-    if(fitness > 1.f) {
-        Log::warn << c << " has an unexpectedly large fitness: f=" << po << ", r=" << r << " --> " << fitness << "\n";
-    }
+    c.setFitness(fitness);
     return fitness;
 }
 
@@ -399,11 +491,11 @@ GASChromosome GAScheduler::select(std::vector<GASChromosome>& mating_pool) const
                     float f_sum = 0.f;
                     std::sort(mating_pool.begin(), mating_pool.end(), std::less<GASChromosome>());
                     for(auto& ind : mating_pool) {
-                        f_sum += ind.fitness;
+                        f_sum += ind.getFitness();
                     }
                     float s = Random::getUf(0.f, f_sum);
                     for(auto it = mating_pool.begin(); it != mating_pool.end(); it++) {
-                        s -= it->fitness;
+                        s -= it->getFitness();
                         if(s < 0.f) {
                             /* Threshold reached: */
                             retval = *it;
@@ -433,7 +525,7 @@ GASChromosome GAScheduler::select(std::vector<GASChromosome>& mating_pool) const
 void GAScheduler::repairPool(std::vector<GASChromosome>& pool)
 {
     for(auto ind = pool.begin(); ind != pool.end(); ) {
-        if(!ind->valid) {
+        if(!ind->isValid()) {
             ind = pool.erase(ind);
         } else {
             ind++;

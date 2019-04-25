@@ -77,6 +77,7 @@ private:
     AgentView m_self_view;
     std::string m_id;
     bool m_display_resources;
+    double m_replan_horizon;
 
     std::vector<ActivityCell> findActiveCells(double t0,
         const std::vector<sf::Vector3f>& ps,

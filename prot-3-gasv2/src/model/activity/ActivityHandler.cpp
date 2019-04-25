@@ -171,7 +171,8 @@ std::shared_ptr<Activity> ActivityHandler::getNextActivity(double t) const
      *  - Start and end times of activities for an agent do not overlap.
      **/
     for(auto& idx : m_act_own_lut) {
-        if(m_activities_own[idx.second]->getStartTime() > t) {
+        auto ac = m_activities_own[idx.second];
+        if(ac->getStartTime() > t && !ac->isDiscarded()) {
             retval = m_activities_own[idx.second];
             break;
         }
@@ -189,12 +190,28 @@ std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) const
      **/
     for(auto& idx : m_act_own_lut) {
         auto ac = m_activities_own[idx.second];
-        if(ac->getStartTime() <= t && ac->getEndTime() >= t) {
+        if(ac->getStartTime() <= t && ac->getEndTime() >= t && !ac->isDiscarded()) {
             retval = ac;
             break;
         }
     }
     return retval;
+}
+
+std::vector<std::shared_ptr<Activity> > ActivityHandler::getPending(void) const
+{
+    std::vector<std::shared_ptr<Activity> > retvec;
+    double t = VirtualTime::now();
+    /*  NB: This function assumes that:
+     *  - Activities are sorted by start time.
+     **/
+    for(auto& idx : m_act_own_lut) {
+        auto ac = m_activities_own[idx.second];
+        if(ac->getStartTime() > t && !ac->isDiscarded()) {
+            retvec.push_back(ac);
+        }
+    }
+    return retvec;
 }
 
 std::shared_ptr<Activity> ActivityHandler::getLastActivity(void) const
@@ -220,11 +237,12 @@ unsigned int ActivityHandler::count(std::string aid) const
     }
 }
 
+
 unsigned int ActivityHandler::pending(void) const
 {
     int count = 0;
     for(auto& a : m_activities_own) {
-        if(a->getEndTime() > VirtualTime::now()) {       /* Ends in the future. */
+        if(a->getEndTime() > VirtualTime::now() && !a->isDiscarded()) {   /* Ends in the future. */
             count++;
         }
     }

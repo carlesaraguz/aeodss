@@ -154,7 +154,7 @@ void EnvModel::cleanActivities(double t)
     }
 }
 
-std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> tmp_act)
+std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> tmp_act, std::vector<std::shared_ptr<Activity> > prev_acts)
 {
     double duration = tmp_act->getEndTime() - tmp_act->getStartTime();
     Log::dbg << "[" << m_agent->getId() << "] Generating potential activities in the range t = ["
@@ -163,71 +163,145 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
         << VirtualTime::toString(duration, false) << ".\n";
     std::vector<ActivityGen> retval;
 
+    /* Build a look-up-table for activity start times (which will be seamlesly sorted). */
+    std::map<double, unsigned int> prev_act_ts;
+    for(unsigned int i = 0; i < prev_acts.size(); i++) {
+        prev_act_ts[prev_acts[i]->getStartTime()] = i;
+    }
+
     /* Iterate in time steps, to generate new activities: */
     double tstart = tmp_act->getStartTime();
     double tend = tmp_act->getEndTime();
-    double t, t0 = 0.f, t1;
-    bool bflag = false;
+    double t, t0 = 0.0, t1;
+    std::shared_ptr<Activity> p_act(nullptr);
+    double p_tstart = tend; /* Initialise at the end of the scheduling window. */
+    double p_tend = tend;   /* Initialise at the end of the scheduling window. */
+    if(prev_act_ts.size() > 0) {
+        p_act = prev_acts[prev_act_ts.begin()->second];     /* This is the first (existing) activity. */
+        p_tstart = p_act->getStartTime();
+        p_tend = p_act->getEndTime();
+        Log::warn << "Considering an existing activity: (" << p_act->getId()
+            << ")[" << VirtualTime::toString(p_tstart, true, true)
+            << ", " << VirtualTime::toString(p_tend, true, true) << "]\n";
+    }
+    bool started_new = false;
+    bool do_continue = false;
+    bool within_old = false;
     std::unordered_set<sf::Vector2i, Vector2iHash> selected_cells;
-    for(unsigned int s = 0; tstart + s * Config::time_step <= tend; s++) {
-        t = tstart + s * Config::time_step;
-        auto cells = tmp_act->getActiveCells(t);
-        /* Remove meaningless cells (i.e. those that don't provide enough payoff at time `t`.) */
-        for(auto it = cells.begin(); it != cells.end(); ) {
-            EnvCell& c = m_cells[it->x][it->y];
-            bool remove_cell = true;
-            for(auto p : c.getAllPayoffs()) {
-                if(p.second.first > Config::min_payoff) {
-                    remove_cell = false;
-                    break;
-                }
-            }
-            if(remove_cell) {
-                it = cells.erase(it);
+    if(std::abs(tstart - p_tstart) <= Config::time_step) {
+        Log::err << "Setting tstart to p_tstart\n";
+        tstart = p_tstart;
+        within_old = true;
+    }
+    double tend_it = p_tstart;
+    do {
+        unsigned int s_max;
+        if(p_act == nullptr) {
+            s_max = Config::agent_planning_window;
+        } else {
+            s_max = p_act->getPositionCount() - 1;
+        }
+        unsigned int s = 0;
+        while(tstart + s * Config::time_step <= tend_it) {
+            t = tstart + s * Config::time_step;
+            if(within_old) {
+                // Log::warn << "Iterating inside a previous activity... (" << p_act->getId() << ") T = " << VirtualTime::toString(t, true, true) << "\n";
             } else {
-                selected_cells.insert(*it);
-                it++;
+                // Log::warn << "Iterating outside a previous activity... T = " << VirtualTime::toString(t, true, true) << "\n";
             }
-        }
-        if(bflag && (cells.size() == 0 || (t - t0) >= Config::max_task_duration || t >= (tend - Config::time_step))) {
-            /* End the previous activity: */
-            t1 = t;
-            bflag = false;
-            if(t1 > t0 && selected_cells.size() > 0) {
-                /*  DEBUG with:
-                 *  Log::dbg << "[" << m_agent->getId() << "] Activity #" << retval.size() << ", T start = "
-                 *      << std::setw(16) << VirtualTime::toString(t0) << ", end = " << std::setw(16) << VirtualTime::toString(t1)
-                 *      << ", duration = " << VirtualTime::toString(t1 - t0, false) << ". Cell count: " << selected_cells.size() << std::defaultfloat << ".\n";
-                 **/
-                std::vector<sf::Vector2i> vec_selected_cells(selected_cells.begin(), selected_cells.end());
-                std::vector<float> vec_payoffs;
-                std::vector<float> vec_utility;
-                float po, ut;
-                for(auto& vsc : vec_selected_cells) {
-                    /* COMBAK: Check that asking for payoff between t0 and t1 is correct: */
-                    m_cells.at(vsc.x).at(vsc.y).getPayoff(((t0 + t1) / 2.f), po, ut);
-                    vec_payoffs.push_back(po);
-                    vec_utility.push_back(ut);
+            auto cells = tmp_act->getActiveCells(t);
+            /* Remove meaningless cells (i.e. those that don't provide enough payoff at time `t`.) */
+            for(auto it = cells.begin(); it != cells.end(); ) {
+                EnvCell& c = m_cells[it->x][it->y];
+                bool remove_cell = true;
+                for(auto p : c.getAllPayoffs()) {
+                    if(p.second.first > Config::min_payoff) {
+                        remove_cell = false;
+                        break;
+                    }
                 }
-                ActivityGen ag;
-                ag.t0 = t0;
-                ag.t1 = t1;
-                ag.c_coord   = vec_selected_cells;
-                ag.c_payoffs = vec_payoffs;
-                ag.c_utility = vec_utility;
-                retval.push_back(ag);
+                if(remove_cell) {
+                    it = cells.erase(it);
+                } else {
+                    selected_cells.insert(*it);
+                    it++;
+                }
             }
-            selected_cells.clear();
+            do_continue = ((cells.size() > 0) || within_old);
+            if(started_new && (!do_continue || (t - t0) >= Config::max_task_duration || t >= tend_it || s == s_max)) {
+                /* End the activity: */
+                t1 = t;
+                started_new = false;
+                if(t1 > t0 && selected_cells.size() > 0) {
+                    std::vector<sf::Vector2i> vec_selected_cells(selected_cells.begin(), selected_cells.end());
+                    std::vector<float> vec_payoffs;
+                    std::vector<float> vec_utility;
+                    float po, ut;
+                    for(auto& vsc : vec_selected_cells) {
+                        /* COMBAK: Check that asking for payoff between t0 and t1 is correct: */
+                        m_cells.at(vsc.x).at(vsc.y).getPayoff(((t0 + t1) / 2.f), po, ut);
+                        vec_payoffs.push_back(po);
+                        vec_utility.push_back(ut);
+                    }
+                    ActivityGen ag;
+                    ag.t0 = t0;
+                    ag.t1 = t1;
+                    ag.c_coord   = vec_selected_cells;
+                    ag.c_payoffs = vec_payoffs;
+                    ag.c_utility = vec_utility;
+                    if(within_old && p_act) {
+                        Log::warn << "New activity (within old, " << p_act->getId()
+                            << ") --> [" << VirtualTime::toString(t0, true, true)
+                            << ", " << VirtualTime::toString(t1, true, true) << "]\n";
+                        ag.prev_act = p_act;
+                    } else {
+                        Log::warn << "New activity --> ["
+                            << VirtualTime::toString(t0, true, true)
+                            << ", " << VirtualTime::toString(t1, true, true) << "]\n";
+                    }
+                    retval.push_back(ag);
+                }
+                selected_cells.clear();
+            }
+            if(!started_new && cells.size() > 0) {
+                /* Start a new activity: */
+                t0 = t;
+                started_new = true;
+            }
+            if(retval.size() >= Config::max_tasks && !within_old) {
+                break;
+            }
+            s++;
         }
-        if(!bflag && cells.size() > 0) {
-            /* Start a new activity: */
-            t0 = t;
-            bflag = true;
-        }
-        if(retval.size() >= Config::max_tasks) {
+        if(retval.size() >= Config::max_tasks && !within_old) {
             break;
         }
-    }
+        /* We have reached tend_it. Update p_tstart and p_tend. */
+        tstart = tend_it;
+        if(within_old) {
+            within_old = false;
+            /* We were in and reached tend_it = p_tend. Update p_tstart and p_tend: */
+            if(prev_act_ts.size() > 1) {
+                prev_act_ts.erase(prev_act_ts.begin());
+                p_act = prev_acts[prev_act_ts.begin()->second];
+                p_tstart = p_act->getStartTime();
+                p_tend = p_act->getEndTime();
+                Log::warn << "Considering an existing activity: (" << p_act->getId()
+                    << ")[" << VirtualTime::toString(p_tstart, true, true)
+                    << ", " << VirtualTime::toString(p_tend, true, true) << "]\n";
+            } else {
+                Log::warn << "There aren't more existing activities to consider.\n";
+                p_act = nullptr;
+                p_tstart = tend;
+                p_tend = tend;
+            }
+            tend_it = p_tstart;
+        } else {
+            within_old = true;
+            tend_it = p_tend;   /* No need to update p_tstart and p_tend yet. */
+        }
+    } while(tend_it <= tend);
+
     return retval;
 }
 

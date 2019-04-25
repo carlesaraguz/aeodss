@@ -68,7 +68,8 @@ float           Config::agent_datarate_min = 100.f;
 float           Config::agent_datarate_max = 200.f;
 bool            Config::link_allow_during_capture = false;
 float           Config::agent_speed =  4.f;
-unsigned int    Config::agent_planning_window = 1080; /* Steps (540 ~= 1 orbit). */
+unsigned int    Config::agent_planning_window = 1080;   /* Steps (540 ~= 1 orbit). */
+unsigned int    Config::agent_replanning_window = 100;  /* Steps (540 ~= 1 orbit). */
 float           Config::activity_size = 1000.f;
 AgentMotionType Config::motion_model = AgentMotionType::ORBITAL;
 TimeValueType   Config::time_type;
@@ -138,6 +139,8 @@ float           Config::ga_mutation_rate = 0.2f;
 GASCrossoverOp  Config::ga_crossover_op = GASCrossoverOp::MULIPLE_POINT;
 GASSelectionOp  Config::ga_parentsel_op = GASSelectionOp::TOURNAMENT;
 GASSelectionOp  Config::ga_environsel_op = GASSelectionOp::ELITIST;
+float           Config::ga_payoff_k = 5.f;
+float           Config::ga_confidence_th = 0.5f;
 
 /* Global values: */
 std::string Config::root_path;
@@ -225,9 +228,12 @@ void Config::loadCmdArgs(int argc, char** argv)
                         getConfigParam("activity_size", node_it.second, activity_size);
                         getConfigParam("energy_generation", node_it.second, agent_energy_generation_rate);
                         getConfigParam("planning_window", node_it.second, agent_planning_window);
-                        Log::dbg << "Planning window is set to: " << VirtualTime::toString(agent_planning_window * Config::time_step, false);
-                        Log::dbg << ", " << activity_confirm_window << " steps.\n";
+                        getConfigParam("replanning_window", node_it.second, agent_replanning_window);
                         getConfigParam("confirm_window", node_it.second, activity_confirm_window);
+                        Log::dbg << "Planning window is set to: " << VirtualTime::toString(agent_planning_window * Config::time_step, false);
+                        Log::dbg << ", " << agent_planning_window << " steps.\n";
+                        Log::dbg << "Re-scheduling window is set to: " << VirtualTime::toString(agent_replanning_window * Config::time_step, false);
+                        Log::dbg << ", " << agent_replanning_window << " steps.\n";
                         Log::dbg << "Activity confirmation window is set to: " << VirtualTime::toString(activity_confirm_window, false);
                         Log::dbg << ", " << std::round(activity_confirm_window / time_step) << " steps.\n";
                         getConfigParam("max_tasks", node_it.second, max_tasks);
@@ -345,6 +351,8 @@ void Config::loadCmdArgs(int argc, char** argv)
                             getConfigParam("min_improvement_rate", gasch_node, ga_min_improvement_rate);
                             getConfigParam("population_size", gasch_node, ga_population_size);
                             getConfigParam("mutation_rate", gasch_node, ga_mutation_rate);
+                            getConfigParam("payoff_k", gasch_node, ga_payoff_k);
+                            getConfigParam("confidence_th", gasch_node, ga_confidence_th);
                             if(gasch_node["crossover"].IsDefined() && gasch_node["crossover"]["type"].IsDefined()) {
                                 if(gasch_node["crossover"]["type"].as<std::string>() == "uniform") {
                                     ga_crossover_op = GASCrossoverOp::UNIFORM;

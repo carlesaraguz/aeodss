@@ -13,35 +13,49 @@
 CREATE_LOGGER(GASChromosome)
 
 GASChromosome::GASChromosome(unsigned int sz)
-    : alleles(sz)
-    , valid(true)
-    , fitness(0.f)
+    : m_alleles(sz)
+    , m_protected_alleles(sz, false)
+    , m_valid(true)
+    , m_fitness(0.f)
 {
     for(unsigned int i = 0; i < sz; i++) {
-        alleles[i] = (Random::getUf() > 0.5f);
+        m_alleles[i] = (Random::getUf() > 0.5f);
     }
 }
 
 void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2)
 {
-    if(p1.alleles.size() != p2.alleles.size() || p2.alleles.size() != c1.alleles.size() || c1.alleles.size() != c2.alleles.size()) {
+    if(p1.m_alleles.size() != p2.m_alleles.size() || p2.m_alleles.size() != c1.m_alleles.size() || c1.m_alleles.size() != c2.m_alleles.size()) {
         Log::err << "Error on chromosome crossover operator: size mismatch.\n";
-        Log::err << "Parent sizes are " << p1.alleles.size() << " and " << p2.alleles.size()
-            << ". Children sizes are " << c1.alleles.size() << " and " << c2.alleles.size() << ".\n";
+        Log::err << "Parent sizes are " << p1.m_alleles.size() << " and " << p2.m_alleles.size()
+            << ". Children sizes are " << c1.m_alleles.size() << " and " << c2.m_alleles.size() << ".\n";
         throw std::runtime_error("Error on chromosome crossover operator: size mismatch.");
     }
-    unsigned int l = p1.alleles.size();
+    unsigned int l = p1.m_alleles.size();
     /* Fallback in case of error: */
     if(l <= 1) {
         if(Random::getUf() > 0.5f) {
-            c1.alleles = p1.alleles;
-            c2.alleles = p2.alleles;
+            c1.m_alleles = p1.m_alleles;
+            c2.m_alleles = p2.m_alleles;
         } else {
-            c1.alleles = p2.alleles;
-            c2.alleles = p1.alleles;
+            c1.m_alleles = p2.m_alleles;
+            c2.m_alleles = p1.m_alleles;
         }
         return;
     }
+    /* Check that both parents share the same protected alleles, with the same value: */
+    for(unsigned int pa = 0; pa < l; pa++) {
+        if(p1.m_protected_alleles[pa] == p2.m_protected_alleles[pa]) {
+            if(p1.m_protected_alleles[pa] && (p1.m_alleles[pa] != p2.m_alleles[pa])) {
+                Log::err << "Two chromosomes have different values in protected alleles.\n";
+                throw std::runtime_error("Unable to crossover: protected alleles mismatch.");
+            }
+        } else {
+            Log::err << "Two chromosomes don't share the same protected alleles.\n";
+            throw std::runtime_error("Unable to crossover: protected alleles mismatch.");
+        }
+    }
+    /* Continue with crossover: */
     switch(Config::ga_crossover_op) {
         case GASCrossoverOp::SINGLE_POINT:
             {
@@ -49,12 +63,12 @@ void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome&
                 for(unsigned int i = 0; i < l; i++) {
                     if(i <= xo_at) {
                         /* Copy 1->1 and 2->2: */
-                        c1.alleles[i] = p1.alleles[i];
-                        c2.alleles[i] = p2.alleles[i];
+                        c1.m_alleles[i] = p1.m_alleles[i];
+                        c2.m_alleles[i] = p2.m_alleles[i];
                     } else {
                         /* Copy 1->2 and 2->1: */
-                        c1.alleles[i] = p2.alleles[i];
-                        c2.alleles[i] = p1.alleles[i];
+                        c1.m_alleles[i] = p2.m_alleles[i];
+                        c2.m_alleles[i] = p1.m_alleles[i];
                     }
                 }
             }
@@ -76,12 +90,12 @@ void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome&
                 for(unsigned int i = 0; i < l; i++) {
                     if(bflag) {
                         /* Copy 1->1 and 2->2: */
-                        c1.alleles[i] = p1.alleles[i];
-                        c2.alleles[i] = p2.alleles[i];
+                        c1.m_alleles[i] = p1.m_alleles[i];
+                        c2.m_alleles[i] = p2.m_alleles[i];
                     } else {
                         /* Copy 1->2 and 2->1: */
-                        c1.alleles[i] = p2.alleles[i];
-                        c2.alleles[i] = p1.alleles[i];
+                        c1.m_alleles[i] = p2.m_alleles[i];
+                        c2.m_alleles[i] = p1.m_alleles[i];
                     }
                     if(i == xo_points[idx]) {
                         bflag = !bflag;
@@ -97,12 +111,12 @@ void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome&
             for(unsigned int i = 0; i < l; i++) {
                 if(Random::getUf() > 0.5f) {
                     /* Copy 1->1 and 2->2. */
-                    c1.alleles[i] = p1.alleles[i];
-                    c2.alleles[i] = p2.alleles[i];
+                    c1.m_alleles[i] = p1.m_alleles[i];
+                    c2.m_alleles[i] = p2.m_alleles[i];
                 } else {
                     /* Copy 1->2 and 2->1. */
-                    c1.alleles[i] = p2.alleles[i];
-                    c2.alleles[i] = p1.alleles[i];
+                    c1.m_alleles[i] = p2.m_alleles[i];
+                    c2.m_alleles[i] = p1.m_alleles[i];
                 }
             }
             break;
@@ -111,44 +125,68 @@ void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome&
 
 void GASChromosome::mutate(void)
 {
-    for(unsigned int i = 0; i < alleles.size(); i++) {
-        if(Random::getUf() <= Config::ga_mutation_rate) {
-            alleles[i] = !alleles[i];   /* Bit flip: */
+    for(unsigned int i = 0; i < m_alleles.size(); i++) {
+        if(!m_protected_alleles[i]) {
+            if(Random::getUf() <= Config::ga_mutation_rate) {
+                m_alleles[i] = !m_alleles[i];   /* Bit flip: */
+            }
         }
+    }
+}
+void GASChromosome::protect(std::vector<unsigned int> alleles_idxs)
+{
+    std::vector<bool> new_vec(m_protected_alleles.size(), false);
+    m_protected_alleles.swap(new_vec);    /* Reset. */
+
+    for(auto& a : alleles_idxs) {
+        if(a < m_protected_alleles.size()) {
+            m_protected_alleles[a] = true;  /* This allele can no longer be changed. */
+        } else {
+            Log::warn << "Trying to protect an allele whose index is out of bounds.\n";
+        }
+    }
+}
+
+void GASChromosome::setAllele(unsigned int a, bool v)
+{
+    if(!m_protected_alleles[a]) {
+        m_alleles[a] = v;
+    } else {
+        Log::err << "Trying to set an allele value that has been protected.\n";
     }
 }
 
 bool GASChromosome::operator>(const GASChromosome& rhs) const
 {
-    return fitness > rhs.fitness;
+    return m_fitness > rhs.m_fitness;
 }
 
 bool GASChromosome::operator<(const GASChromosome& rhs) const
 {
-    return fitness < rhs.fitness;
+    return m_fitness < rhs.m_fitness;
 }
 
 bool GASChromosome::operator>=(const GASChromosome& rhs) const
 {
-    return fitness >= rhs.fitness;
+    return m_fitness >= rhs.m_fitness;
 }
 
 bool GASChromosome::operator<=(const GASChromosome& rhs) const
 {
-    return fitness <= rhs.fitness;
+    return m_fitness <= rhs.m_fitness;
 }
 
 bool GASChromosome::operator==(const GASChromosome& rhs) const
 {
-    if(alleles.size() == rhs.alleles.size()) {
+    if(m_alleles.size() == rhs.m_alleles.size()) {
         bool bflag = true;
-        for(std::size_t a = 0; a < alleles.size(); a++) {
-            if(alleles[a] != rhs.alleles[a]) {
+        for(std::size_t a = 0; a < m_alleles.size(); a++) {
+            if(m_alleles[a] != rhs.m_alleles[a]) {
                 bflag &= false;
                 break;
             }
         }
-        return bflag && (fitness == rhs.fitness);
+        return bflag && (m_fitness == rhs.m_fitness);
     } else {
         return false;
     }
@@ -163,12 +201,12 @@ std::ostream& operator<<(std::ostream& os, const GASChromosome& chr)
 {
     int count_active = 0;
     os << "{";
-    for(auto a : chr.alleles) {
+    for(auto a : chr.m_alleles) {
         os << (int)a;
         count_active += (int)a;
     }
-    os << " : " << count_active << " : " << std::fixed << std::setprecision(4) << std::setw(6) << chr.fitness << std::defaultfloat;
-    if(!chr.valid) {
+    os << " : " << count_active << " : " << std::fixed << std::setprecision(4) << std::setw(6) << chr.m_fitness << std::defaultfloat;
+    if(!chr.m_valid) {
         os << "*";
     }
     os << "}";

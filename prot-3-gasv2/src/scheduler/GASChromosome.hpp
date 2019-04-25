@@ -18,12 +18,19 @@ class GASChromosome
 {
 public:
     GASChromosome(unsigned int sz);
-    std::vector<bool> alleles;          /* The actual schedule. */
-    float fitness;                      /* Fitness computed by scheduler. */
-    bool valid;                         /* Whether resource violation occurs (=false) or not (=true). */
 
     static void crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2);
     void mutate(void);
+    void protect(std::vector<unsigned int> alleles_idxs);
+
+    void setAllele(unsigned int a, bool v);
+    unsigned int getChromosomeLength(void) const { return m_alleles.size(); }
+    bool isProtected(unsigned int a) const { return m_protected_alleles[a]; }
+    bool getAllele(unsigned int a) const { return m_alleles[a]; }
+    float getFitness(void) const { return m_fitness; }
+    void setFitness(float f) { m_fitness = f; }
+    bool isValid(void) const { return m_valid; }
+    void setValid(bool v = true) { m_valid = v; }
 
     bool operator<(const GASChromosome& rhs) const;
     bool operator<=(const GASChromosome& rhs) const;
@@ -33,6 +40,12 @@ public:
     bool operator!=(const GASChromosome& rhs) const;
 
     friend std::ostream& operator<<(std::ostream& os, const GASChromosome& chr);
+
+private:
+    std::vector<bool> m_alleles;          /* The actual schedule. */
+    float m_fitness;                      /* Fitness computed by scheduler. */
+    bool m_valid;                         /* Whether resource violation occurs (=false) or not (=true). */
+    std::vector<bool> m_protected_alleles;
 };
 
 

@@ -56,6 +56,12 @@ public:
     std::shared_ptr<Activity> getLastActivity(void) const;
 
     /*******************************************************************************************//**
+     *  Retrieves the list of pending activities (i.e. those that have not started and are not
+     *  discarded).
+     **********************************************************************************************/
+    std::vector<std::shared_ptr<Activity> > getPending(void) const;
+
+    /*******************************************************************************************//**
      *  Adds a new activity to the knowledge base.
      **********************************************************************************************/
     void add(std::shared_ptr<Activity> pa);
@@ -67,8 +73,9 @@ public:
     unsigned int count(std::string aid) const;
 
     /*******************************************************************************************//**
-     *  Gives the number of activities for the owning agent such that they end in the future. This
-     *  effectively counts future activites as well as the on-going one.
+     *  Gives the number of activities for the owning agent such that they end in the future and
+     *  have not been discarded. This effectively counts future activites as well as the on-going
+     *  one.
      **********************************************************************************************/
     unsigned int pending(void) const;
 

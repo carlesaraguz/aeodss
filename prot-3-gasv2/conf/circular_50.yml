@@ -1,6 +1,6 @@
 version: 2
 system:
-    n_agents: 5 # 50
+    n_agents: 1 # 50
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -60,6 +60,7 @@ agent:
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1000             # Amount of information to transmit.
     planning_window: 1080           # Time-steps.
+    replanning_window: 100          # Time-steps.
     max_tasks: 70                   # Max. tasks to generate.
     max_task_duration: 1.388888e-3  # 2 min. (in JD)
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.
@@ -74,11 +75,13 @@ agent:
         utility_weight: 0.5         # Weight applied to utility (no need to normalise).
         decay_weight: 0.5           # Weight applied to decay (no need to normalise).
     ga_scheduler:                   # Genetic Algorithm Scheduler paramaters.
-        # generations: 100            # Max. number of iterations in the search.
-        generations: 1000            # Max. number of iterations in the search.
-        # generations: 10000          # Max. number of iterations in the search.
+        # generations: 100          # Max. number of iterations in the search.
+        generations: 1000           # Max. number of iterations in the search.
+        # generations: 10000        # Max. number of iterations in the search.
         timeout: 5000               # Timeout (in iterations) as # of iterations without improvement.
         payoff_aggregation: avg     # Aggregation of payoff in tasks [min, max, avg, sum].
+        payoff_k: 5                 # P.o. multiplier for previously scheduled activities.
+        confidence_th: 0.5          # Min. confidence to apply payoff multiplier.
         min_improvement_rate: 0.01  # Minimum improvement rate.
         population_size: 600        # Number of individuals in the population.
         mutation_rate: 0.2          # Mutation probability for each chromosome's allele.
