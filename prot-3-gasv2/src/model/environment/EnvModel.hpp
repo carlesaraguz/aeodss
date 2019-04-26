@@ -67,6 +67,16 @@ public:
     void computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_view = false);
 
     /*******************************************************************************************//**
+     *  TODO
+     **********************************************************************************************/
+    double findEndTime(double t0, double max_t1, std::shared_ptr<Activity> aptr, double& next_t0);
+
+    /*******************************************************************************************//**
+     *  TODO
+     **********************************************************************************************/
+    ActivityGen createActivityGen(double t0, double t1, std::shared_ptr<Activity> tmp_aptr, std::shared_ptr<Activity> aptr);
+
+    /*******************************************************************************************//**
      *  Split a temporal activity into multiple potential activities after payoff has been computed
      *  (with EnvModel::computePayoff). Iterates over tmp_act's active times and finds intervals
      *  where the cells' payoff is above Config::min_payoff. Based on the previous intervals this

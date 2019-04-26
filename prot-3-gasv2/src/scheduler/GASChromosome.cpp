@@ -23,6 +23,23 @@ GASChromosome::GASChromosome(unsigned int sz)
     }
 }
 
+GASChromosome::GASChromosome(const GASChromosome& other)
+    : m_alleles(other.m_alleles.size())
+    , m_protected_alleles(other.m_protected_alleles)
+    , m_valid(true)
+    , m_fitness(0.f)
+{
+    for(unsigned int i = 0; i < other.getChromosomeLength(); i++) {
+        if(m_protected_alleles[i]) {
+            m_alleles[i] = other.getAllele(i);
+        } else {
+            m_alleles[i] = (Random::getUf() > 0.5f);
+        }
+    }
+}
+
+
+
 void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2)
 {
     if(p1.m_alleles.size() != p2.m_alleles.size() || p2.m_alleles.size() != c1.m_alleles.size() || c1.m_alleles.size() != c2.m_alleles.size()) {

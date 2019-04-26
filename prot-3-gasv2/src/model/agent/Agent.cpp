@@ -169,12 +169,20 @@ void Agent::plan(void)
         /* Based on previously computed payoff and pending activities, generate potential activities: */
         auto pending_activities = m_activities->getPending();
         auto act_gens = m_environment->generateActivities(tmp_act, pending_activities);
+        if(act_gens.size() == 0) {
+            m_activities->update();
+            m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
+            Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
+            return;
+        }
         std::vector<std::shared_ptr<Activity> > acts;
         for(auto& ag : act_gens) {
             if(ag.t0 < ag.t1) {
                 acts.push_back(createActivity(ag.t0, ag.t1));
+            } else if(ag.t0 == ag.t1) {
+                Log::warn << "[" << m_id << "] Was trying to create an activity where tstart = tend (1). Skipping.\n";
             } else {
-                Log::warn << "[" << m_id << "] Was trying to create an activity where tstart >= tend (1). Skipping.\n";
+                Log::err << "[" << m_id << "] Was trying to create an activity where tstart > tend (1). Skipping.\n";
             }
         }
         double ts = acts.front()->getStartTime();
@@ -194,34 +202,51 @@ void Agent::plan(void)
         /* Configure chromosomes: */
         std::vector<double> t0s;
         std::vector<int> steps;
+        unsigned int j = 0;
         for(auto& act : acts) {
             t0s.push_back(act->getStartTime());
             double steps_exact = (act->getEndTime() - act->getStartTime()) / Config::time_step;
             int steps_int = std::round(steps_exact);
             if(steps_exact < 1.0 && steps_int < 1) {
-                Log::err << "Activity duration is smaller than 1 step, but rounding did not solve this. After rounding: " << steps_int << " steps.\n";
+                Log::err << "Activity duration is smaller than 1 step:\n";
+                Log::err << "Allele " << j << "\n";
+                Log::err << *act << "\n";
             }
             steps.push_back(steps_int);
+            j++;
         }
         scheduler.setChromosomeInfo(t0s, steps, m_payload.getResourceRates());
 
-        /*  The following loop configures two things:
+        /*  The following loop configures three things:
          *    (1) Activity/chromosome payoffs for fitness calculation.
          *    (2) Baseline confidence levels. These are just passed to the scheduler to allow it to
          *        recompose the baseline confidence if two activities are merged.
+         *    (3) The start and end alleles that correspond to existing activities (being re-scheduled).
          **/
+        std::shared_ptr<Activity> pending_aptr(nullptr);
         for(unsigned int i = 0; i < act_gens.size(); i++) {
             /* Compute baseline confidence: */
             float bc = std::accumulate(act_gens[i].c_utility.begin(), act_gens[i].c_utility.end(), 0.f);
             bc /= act_gens[i].c_utility.size();
             scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, bc);
+            if(act_gens[i].prev_act != nullptr && pending_aptr == nullptr) {
+                j = i;
+                pending_aptr = act_gens[i].prev_act;
+            } else if(((act_gens[i].prev_act != nullptr && pending_aptr != act_gens[i].prev_act) ||
+                (act_gens[i].prev_act == nullptr && pending_aptr != nullptr) ||
+                (i == act_gens.size() - 1)) &&
+                (pending_aptr != nullptr)
+            ) {
+                scheduler.setPreviousSolution(j, i - 1, pending_aptr);
+                pending_aptr = act_gens[i].prev_act;
+            }
         }
 
         /* Run the scheduler: */
         std::vector<std::shared_ptr<Activity> > adis;
         auto result = scheduler.schedule(adis);
 
-        /* Store the result: */
+        /* Store the result (existing activities are not part of the result): */
         for(auto& setimes : result) {
             double new_ts = std::get<0>(setimes);
             double new_te = std::get<1>(setimes);

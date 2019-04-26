@@ -18,6 +18,7 @@ GAScheduler::GAScheduler(double t0, double t1, std::map<std::string, std::shared
     , m_resources_init(res)
     , m_best(0)
     , m_max_payoff(0.f)
+    , m_init_individual(1)  /* arbitrary */
 {
     m_population.reserve(Config::ga_population_size);
 }
@@ -103,11 +104,6 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     if(m_individual_info.size() < 2) {
         Log::err << "GA Scheduler is configured with chromosomes of length " << m_individual_info.size() << ".\n";
     }
-    /* Initialize control variables: */
-    GASChromosome best(m_individual_info.size());  /* Randomly initializes. */
-    unsigned int g = 0;
-    /* DEBUG with: bool prev_best_valid = false; */
-    m_iteration_profile.clear();
 
     /* Initialize max. resource consumptions and payoffs (needed to compute fitnesses): */
     for(auto& cost : m_costs) {
@@ -129,6 +125,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
             }
         }
     }
+    m_init_individual = m_population[0];
 
     /* Initialize population fitness: */
     #pragma omp parallel for
@@ -140,10 +137,14 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
      *      Log::warn << "C. baseline: " << *cbaseline << "\n";
      *  }
      **/
+    /* Initialize control variables: */
+    GASChromosome best(m_init_individual);  /* Randomly initializes, copying protected alleles. */
+    unsigned int g = 0;
+    m_iteration_profile.clear();
     while(iterate(g, best)) {
         /* Repopulate in case we lost too many invalid options. */
         while(m_population.size() < Config::ga_population_size) {
-            m_population.push_back(GASChromosome(m_individual_info.size()));
+            m_population.push_back(GASChromosome(m_init_individual));
         }
 
         std::vector<GASChromosome> children;

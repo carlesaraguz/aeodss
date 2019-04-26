@@ -59,13 +59,25 @@ std::string VirtualTime::toString(double t, bool is_absolute_time, bool simplifi
         int hour = (int)(t * 24) % 24;
         int days = (int)t;
         if(60.0 - sec < 0.001) {
-            sec = 59.999;    /* Just for visalisation purposes. */
+            /* Just for visalisation purposes. */
+            sec = 0;
+            min++;
+            if(min >= 60) {
+                min = min % 60;
+                hour++;
+                if(hour >= 24) {
+                    hour = hour % 24;
+                    days++;
+                }
+            }
         }
         int precision = 3;
         int numberwidth = 6;
+        int sec_integer = ((int)sec) % 60;
         if(simplified) {
             precision = 0;
             numberwidth = 2;
+            sec = sec_integer;
         } else {
             ss << "\'";
         }

@@ -36,6 +36,11 @@ public:
     bool isCapturing(void);
 
     /*******************************************************************************************//**
+     *  Determines whether two activities have overlapping intervals.
+     **********************************************************************************************/
+    bool isOverlapping(std::shared_ptr<Activity> a, std::shared_ptr<Activity> b) const;
+
+    /*******************************************************************************************//**
      *  Returns the next activity of this agent (i.e. that which has a start time in the future,
      *  w.r.t. `t`) or nullptr if there is none.
      *  @param  t   The time to consider activities in the future. If not provided, the function

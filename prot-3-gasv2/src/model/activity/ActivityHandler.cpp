@@ -126,7 +126,7 @@ void ActivityHandler::update(void)
 {
     // Log::dbg << "Agent " << m_agent_id << " will update its activities.\n";
     double t = VirtualTime::now();
-    for(auto ait = m_activities_own.rbegin(); ait != m_activities_own.rend(); ait++) {
+    for(auto ait = m_activities_own.begin(); ait != m_activities_own.end(); ait++) {
         auto aptr = *ait;
         if(!aptr->isFact()) {
             /* Is neither discarded nor confirmed: */
@@ -142,6 +142,35 @@ void ActivityHandler::update(void)
         for(unsigned int i = 0; i < m_activities_own.size(); i++) {
             m_act_own_lut[m_activities_own[i]->getStartTime()] = i;
         }
+    }
+    /* Checking overlaps: */
+    if(m_act_own_lut.size() >= 2) {
+        unsigned int j = m_act_own_lut.begin()->second;
+        for(auto it = std::next(m_act_own_lut.begin()); it != m_act_own_lut.end(); it++) {
+            if(!m_activities_own[it->second]->isDiscarded()) {
+                if(isOverlapping(m_activities_own[it->second], m_activities_own[j])) {
+                    std::string ida = std::to_string(m_activities_own[it->second]->getId());
+                    std::string idb = std::to_string(m_activities_own[j]->getId());
+                    Log::err << "Two non-discarded activities overlap in [" << m_agent_id << "]: " << ida << " and " << idb << "\n";
+                }
+                j = it->second;
+            }
+        }
+    }
+}
+
+bool ActivityHandler::isOverlapping(std::shared_ptr<Activity> a, std::shared_ptr<Activity> b) const
+{
+    double tsa = a->getStartTime();
+    double tea = a->getEndTime();
+    double tsb = b->getStartTime();
+    double teb = b->getEndTime();
+    if((tsa <= tsb && tsb < tea) || (tsb <= tsa && tsa < teb)) {
+        return true;
+    } else if((tsb >= tsa && tsb < tea && teb <= tea && teb > tsa) || (tsa >= tsb && tsa < teb && tea <= teb && tea > tsb)) {
+        return true;
+    } else {
+        return false;
     }
 }
 

@@ -113,6 +113,7 @@ private:
     double m_tstart;                            /**< Scheduling window start time. */
     double m_tend;                              /**< Scheduling window end time. */
     std::map<std::string, std::shared_ptr<const Resource> > m_resources_init;   /* Agent resources at start time. */
+    GASChromosome m_init_individual;            /**< An individual that has protected alleles to initialise others. */
 
     /*******************************************************************************************//**
      *  Compute fitness of a chromosome. Takes payoffs for all the active alleles (i.e. tasks/
