@@ -50,11 +50,11 @@ public:
     /*******************************************************************************************//**
      *  Spawn population. Creates individuals (i.e. GASChromosome's) based on predefined activities/
      *  tasks and their information.
-     *  @param  t0s     Start times for each activity/task.
-     *  @param  s       Number of steps for each activity/task.
+     *  @param  t0s     Start times for each activity/task/allele.
+     *  @param  t1s     End times for each activity/task/allele.
      *  @param  cs      Resources consumed by this activity (rates at each step).
      **********************************************************************************************/
-    void setChromosomeInfo(std::vector<double> t0s, std::vector<int> s, const std::map<std::string, float>& cs);
+    void setChromosomeInfo(std::vector<double> t0s, std::vector<double> t1s, const std::map<std::string, float>& cs);
 
     /*******************************************************************************************//**
      *  Prepares activity/choromosome information. Computes aggregated payoff for a given activity,
@@ -88,7 +88,8 @@ public:
 private:
     struct GASInfo {                            /**< Info for a single chromosome allele. */
         double t_start;                         /**< Start time of the allele. */
-        int t_steps;                            /**< Steps of duration of this allele. */
+        double t_end;                           /**< End time of the allele. */
+        // int t_steps;                            /**< Steps of duration of this allele. */
         float ag_payoff;                        /**< Aggregated payoff that would be obtained. */
         float baseline_confidence;              /**< The baseline confidence for this chromosome. */
     };
@@ -166,7 +167,7 @@ private:
      *                  beginning).
      *  @return         Set of values that are needed to create NEW activities.
      **********************************************************************************************/
-    Solution generateSolution(GASChromosome c, std::vector<std::shared_ptr<Activity> >& adis);
+    Solution generateSolution(GASChromosome& c, std::vector<std::shared_ptr<Activity> >& adis);
 
     /*******************************************************************************************//**
      *  Determines whether to continue iterating (i.e. trying to improve solution) or not.

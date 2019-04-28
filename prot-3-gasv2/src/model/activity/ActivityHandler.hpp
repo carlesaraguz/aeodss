@@ -41,35 +41,45 @@ public:
     bool isOverlapping(std::shared_ptr<Activity> a, std::shared_ptr<Activity> b) const;
 
     /*******************************************************************************************//**
+     *  TODO
+     **********************************************************************************************/
+    std::vector<std::shared_ptr<Activity> > checkOverlaps(std::shared_ptr<Activity> a, std::vector<std::shared_ptr<Activity> >& beta);
+
+    /*******************************************************************************************//**
      *  Returns the next activity of this agent (i.e. that which has a start time in the future,
      *  w.r.t. `t`) or nullptr if there is none.
      *  @param  t   The time to consider activities in the future. If not provided, the function
      *              will assume t = VirtualTime::now().
      **********************************************************************************************/
-    std::shared_ptr<Activity> getNextActivity(double t = -1.0) const;
+    std::shared_ptr<Activity> getNextActivity(double t = -1.0) /* const */;
 
     /*******************************************************************************************//**
      *  Returns the current activity of the agent if there is one. This function always returns a
      *  valid pointer iff isCapturing returns true. Otherwise, nullptr is returned.
      **********************************************************************************************/
-    std::shared_ptr<Activity> getCurrentActivity(void) const;
+    std::shared_ptr<Activity> getCurrentActivity(void) /* const */;
 
     /*******************************************************************************************//**
      *  Get the last activity scheduled by this agent. This function always returns a valid pointer
      *  iff the return of ActivityHandler::pending is greater than 0. Otherwise nullptr is returned.
      **********************************************************************************************/
-    std::shared_ptr<Activity> getLastActivity(void) const;
+    std::shared_ptr<Activity> getLastActivity(void) /* const */;
 
     /*******************************************************************************************//**
      *  Retrieves the list of pending activities (i.e. those that have not started and are not
      *  discarded).
      **********************************************************************************************/
-    std::vector<std::shared_ptr<Activity> > getPending(void) const;
+    std::vector<std::shared_ptr<Activity> > getPending(void) /* const */;
 
     /*******************************************************************************************//**
      *  Adds a new activity to the knowledge base.
      **********************************************************************************************/
     void add(std::shared_ptr<Activity> pa);
+
+    /*******************************************************************************************//**
+     *  Discards this activity (which has to be listed in the `owned` set).
+     **********************************************************************************************/
+    void discard(std::shared_ptr<Activity> pa);
 
     /*******************************************************************************************//**
      *  Counts the number of known activities for an agent identified with `aid`.
@@ -135,8 +145,19 @@ public:
     /*******************************************************************************************//**
      *  Erases activities that are older than the maximum revisit time (because they will never
      *  contribute to payoffs in the future.)
+     *  @param  remove_unsent   Also removes activities that have not been shared with any other
+     *                          agent. The removing of activities is performed at the lowest
+     *                          possible level, i.e. activities are not discarded but removed
+     *                          altogether from the knowledge base and the environment model.
+     *                          This only applied to owned activities.
      **********************************************************************************************/
-    void purge(void);
+    void purge(bool remove_unsent = false);
+
+    /*******************************************************************************************//**
+     *  Marks an owned activity as sent. If the activity is not owned or does not belong to the
+     *  knowledge base, it is ignored.
+     **********************************************************************************************/
+    void markAsSent(int aid);
 
 private:
     std::map<double, unsigned int> m_act_own_lut;               /* Activity LUT (own) indexed by start time. */
@@ -150,6 +171,14 @@ private:
     float m_aperture;
     std::shared_ptr<EnvModel> m_env_model_ptr;
 
+    /*******************************************************************************************//**
+    *  Re-builds an internal Look-Up-Table.
+    **********************************************************************************************/
+    void buildActivityLUT(void);
+
+    /*******************************************************************************************//**
+     *  Outputs state of the knowledge base in the report.
+     **********************************************************************************************/
     void report(void);
 };
 

@@ -63,18 +63,17 @@ void CumulativeResource::applyOnce(float c)
     m_instantaneous += c;
 }
 
-bool CumulativeResource::applyUntil(float c, unsigned int steps)
+bool CumulativeResource::applyFor(float c, double t)
 {
-    if(steps == 0) {
+    if(t <= 0) {
         return true;
     }
 
-    float acc = 0.f;
+    float acc = c + m_instantaneous;
     for(auto& r : m_rates) {
-        acc += r.second * Config::time_step;
+        acc += r.second;
     }
-    acc += c * Config::time_step;
-    m_capacity -= (acc * steps) + m_instantaneous * Config::time_step;
+    m_capacity -= acc * t;
     if(m_capacity >= m_reserved_capacity) {
         if(m_capacity > m_max_capacity) {
             m_capacity = m_max_capacity;

@@ -37,6 +37,7 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
         /*  DEBUG:
          *  Log::dbg << "GA Scheduler found a better solution: " << best << ".\n";
          **/
+        // Log::dbg << "GA Scheduler found a better solution: " << best << ".\n";
     }
 
     if(g >= Config::ga_generations) {
@@ -111,7 +112,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
             m_max_cost[cost.first] = 0.f;
         }
         for(unsigned int act = 0; act < m_individual_info.size(); act++) {
-            m_max_cost[cost.first] += cost.second * Config::time_step * m_individual_info[act].t_steps;
+            m_max_cost[cost.first] += cost.second * (m_individual_info[act].t_end - m_individual_info[act].t_start);
         }
         /*  DEBUG with:
          *  Log::dbg << "Max. \'" << cost.first << "\' cost: " << m_max_cost[cost.first] << ".\n";
@@ -132,11 +133,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     for(unsigned int i = 0; i < m_population.size(); i++) {
         computeFitness(m_population[i]);
     }
-    /* DEBUG Baseline chromosomes:
-     *  for(auto cbaseline = m_population.begin(); cbaseline != m_population.begin() + m_individual_info.size() + 1; cbaseline++) {
-     *      Log::warn << "C. baseline: " << *cbaseline << "\n";
-     *  }
-     **/
+
     /* Initialize control variables: */
     GASChromosome best(m_init_individual);  /* Randomly initializes, copying protected alleles. */
     unsigned int g = 0;
@@ -152,8 +149,8 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
         while(children.size() < m_population.size()) {
             GASChromosome parent1 = select(parents);
             GASChromosome parent2 = select(parents);
-            GASChromosome child1(m_individual_info.size());
-            GASChromosome child2(m_individual_info.size());
+            GASChromosome child1(m_init_individual);
+            GASChromosome child2(m_init_individual);
             GASChromosome::crossover(parent1, parent2, child1, child2);
             child1.mutate();
             child2.mutate();
@@ -181,6 +178,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
          **/
     }
     if(best.isValid()) {
+        // Log::dbg << best << "\n";
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
         return generateSolution(best, adis);
     } else {
@@ -189,7 +187,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     }
 }
 
-GAScheduler::Solution GAScheduler::generateSolution(GASChromosome c, std::vector<std::shared_ptr<Activity> >& adis)
+GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vector<std::shared_ptr<Activity> >& adis)
 {
     GAScheduler::Solution retvec;
     if(!c.isValid()) {
@@ -212,14 +210,17 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome c, std::vector
         }
         if(sol_kept) {
             /* Unset the alleles to prevent new activities to be created with this info. */
-            for(unsigned int psa = ps.a_start; psa <= ps.a_end; psa++) {
+            for(unsigned int psa = ps.a_start; psa < ps.a_end + 1; psa++) {
                 c.setAllele(psa, false);
             }
+            // Log::dbg << c << " -- " << ps.activity->getId() << " : Is kept [" << ps.a_start << "," << ps.a_end << "]\n";
         } else {
             /* Does not modify the alleles and adds this activity to the discarded list. */
             adis.push_back(ps.activity);
+            // Log::dbg << c << " -- " << ps.activity->getId() << " : Is discarded [" << ps.a_start << "," << ps.a_end << "]\n";
         }
     }
+    // Log::dbg << c << "\n";
 
     /* Now the chromosome only has alleles set for strictly NEW tasks: */
     double t0 = -1.0, t1 = -1.0;
@@ -230,37 +231,30 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome c, std::vector
         if(c.getAllele(i) && !bflag) {
             /* Start a new activity: */
             t0 = m_individual_info[i].t_start;
-            t1 = m_individual_info[i].t_start + m_individual_info[i].t_steps * Config::time_step;
+            t1 = m_individual_info[i].t_end;
             bc = m_individual_info[i].baseline_confidence;
             bc_count = 1;
             bflag = true;
         } else if(c.getAllele(i) && bflag) {
             /* Continue/extend a previous activity: */
-            t1 += m_individual_info[i].t_steps * Config::time_step;
+            t1 = m_individual_info[i].t_end;
             bc += m_individual_info[i].baseline_confidence;
             bc_count++;
-        } else if(!c.getAllele(i) && bflag) {
+        }
+        if(bflag && (!c.getAllele(i) || i == c.getChromosomeLength() - 1)) {
             /* Record the activity: */
             bc /= (float)bc_count;
             retvec.push_back(std::make_tuple(t0, t1, bc));
-            Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
-                << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
-                << "). B.conf: " << bc << "\n";
+            // Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
+            //     << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
+            //     << "). B.conf: " << bc << "\n";
             bflag = false;
         }
-    }
-    if(bflag) {
-        /* Record the last activity: */
-        bc /= (float)bc_count;
-        retvec.push_back(std::make_tuple(t0, t1, bc));
-        Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
-            << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
-            << "). B.conf: " << bc << "\n";
     }
     return retvec;
 }
 
-void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s, const std::map<std::string, float>& cs)
+void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<double> t1s, const std::map<std::string, float>& cs)
 {
     if(m_population.size() > 0) {
         std::vector<GASChromosome> other;
@@ -274,7 +268,7 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s,
     }
 
     unsigned int l;
-    if(t0s.size() != s.size()) {
+    if(t0s.size() != t1s.size()) {
         Log::err << "Chromosome start times and number of steps mismatch. Aborting setup.\n";
         return;
     } else {
@@ -283,11 +277,11 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<int> s,
         for(unsigned int i = 0; i < l; i++) {
             GASInfo gas_info;
             gas_info.t_start = t0s[i];
-            if(s[i] < 1) {
-                Log::err << "GA Scheduler is not capable of scheduling tasks the duration of which is less than 1 step. Aborting.\n";
+            gas_info.t_end = t1s[i];
+            if(gas_info.t_end - gas_info.t_start < (Config::time_step / 2.0)) {
+                Log::err << "GA Scheduler is not capable of scheduling tasks the duration of which is less than 1/2 step. Aborting.\n";
                 throw std::runtime_error("Genetic Algorithm Scheduler failure. Unable to solve for small activities.");
             }
-            gas_info.t_steps = s[i];
             m_individual_info.push_back(gas_info);
         }
     }
@@ -375,8 +369,13 @@ void GAScheduler::setPreviousSolution(unsigned int a_start, unsigned int a_end, 
     /* Compute lambda: */
     if(aptr->reportConfidence() >= Config::ga_confidence_th) {
         ga_ps.lambda = (aptr->reportConfidence() - Config::ga_confidence_th) * Config::ga_payoff_k;
+        ga_ps.lambda /= (1.f - Config::ga_confidence_th);
+    } else {
+        ga_ps.lambda = 0.f;
     }
     m_previous_solutions.push_back(ga_ps);
+    // Log::warn << "Configuring a previous solution [" << aptr->getAgentId() << ":" << aptr->getId()
+    //     << "]. C: " << aptr->reportConfidence() << ", lambda = " << ga_ps.lambda << "\n";
 }
 
 
@@ -405,13 +404,12 @@ float GAScheduler::computeFitness(GASChromosome& c)
             po += m_individual_info[i].ag_payoff;
             count_active_alleles++;
         }
-
         if(c.isValid()) {
             if(c.getAllele(i)) {
                 /* Allele is active: apply consumptions: */
                 for(auto cost : m_costs) {
-                    if(res_cpy[cost.first]->applyUntil(cost.second, m_individual_info[i].t_steps)) {
-                        rk[cost.first] += cost.second * Config::time_step * m_individual_info[i].t_steps;
+                    if(res_cpy[cost.first]->applyFor(cost.second, (m_individual_info[i].t_end - m_individual_info[i].t_start))) {
+                        rk[cost.first] += cost.second * (m_individual_info[i].t_end - m_individual_info[i].t_start);
                     } else {
                         c.setValid(false);
                         break;
@@ -420,7 +418,7 @@ float GAScheduler::computeFitness(GASChromosome& c)
             } else {
                 /* Allele is not active: simply step each resource. */
                 for(auto cost : m_costs) {
-                    res_cpy[cost.first]->applyUntil(0.f, m_individual_info[i].t_steps);
+                    res_cpy[cost.first]->applyFor(0.f, (m_individual_info[i].t_end - m_individual_info[i].t_start));
                 }
             }
         }
@@ -430,6 +428,7 @@ float GAScheduler::computeFitness(GASChromosome& c)
     }
     float fitness = 0.f;
     if(c.isValid()) {
+
         /* There hasn't been resource violations, complete the calculation of the metric `r` */
         for(auto rit : rk) {
             r += rit.second / m_max_cost[rit.first];
@@ -453,6 +452,10 @@ float GAScheduler::computeFitness(GASChromosome& c)
                 } else {
                     augmented_payoff += m_individual_info[psa].ag_payoff * ps.lambda;
                 }
+            }
+            if(ps.activity->isConfimed() && !sol_kept) {
+                Log::err << "Some chromosome did not keep a confirmed solution. This is unexpected\n";
+                Log::err << c << "\n";
             }
             if(sol_kept) {
                 /* The solution (i.e. activity) has been kept. Augment the chromosome payoff: */
@@ -566,7 +569,7 @@ GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vect
 
 void GAScheduler::debug(void) const
 {
-    Log::dbg << "GA Scheduler, debug info:\n";
+    Log::dbg << "GA Scheduler, debug info: ======================================================\n";
     Log::dbg << "Costs: " << m_costs.size() << ".\n";
 
     if(m_individual_info.size() < 2) {
@@ -579,13 +582,36 @@ void GAScheduler::debug(void) const
     for(auto& ind_info : m_individual_info) {
         cost = 0.f;
         for(auto& c : m_costs) {
-            cost += c.second * Config::time_step * ind_info.t_steps;
+            cost += c.second * (ind_info.t_end - ind_info.t_start);
         }
         Log::dbg << "# " << count++
             << ": Tstart(" << VirtualTime::toString(ind_info.t_start)
-            << "). Steps(" << std::setw(5) << std::setfill('0') << ind_info.t_steps << std::setfill(' ')
+            << "). Tend(" << VirtualTime::toString(ind_info.t_end)
+            // << "). Steps(" << std::setw(5) << std::setfill('0') << ind_info.t_steps << std::setfill(' ')
             << "). AgPO(" << std::fixed << std::setprecision(1) << std::setw(6) << ind_info.ag_payoff
             << "). Cost(" << std::setprecision(4) << std::setw(8) <<  cost
             << "). Result: " << ind_info.ag_payoff / cost << std::defaultfloat << ".\n";
     }
+    Log::dbg << "Previous solutions: ============================================================\n";
+    for(auto ps : m_previous_solutions) {
+        Log::dbg << "[" << ps.a_start << "," << ps.a_end << "], " << ps.lambda << " -> " << *ps.activity << "\n";
+    }
+    Log::dbg << "Initialisation individual: =====================================================\n";
+    Log::dbg << m_init_individual << "\n";
+    m_init_individual.printProtectedAlleles();
+    Log::dbg << "{";
+    unsigned int allele = 0;
+    for(auto ps : m_previous_solutions) {
+        for(; allele < ps.a_start; allele++) {
+            Log::dbg << " ";
+        }
+        for(allele = ps.a_start; allele < ps.a_end + 1; allele++) {
+            Log::dbg << "*";
+        }
+        allele = ps.a_end + 1;
+    }
+    for(; allele < m_init_individual.getChromosomeLength(); allele++) {
+        Log::dbg << " ";
+    }
+    Log::dbg << "}\n";
 }

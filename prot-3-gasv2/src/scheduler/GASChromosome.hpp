@@ -41,6 +41,7 @@ public:
     bool operator!=(const GASChromosome& rhs) const;
 
     friend std::ostream& operator<<(std::ostream& os, const GASChromosome& chr);
+    void printProtectedAlleles(void) const;
 
 private:
     std::vector<bool> m_alleles;          /* The actual schedule. */

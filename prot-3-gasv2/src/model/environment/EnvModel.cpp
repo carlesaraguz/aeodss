@@ -182,7 +182,11 @@ ActivityGen EnvModel::createActivityGen(double t0, double t1, std::shared_ptr<Ac
     ag.c_payoffs = vec_payoffs;
     ag.c_utility = vec_utility;
     ag.prev_act = aptr;
-    Log::dbg << "Activity generator is ready for [" << VirtualTime::toString(t0) << "," << VirtualTime::toString(t1) << "]. aptr = " << aptr << "\n";
+    // Log::dbg << "Activity generator is ready for [" << VirtualTime::toString(t0) << "," << VirtualTime::toString(t1) << "]. ";
+    // if(aptr != nullptr) {
+    //     Log::dbg << "Act: [" << aptr->getAgentId() << ":" << aptr->getId() << "]";
+    // }
+    // Log::dbg << "\n";
     return ag;
 }
 
@@ -194,7 +198,7 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
         t = t0 + s * Config::time_step;
         if(t >= max_t1) {
             t = max_t1;
-            Log::dbg << "Found t1 = max_t1 = " << VirtualTime::toString(t) << "\n";
+            // Log::dbg << "Found t1 = max_t1 = " << VirtualTime::toString(t) << "\n";
             break;
         }
         auto cells = aptr->getActiveCells(t);
@@ -215,7 +219,7 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
             }
         }
         if(cells.size() == 0) {
-            Log::dbg << "Found t1 = " << VirtualTime::toString(std::min(t, max_t1)) << "\n";
+            // Log::dbg << "Found t1 = " << VirtualTime::toString(std::min(t, max_t1)) << "\n";
             break;
         }
     }
@@ -225,7 +229,7 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
     /* Look for next t0: */
     if(t1 + Config::time_step >= max_t1) {
         next_t0 = max_t1;
-        Log::dbg << "Found next_t0 = max_t1 = " << VirtualTime::toString(max_t1) << "\n";
+        // Log::dbg << "Found next_t0 = max_t1 = " << VirtualTime::toString(max_t1) << "\n";
     } else {
         t = t1;
         for(unsigned int s = 0; s < aptr->getPositionCount(); s++) {
@@ -257,7 +261,7 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
         }
         /* Found next t0: next_t0 = t. */
         next_t0 = t;
-        Log::dbg << "Found next_t0 = " << VirtualTime::toString(next_t0) << "\n";
+        // Log::dbg << "Found next_t0 = " << VirtualTime::toString(next_t0) << "\n";
     }
     return t1;
 }
@@ -271,62 +275,86 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
         << VirtualTime::toString(duration, false) << ".\n";
     std::vector<ActivityGen> retval;
 
-    Log::warn << "************************************************************************\n";
-
     /*  Build a look-up-table for activity start times (which will be seamlesly sorted).
      *  While doing so, ensure that tasks are not overlapping. If they are, abort.
+     *  This is how the LUT is built:
+     *      double(1) -> start time,
+     *      double(2) -> end time,
+     *      unsigned int(3) -> prev_acts idx.
      **/
-    std::map<double, unsigned int> t_horizons;
-    for(unsigned int i = 1; i < prev_acts.size(); i++) {
-        t_horizons[prev_acts[i]->getStartTime()] = i;
-        t_horizons[prev_acts[i]->getEndTime()]   = i;
-        if(prev_acts[i]->getStartTime() < prev_acts[i - 1]->getEndTime()) {
-            /* Overlaps. Aborting. */
-            Log::err << "Error generating new activties [#1a]: the provided schedule that has overlapping intervals. Aborting.\n";
-            return std::vector<ActivityGen>();
-        } else if(prev_acts[i]->getEndTime() - prev_acts[i]->getStartTime() < 2.0 * Config::time_step) {
+    std::vector<std::tuple<double, double, unsigned int> > t_horizons;
+    for(unsigned int i = 0; i < prev_acts.size(); i++) {
+        t_horizons.push_back(std::make_tuple(prev_acts[i]->getStartTime(), prev_acts[i]->getEndTime(), i));
+        if(i > 0) {
+            /* Check overlaps: */
+            if(prev_acts[i]->getStartTime() < prev_acts[i - 1]->getEndTime()) {
+                /* Overlaps. Aborting. */
+                Log::err << "Error generating new activties [#1a]: the provided schedule that has overlapping intervals. Aborting.\n";
+                return std::vector<ActivityGen>();
+            }
+        }
+        if(prev_acts[i]->getEndTime() - prev_acts[i]->getStartTime() < Config::time_step) {
             /* Abnormally short. Aborting. */
             Log::err << "Error generating new activties [#1b]: the provided schedule has abnormally short tasks. Aborting.\n";
+            Log::err << "Err. act.: " << *prev_acts[i] << "\n";
             return std::vector<ActivityGen>();
         }
-        if(i == prev_acts.size() - 1) {
-            break;
-        }
     }
-
-    /* DEBUG: */
+    /* Sort the LUT by start time: */
+    std::sort(
+        t_horizons.begin(),
+        t_horizons.end(),
+        [](std::tuple<double, double, unsigned int> a, std::tuple<double, double, unsigned int> b) {
+            return std::get<0>(a) < std::get<0>(b);
+        }
+    );
+    /* DEBUG:
     Log::dbg << "Listing horizons:\n";
     for(auto& th : t_horizons) {
-        Log::dbg << " -- time: " << VirtualTime::toString(th.first) << ", task: " << th.second << "\n";
+        Log::dbg << " -- time: "
+            << VirtualTime::toString(std::get<0>(th)) << " / "
+            << VirtualTime::toString(std::get<1>(th)) << ", task: "
+            << std::get<2>(th) << "\n";
     }
+    */
 
     bool within_old = false;
     double next_horizon;
     double t_start = tmp_act->getStartTime();
     double t_end = tmp_act->getEndTime();
     if(t_horizons.size() > 0) {
-        Log::dbg << "There are " << t_horizons.size() << " horizons to split the generation in intervals.\n";
-        next_horizon = t_horizons.begin()->first;
+        // Log::dbg << "There are " << t_horizons.size() << " horizons to split the generation in intervals.\n";
+        next_horizon = std::get<0>(t_horizons.front());
     } else {
-        Log::dbg << "There are no horizons to split the generation of intervals.\n";
+        // Log::dbg << "There are no horizons to split the generation of intervals.\n";
         next_horizon = t_end;
     }
-    Log::warn << "Next horizon is " << VirtualTime::toString(next_horizon) << " (within_old = " << std::boolalpha << within_old << ")\n";
+    // Log::warn << "Next horizon is " << VirtualTime::toString(next_horizon) << " (within_old = " << std::boolalpha << within_old << ")\n";
     double t = t_start;
     double t_start_i = t_start;
     double t_end_i = std::min(t + Config::max_task_duration, next_horizon);
-    Log::dbg << "Staring the iteration at t = " << VirtualTime::toString(t) << ", t_end_i = " << VirtualTime::toString(t_end_i) << "\n";
+    // Log::dbg << "Staring the iteration at t = " << VirtualTime::toString(t) << ", t_end_i = " << VirtualTime::toString(t_end_i) << "\n";
     do {
-        while(t_end_i - t > 2.0 * Config::time_step) {
+        bool created_activity = false;
+        while(t_end_i - t > 3.0 * Config::time_step) {
             /* Length is appropiate: */
             if(within_old) {
-                retval.push_back(createActivityGen(t, t_end_i, tmp_act, prev_acts[t_horizons.begin()->second]));
+                int idx_lut = std::get<2>(t_horizons.front());
+                auto aptr = prev_acts[idx_lut];
+                if(aptr->isConfimed()) {
+                    t_end_i = std::get<1>(t_horizons.front());  /* Move directly to end time, which is next horizon. */
+                    retval.push_back(createActivityGen(t, t_end_i, tmp_act, aptr));
+                } else {
+                    /* We can split. */
+                    retval.push_back(createActivityGen(t, t_end_i, tmp_act, aptr));
+                }
                 t = t_end_i;
                 t_end_i = std::min(t + Config::max_task_duration, next_horizon);
+                created_activity = true;
             } else {
                 /* We need to iterate over time to detect earlier stopping points: */
                 t_end_i = findEndTime(t, t_end_i, tmp_act, t_start_i);  /* May be left unchanged. */
-                if(t_end_i - t > 2.0 * Config::time_step) {
+                if(t_end_i - t > 3.0 * Config::time_step) {
                     /* Length continues to be appropiate. */
                     retval.push_back(createActivityGen(t, t_end_i, tmp_act, nullptr));
                 }
@@ -338,9 +366,23 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
                     t = next_horizon;
                     t_end_i = next_horizon;
                 }
+                if(t_horizons.size() == 0 && !within_old && retval.size() >= Config::max_tasks) {
+                    /* Exit this loop. This is safe only in this conditions. */
+                    break;
+                }
             }
         }
-        /* Exited the loop because there was a too short task or we reached next_horizon. */
+        /*  Exited the loop because:
+         *   - There was a too short task; or
+         *   - We reached next_horizon.
+         **/
+        if(!created_activity && within_old) {
+            /* This is not correct. We must create (at least) one activity: */
+            // Log::err << "Careful! We were within old but did not create an activity. Will do now.\n";
+            int idx_lut = std::get<2>(t_horizons.front());
+            auto aptr = prev_acts[idx_lut];
+            retval.push_back(createActivityGen(std::get<0>(t_horizons.front()), std::get<1>(t_horizons.front()), tmp_act, aptr));
+        }
         if(within_old && retval.size() > 0) {
             /* Extend the previous (if there is one): */
             retval[retval.size() - 1].t1 = next_horizon;
@@ -350,26 +392,42 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
             return std::vector<ActivityGen>();
         }
         t = next_horizon;
-        if(t_horizons.size() >= 2) {
-            t_horizons.erase(t_horizons.begin());
-            next_horizon = t_horizons.begin()->first;
-            within_old = !within_old;
+        if(!within_old) {
+            if(t_horizons.size() > 0) {
+                /* We reached an activity start time. Set next horizon to end time: */
+                next_horizon = std::get<1>(t_horizons.front());
+                within_old = true;
+            } /* ... else: we must have reached `t_end`, so there's nothing to do. */
         } else {
-            next_horizon = t_end;
+            /* We reached an activity end time. Advance LUT and set the next horizon to next start time. */
+            if(t_horizons.size() > 0) {
+                t_horizons.erase(t_horizons.begin());
+                if(t_horizons.size() > 0) {
+                    /* Next horizon is next start time: */
+                    next_horizon = std::get<0>(t_horizons.front());
+                } else {
+                    /* There aren't more horizons: */
+                    next_horizon = t_end;
+                }
+                within_old = false;
+            } else {
+                /* This is unexpected because we were inside a task. */
+                Log::err << "Error generating new activities [#3]\n";
+            }
         }
         t_end_i = std::min(t + Config::max_task_duration, next_horizon);
 
-        Log::warn << "Next horizon is " << VirtualTime::toString(next_horizon) << " (within_old = " << std::boolalpha << within_old << ")\n";
+        // Log::warn << "Next horizon is " << VirtualTime::toString(next_horizon) << " (within_old = " << std::boolalpha << within_old << ")\n";
         if(!within_old && retval.size() >= Config::max_tasks) {
             /* We need to stop here: */
-            Log::warn << "Reached the maximum number of activities.\n";
+            // Log::warn << "Reached the maximum number of activities.\n";
             break;
         } else if(within_old && std::ceil((next_horizon - t) / Config::max_task_duration) + retval.size() >= Config::max_tasks) {
             /* We also need to stop here: */
-            Log::warn << "Will reach the maximum number of activities.\n";
+            // Log::warn << "Will reach the maximum number of activities.\n";
             break;
         }
-    } while(t_horizons.size() >= 2 || (!within_old && t_end - t > 2.0 * Config::time_step));
+    } while(t_horizons.size() >= 1 || (!within_old && t_end - t > 3.0 * Config::time_step));
 
     return retval;
 

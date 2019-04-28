@@ -53,17 +53,16 @@ void DepletableResource::applyOnce(float c)
     m_instantaneous += c;
 }
 
-bool DepletableResource::applyUntil(float c, unsigned int steps)
+bool DepletableResource::applyFor(float c, double t)
 {
-    if(steps == 0) {
+    if(t <= 0) {
         return true;
     }
 
-    float acc = 0.f;
+    float acc = c + m_instantaneous;
     for(auto& r : m_rates) {
         acc += r.second;
     }
-    acc += c;
     if(m_max_capacity - acc - m_instantaneous >= m_reserved_capacity) {
         m_capacity = m_max_capacity - acc - m_instantaneous;
         return true;

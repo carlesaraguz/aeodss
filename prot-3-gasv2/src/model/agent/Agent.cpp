@@ -138,9 +138,11 @@ void Agent::plan(void)
 {
     /* Schedule activities: */
     double tv_now = VirtualTime::now();
-    if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr) {
-        /* Ensures that old activities are removed from the agent's knowledge base: */
-        m_activities->purge();
+    if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr && !m_activities->isCapturing()) {
+        /*  Ensures that old activities are removed from the agent's knowledge base:
+         *  The following call also removes activities that have not been shared with other agents.
+         **/
+        m_activities->purge(true);
         m_environment->cleanActivities();
 
         /* Create a temporal activity (won't be added to the Activities Handler): */
@@ -201,21 +203,20 @@ void Agent::plan(void)
 
         /* Configure chromosomes: */
         std::vector<double> t0s;
-        std::vector<int> steps;
+        std::vector<double> t1s;
         unsigned int j = 0;
         for(auto& act : acts) {
             t0s.push_back(act->getStartTime());
+            t1s.push_back(act->getEndTime());
             double steps_exact = (act->getEndTime() - act->getStartTime()) / Config::time_step;
-            int steps_int = std::round(steps_exact);
-            if(steps_exact < 1.0 && steps_int < 1) {
+            if(steps_exact < 1.0) {
                 Log::err << "Activity duration is smaller than 1 step:\n";
                 Log::err << "Allele " << j << "\n";
                 Log::err << *act << "\n";
             }
-            steps.push_back(steps_int);
             j++;
         }
-        scheduler.setChromosomeInfo(t0s, steps, m_payload.getResourceRates());
+        scheduler.setChromosomeInfo(t0s, t1s, m_payload.getResourceRates());
 
         /*  The following loop configures three things:
          *    (1) Activity/chromosome payoffs for fitness calculation.
@@ -229,9 +230,21 @@ void Agent::plan(void)
             float bc = std::accumulate(act_gens[i].c_utility.begin(), act_gens[i].c_utility.end(), 0.f);
             bc /= act_gens[i].c_utility.size();
             scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, bc);
+
+            // if(act_gens[i].prev_act != nullptr) {
+            //     Log::warn << "Allelle (" << i << ") * * * " << *(act_gens[i].prev_act) << "\n";
+            // } else {
+            //     Log::warn << "Allelle (" << i << ") - - -\n";
+            // }
             if(act_gens[i].prev_act != nullptr && pending_aptr == nullptr) {
                 j = i;
                 pending_aptr = act_gens[i].prev_act;
+                if(i < act_gens.size() - 1) {
+                    if(act_gens[i].prev_act != act_gens[i + 1].prev_act && act_gens[i + 1].prev_act != nullptr) {
+                        scheduler.setPreviousSolution(j, i, pending_aptr);
+                        pending_aptr = nullptr;
+                    }
+                }
             } else if(((act_gens[i].prev_act != nullptr && pending_aptr != act_gens[i].prev_act) ||
                 (act_gens[i].prev_act == nullptr && pending_aptr != nullptr) ||
                 (i == act_gens.size() - 1)) &&
@@ -245,6 +258,11 @@ void Agent::plan(void)
         /* Run the scheduler: */
         std::vector<std::shared_ptr<Activity> > adis;
         auto result = scheduler.schedule(adis);
+
+        /* Discard activities: */
+        for(auto& act_dis : adis) {
+            m_activities->discard(act_dis);
+        }
 
         /* Store the result (existing activities are not part of the result): */
         for(auto& setimes : result) {
@@ -261,9 +279,7 @@ void Agent::plan(void)
                     << "tend(" << VirtualTime::toString(new_te) << ") (2). Skipping.\n";
             }
         }
-        for(auto& act_dis : adis) {
-            act_dis->setDiscarded();
-        }
+
         m_activities->update();
         m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
         Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
@@ -309,7 +325,13 @@ void Agent::listen(void)
         if(aep.second.size() > 0) {
             /* Push these to the link interface, for this agent: */
             for(auto& a : aep.second) {
-                m_link->scheduleSend(std::static_pointer_cast<const Activity>(a), aep.first);
+                if(a->isOwner(m_id)) {
+                    m_link->scheduleSend(std::static_pointer_cast<const Activity>(a), aep.first, [this](int aid) {
+                        m_activities->markAsSent(aid);
+                    });
+                } else {
+                    m_link->scheduleSend(std::static_pointer_cast<const Activity>(a), aep.first);
+                }
             }
             aep.second.clear();
         }

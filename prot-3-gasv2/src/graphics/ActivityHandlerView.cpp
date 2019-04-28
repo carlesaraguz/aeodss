@@ -96,7 +96,7 @@ void ActivityHandlerView::update(void)
             break;
         case ActivityDisplayType::SET:
             for(auto& act : *m_act_own_ptr) {
-                if(std::find(m_filter.begin(), m_filter.end(), std::make_pair(act->getAgentId(), act->getId())) != m_filter.end()) {
+                if(std::find(m_filter.begin(), m_filter.end(), std::make_pair(act->getAgentId(), (unsigned int)act->getId())) != m_filter.end()) {
                     segv_ptr = act->getView(m_agent_id);
                     if(segv_ptr != nullptr) {
                         segs.push_back(segv_ptr);

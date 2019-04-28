@@ -1,6 +1,6 @@
 version: 2
 system:
-    n_agents: 1 # 50
+    n_agents: 16 # 50
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -11,7 +11,7 @@ system:
         duration: 2         # Duration (in days, seconds or units of time depending upon mode).
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
-        planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none concurrent).
+        planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -60,7 +60,7 @@ agent:
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1000             # Amount of information to transmit.
     planning_window: 1080           # Time-steps.
-    replanning_window: 100          # Time-steps.
+    replanning_window: 500          # Time-steps.
     max_tasks: 70                   # Max. tasks to generate.
     max_task_duration: 1.388888e-3  # 2 min. (in JD)
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.

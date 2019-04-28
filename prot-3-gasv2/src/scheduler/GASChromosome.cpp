@@ -26,8 +26,8 @@ GASChromosome::GASChromosome(unsigned int sz)
 GASChromosome::GASChromosome(const GASChromosome& other)
     : m_alleles(other.m_alleles.size())
     , m_protected_alleles(other.m_protected_alleles)
-    , m_valid(true)
-    , m_fitness(0.f)
+    , m_valid(other.m_valid)
+    , m_fitness(other.m_fitness)
 {
     for(unsigned int i = 0; i < other.getChromosomeLength(); i++) {
         if(m_protected_alleles[i]) {
@@ -37,8 +37,6 @@ GASChromosome::GASChromosome(const GASChromosome& other)
         }
     }
 }
-
-
 
 void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2)
 {
@@ -218,7 +216,7 @@ std::ostream& operator<<(std::ostream& os, const GASChromosome& chr)
 {
     int count_active = 0;
     os << "{";
-    for(auto a : chr.m_alleles) {
+    for(const auto& a : chr.m_alleles) {
         os << (int)a;
         count_active += (int)a;
     }
@@ -228,4 +226,18 @@ std::ostream& operator<<(std::ostream& os, const GASChromosome& chr)
     }
     os << "}";
     return os;
+}
+
+void GASChromosome::printProtectedAlleles(void) const
+{
+    /* DEBUG purposes: */
+    Log::dbg << "{";
+    for(const auto& pa : m_protected_alleles) {
+        if(pa) {
+            Log::dbg << "#";
+        } else {
+            Log::dbg << "-";
+        }
+    }
+    Log::dbg << "}\n";
 }

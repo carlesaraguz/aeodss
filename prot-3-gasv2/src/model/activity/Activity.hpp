@@ -240,7 +240,7 @@ public:
     /*******************************************************************************************//**
      *  Getter for the activity identifier.
      **********************************************************************************************/
-    unsigned int getId(void) const { return m_id; }
+    int getId(void) const { return m_id; }
 
     /*******************************************************************************************//**
      *  Getter for the start time of this activity.
@@ -285,6 +285,17 @@ public:
     void clone(std::shared_ptr<Activity> aptr);
 
     /*******************************************************************************************//**
+     *  Marks this activity as one that has been sent/shared to other agents.
+     **********************************************************************************************/
+    void markAsSent(void) { m_has_been_sent = true; }
+
+    /*******************************************************************************************//**
+     *  Getter for the sent flag. This flag could have been set in the on-success callback for the
+     *  agent link.
+     **********************************************************************************************/
+    bool isSent(void) { return m_has_been_sent; }
+
+    /*******************************************************************************************//**
      *  Compares the start times of activities, iff both activities are ready.
      *  @throws     std::runtime_error if either of the two activities are not ready.
      **********************************************************************************************/
@@ -313,6 +324,7 @@ private:
     float m_aperture;
     double m_last_update;
     double m_creation_time;
+    bool m_has_been_sent;
 
     /* Spatio-temporal information: */
     std::shared_ptr<SegmentView> m_self_view;

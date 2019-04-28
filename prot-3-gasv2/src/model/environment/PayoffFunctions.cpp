@@ -207,16 +207,19 @@ void PayoffFunctions::bindPayoffFunctions(void)
             for(auto& s : selected) {
                 tsb = s.first;
                 poi = payoff(tsb - tea);  /* Must be smaller or equal than po. */
-                if(poi > po) { /* TODO: Remove this after debugging. */
-                    Log::err << "Error computing intermediate payoff values (F). Printing debug information and aborting.\n";
-                    Log::err << "Initial RV(F) = " << VirtualTime::toString(t_diff) << " --> PO0 = " << payoff(t_diff) << ".\n";
-                    Log::err << "Current PO = " << po << ". Activities selected:\n";
-                    for(auto& act : selected) {
-                        Log::err << " -- Selected activity [" << act.second->getAgentId() << ":" << act.second->getId() << "]:";
-                        Log::err << " interval start time = " << VirtualTime::toString(tsb) << ";";
-                        Log::err << " POi = " << poi << "\n";
+                if(poi > po) {
+                    Log::err << "Error computing intermediate payoff values (F).\n";
+                    // Log::err << "Initial RV(F) = " << VirtualTime::toString(t_diff) << " --> PO0 = " << payoff(t_diff) << ".\n";
+                    // Log::err << "Current PO = " << po << ". Activities selected:\n";
+                    // for(auto& act : selected) {
+                    //     Log::err << " -- Selected activity [" << act.second->getAgentId() << ":" << act.second->getId() << "]:";
+                    //     Log::err << " interval start time = " << VirtualTime::toString(tsb) << ";";
+                    //     Log::err << " POi = " << poi << "\n";
+                    // }
+                    if(po < 0.0f) {
+                        po = 0.f;
                     }
-                    std::exit(-1);
+                    poi = po;
                 }
                 dist_po = po - poi;
                 po -= dist_po * s.second->reportConfidence();
@@ -228,9 +231,6 @@ void PayoffFunctions::bindPayoffFunctions(void)
             } else {
                 if(selected.size() > 0) {
                     utility_sum /= (float)selected.size();
-                } else {
-                    Log::err << "ERROR DEBUG\n";
-                    std::exit(-1);
                 }
             }
             return std::make_pair(po, utility_sum);
@@ -384,14 +384,14 @@ void PayoffFunctions::bindPayoffFunctions(void)
                 teb = s.first;
                 poi = payoff(tsa - teb);  /* Must be smaller or equal than po. */
                 if(poi > po) { /* TODO: Remove this after debugging. */
-                    Log::err << "Error computing intermediate payoff values (B). Printing debug information and aborting.\n";
-                    Log::err << "Initial RV(B) = " << t_diff << " = " << VirtualTime::toString(t_diff, false) << " --> PO0 = " << payoff(t_diff) << ".\n";
-                    Log::err << "Current PO = " << po << ". Tsa = " << (tsa - Config::start_epoch) << ". Selected activities:\n";
-                    for(auto& act : selected) {
-                        Log::err << " -- [" << act.second->getAgentId() << ":" << act.second->getId() << "]:";
-                        Log::err << " Teb = " << (teb - Config::start_epoch) << " = " << VirtualTime::toString(teb) << ";";
-                        Log::err << " POi = " << poi << "\n";
-                    }
+                    Log::err << "Error computing intermediate payoff values (B).\n";
+                    // Log::err << "Initial RV(B) = " << t_diff << " = " << VirtualTime::toString(t_diff, false) << " --> PO0 = " << payoff(t_diff) << ".\n";
+                    // Log::err << "Current PO = " << po << ". Tsa = " << (tsa - Config::start_epoch) << ". Selected activities:\n";
+                    // for(auto& act : selected) {
+                    //     Log::err << " -- [" << act.second->getAgentId() << ":" << act.second->getId() << "]:";
+                    //     Log::err << " Teb = " << (teb - Config::start_epoch) << " = " << VirtualTime::toString(teb) << ";";
+                    //     Log::err << " POi = " << poi << "\n";
+                    // }
                     if(po < 0.0f) {
                         po = 0.f;
                     }
@@ -399,10 +399,6 @@ void PayoffFunctions::bindPayoffFunctions(void)
                 }
                 dist_po = po - poi;
                 po -= dist_po * s.second->reportConfidence();
-                if(po < 0.f) { /* TODO: Remove this after debugging: */
-                    Log::err << "ERROR: Got a negative payoff! po -= " << dist_po << " * " << s.second->reportConfidence() << " = " << po << "\n";
-                    std::exit(-1);
-                }
                 utility_sum += Activity::utility(s.second->reportConfidence());
             }
             if(prev_act != nullptr) {
@@ -411,9 +407,6 @@ void PayoffFunctions::bindPayoffFunctions(void)
             } else {
                 if(selected.size() > 0) {
                     utility_sum /= (float)selected.size();
-                } else {
-                    Log::err << "ERROR DEBUG\n";
-                    std::exit(-1);
                 }
             }
             return std::make_pair(po, utility_sum);

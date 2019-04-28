@@ -79,27 +79,41 @@ void ActivityHandler::report(void)
     setReportColumnValue(5, count_undecided_others);
 }
 
-void ActivityHandler::purge(void)
+void ActivityHandler::discard(std::shared_ptr<Activity> pa)
 {
-    bool bflag = false;
+    auto it = std::find(m_activities_own.begin(), m_activities_own.end(), pa);
+    if(it != m_activities_own.end()) {
+        pa->setDiscarded(true);
+        buildActivityLUT();
+    }
+}
+
+
+void ActivityHandler::purge(bool remove_unsent)
+{
+    bool bflag = false, report_flag = false;
     int count = 0;
-    double t_horizon = VirtualTime::now() - Config::goal_target;
+    double tv_now = VirtualTime::now();
+    double t_horizon = tv_now - Config::goal_target;
     for(auto it = m_activities_own.begin(); it != m_activities_own.end(); ) {
         auto act = *it;
-        if(act->getEndTime() < t_horizon) {
+        if((act->getEndTime() < t_horizon) || (remove_unsent && !act->isSent() && act->getStartTime() > tv_now)) {
             /* We shall remove it: */
+            if(!act->isDiscarded()) {
+                bflag = true;
+            }
+            report_flag = true;
             it = m_activities_own.erase(it);
-            bflag = true;
+            if(m_env_model_ptr != nullptr) {
+                m_env_model_ptr->removeActivity(act);
+            }
             count++;
         } else {
             it++;
         }
     }
-    if(bflag || (m_act_own_lut.size() != m_activities_own.size())) {
-        m_act_own_lut.clear();
-        for(unsigned int i = 0; i < m_activities_own.size(); i++) {
-            m_act_own_lut[m_activities_own[i]->getStartTime()] = i;
-        }
+    if(bflag) {
+        buildActivityLUT();
     }
     Log::dbg << "Agent " << m_agent_id << " has purged " << count << " old activities (owned).\n";
     count = 0;
@@ -109,22 +123,32 @@ void ActivityHandler::purge(void)
                 /* We shall remove it: */
                 act_it = act_others.second.erase(act_it);
                 bflag = true;
+                report_flag = true;
                 count++;
             } else {
                 act_it++;
             }
         }
     }
-    Log::dbg << "Agent " << m_agent_id << " has purged " << count << " old activities (others).\n";
-    if(bflag) {
+    Log::dbg << "Agent " << m_agent_id << " has purged " << count << " old activities (from other agents).\n";
+    if(report_flag) {
         report();
         bflag = false;
     }
 }
 
+void ActivityHandler::buildActivityLUT(void)
+{
+    m_act_own_lut.clear();
+    for(unsigned int i = 0; i < m_activities_own.size(); i++) {
+        if(!m_activities_own[i]->isDiscarded()) {
+            m_act_own_lut[m_activities_own[i]->getStartTime()] = i;
+        }
+    }
+}
+
 void ActivityHandler::update(void)
 {
-    // Log::dbg << "Agent " << m_agent_id << " will update its activities.\n";
     double t = VirtualTime::now();
     for(auto ait = m_activities_own.begin(); ait != m_activities_own.end(); ait++) {
         auto aptr = *ait;
@@ -136,13 +160,7 @@ void ActivityHandler::update(void)
             }
         }
     }
-    if(m_act_own_lut.size() != m_activities_own.size()) {
-        Log::err << "Agent " << m_agent_id << " found an inconsistency in its activity look-up table. Rebuilding.\n";
-        m_act_own_lut.clear();
-        for(unsigned int i = 0; i < m_activities_own.size(); i++) {
-            m_act_own_lut[m_activities_own[i]->getStartTime()] = i;
-        }
-    }
+    buildActivityLUT();     /* REMOVE this after DEBUG */
     /* Checking overlaps: */
     if(m_act_own_lut.size() >= 2) {
         unsigned int j = m_act_own_lut.begin()->second;
@@ -152,6 +170,12 @@ void ActivityHandler::update(void)
                     std::string ida = std::to_string(m_activities_own[it->second]->getId());
                     std::string idb = std::to_string(m_activities_own[j]->getId());
                     Log::err << "Two non-discarded activities overlap in [" << m_agent_id << "]: " << ida << " and " << idb << "\n";
+                    Log::err << "Will discard the older and continue, but this is unexpected\n";
+                    if(m_activities_own[it->second]->getLastUpdateTime() >= m_activities_own[j]->getLastUpdateTime()) {
+                        m_activities_own[j]->setDiscarded(true);
+                    } else {
+                        m_activities_own[it->second]->setDiscarded(true);
+                    }
                 }
                 j = it->second;
             }
@@ -174,6 +198,39 @@ bool ActivityHandler::isOverlapping(std::shared_ptr<Activity> a, std::shared_ptr
     }
 }
 
+std::vector<std::shared_ptr<Activity> > ActivityHandler::checkOverlaps(std::shared_ptr<Activity> a, std::vector<std::shared_ptr<Activity> >& beta)
+{
+    std::vector<std::shared_ptr<Activity> > retvec;
+    if(a->isDiscarded()) {
+        return retvec;
+    }
+    for(auto& bi : beta) {
+        if(!bi->isDiscarded()) {
+            if(isOverlapping(a, bi)) {
+                Log::err << "Activity [" << a->getAgentId() << ":" << a->getId() << "] overlaps with [" << bi->getAgentId() << ":" << bi->getId() << "]\n";
+                retvec.push_back(bi);
+            }
+        }
+    }
+    return retvec;
+}
+
+void ActivityHandler::markAsSent(int aid)
+{
+    bool found = false;
+    if(aid >= 0) {
+        for(unsigned int idx = 0; idx < m_activities_own.size(); idx++) {
+            if(m_activities_own[idx]->getId() == aid) {
+                m_activities_own[idx]->markAsSent();
+                found = true;
+            }
+        }
+    }
+    if(!found) {
+        Log::err << "Trying to mark an activity as sent, but is no longer in the knowledge base: [" << m_agent_id << ":" << aid << "]\n";
+    }
+}
+
 bool ActivityHandler::isCapturing(void)
 {
     double t = VirtualTime::now();
@@ -188,7 +245,7 @@ bool ActivityHandler::isCapturing(void)
     return false;
 }
 
-std::shared_ptr<Activity> ActivityHandler::getNextActivity(double t) const
+std::shared_ptr<Activity> ActivityHandler::getNextActivity(double t) // const
 {
     if(t <= -1.0) {
         t = VirtualTime::now();
@@ -199,6 +256,7 @@ std::shared_ptr<Activity> ActivityHandler::getNextActivity(double t) const
      *  - Activities are sorted by start time.
      *  - Start and end times of activities for an agent do not overlap.
      **/
+    buildActivityLUT();
     for(auto& idx : m_act_own_lut) {
         auto ac = m_activities_own[idx.second];
         if(ac->getStartTime() > t && !ac->isDiscarded()) {
@@ -209,7 +267,7 @@ std::shared_ptr<Activity> ActivityHandler::getNextActivity(double t) const
     return retval;
 }
 
-std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) const
+std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) // const
 {
     std::shared_ptr<Activity> retval(nullptr);
     double t = VirtualTime::now();
@@ -217,6 +275,7 @@ std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) const
      *  - Activities are sorted by start time.
      *  - Start and end times of activities for an agent do not overlap.
      **/
+    buildActivityLUT();
     for(auto& idx : m_act_own_lut) {
         auto ac = m_activities_own[idx.second];
         if(ac->getStartTime() <= t && ac->getEndTime() >= t && !ac->isDiscarded()) {
@@ -227,24 +286,28 @@ std::shared_ptr<Activity> ActivityHandler::getCurrentActivity(void) const
     return retval;
 }
 
-std::vector<std::shared_ptr<Activity> > ActivityHandler::getPending(void) const
+std::vector<std::shared_ptr<Activity> > ActivityHandler::getPending(void) // const
 {
     std::vector<std::shared_ptr<Activity> > retvec;
     double t = VirtualTime::now();
     /*  NB: This function assumes that:
-     *  - Activities are sorted by start time.
+     *  - Activities are sorted by start time (iterating the LUT/std::map guarantees this).
+     *  - The LUT only has confirmed and undecided activities (i.e. not discarded).
      **/
+    buildActivityLUT();
     for(auto& idx : m_act_own_lut) {
         auto ac = m_activities_own[idx.second];
-        if(ac->getStartTime() > t && !ac->isDiscarded()) {
+        if(ac->getStartTime() >= t) {
             retvec.push_back(ac);
+        } else {
         }
     }
     return retvec;
 }
 
-std::shared_ptr<Activity> ActivityHandler::getLastActivity(void) const
+std::shared_ptr<Activity> ActivityHandler::getLastActivity(void) // const
 {
+    buildActivityLUT();
     if(m_activities_own.size() > 0) {
         return m_activities_own[m_act_own_lut.rbegin()->second];
     } else {
@@ -289,6 +352,8 @@ std::shared_ptr<Activity> ActivityHandler::createOwnedActivity(
     return a;
 }
 
+// void ActivityHandler::add(std::shared_ptr<Activity> a, std::vector<std::shared_ptr<Activity> >& beta)
+
 void ActivityHandler::add(std::shared_ptr<Activity> pa)
 {
     if(pa->getActiveCells().size() == 0) {
@@ -298,12 +363,17 @@ void ActivityHandler::add(std::shared_ptr<Activity> pa)
     if(pa->isOwner(m_agent_id)) {
         /* It's owned: */
         pa->setId(m_activity_count++);
-        m_activities_own.push_back(pa);
-        if(m_env_model_ptr != nullptr) {
-            m_env_model_ptr->addActivity(pa);
+        auto overlap_vec = checkOverlaps(pa, m_activities_own);
+        if(m_act_own_lut.find(pa->getStartTime()) == m_act_own_lut.end() && overlap_vec.size() == 0) {
+            m_activities_own.push_back(pa);
+            if(m_env_model_ptr != nullptr) {
+                m_env_model_ptr->addActivity(pa);
+            }
+            m_act_own_lut[pa->getStartTime()] = m_activities_own.size() - 1;
+            Log::dbg << "Agent " << m_agent_id << " added a new activity: " << *pa << "\n";
+        } else {
+            Log::err << "Agent " << m_agent_id << " was trying to add an overlapping activity: " << *pa << "\n";
         }
-        m_act_own_lut[pa->getStartTime()] = m_activities_own.size() - 1;
-        Log::dbg << "Agent " << m_agent_id << " added a new activity: " << *pa << "\n";
     } else {
         /* It has been received: */
         if(m_activities_others[pa->getAgentId()][pa->getId()] != nullptr) {

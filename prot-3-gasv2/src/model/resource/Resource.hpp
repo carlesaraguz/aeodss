@@ -27,7 +27,7 @@ public:
     virtual void setMaxCapacity(float c) = 0;
     virtual void setReservedCapacity(float c) = 0;
     virtual void applyOnce(float c) = 0;
-    virtual bool applyUntil(float c, unsigned int steps) = 0;
+    virtual bool applyFor(float c, double t) = 0;
     virtual bool isFull(void) const = 0;
     virtual bool isEmpty(void) const = 0;
     virtual bool tryApplyOnce(float c) const = 0;

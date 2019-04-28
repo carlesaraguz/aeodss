@@ -27,6 +27,7 @@ Activity::Activity(std::string agent_id, int id)
     , m_aperture(0.f)
     , m_last_update(VirtualTime::now())
     , m_creation_time(VirtualTime::now())
+    , m_has_been_sent(false)
 { }
 
 Activity::~Activity(void)
@@ -50,6 +51,7 @@ Activity::Activity(const Activity& other)
     , m_last_update(other.m_last_update)
     , m_self_view(nullptr)
     , m_aperture(other.m_aperture)
+    , m_has_been_sent(other.m_has_been_sent)
 { }
 
 Activity& Activity::operator=(const Activity& other)
@@ -66,6 +68,7 @@ Activity& Activity::operator=(const Activity& other)
     m_last_update = other.m_last_update;
     m_self_view = nullptr;
     m_aperture = other.m_aperture;
+    m_has_been_sent = other.m_has_been_sent;
     return *this;
 }
 
@@ -77,6 +80,7 @@ void Activity::clone(std::shared_ptr<Activity> aptr)
     m_discarded = aptr->m_discarded;
     m_creation_time = aptr->m_creation_time;
     m_last_update = aptr->m_last_update;
+    m_has_been_sent = aptr->m_has_been_sent;
     /*  NOTE: the following members are not modified/cloned:
      *  - Agent ID & activity ID: these are supposed to be equal or we don't care.
      *  - Trajectory: we're only updating state. Trajectory is expected to remain the same.

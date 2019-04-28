@@ -31,7 +31,7 @@ public:
     void setMaxCapacity(float c) override;
     void setReservedCapacity(float c) override;
     void applyOnce(float c) override;
-    bool applyUntil(float c, unsigned int steps);
+    bool applyFor(float c, double t);
     bool isFull(void) const override { return m_capacity == m_max_capacity; }
     bool isEmpty(void) const override { return m_capacity == 0.f; }
     bool tryApplyOnce(float c) const override;

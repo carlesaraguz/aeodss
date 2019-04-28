@@ -229,14 +229,8 @@ void control_loop(void)
             mutex_control.unlock();
             mutex_draw.lock();     /* Synchronise with draw loop. */
 
-            /* Step time: */
-            VirtualTime::step();
-
-            /* Step agents: */
-            std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->updatePosition(); });
-            #pragma omp parallel for num_threads(Config::parallel_planners)
-            for(unsigned int i = 0; i < agents.size(); i++) {
-                const std::shared_ptr<Agent>& a = agents.at(i);
+            /* Define a lambda for the plan function (as a wrapper): */
+            auto agent_plan = [] (const std::shared_ptr<Agent>& a, int i) {
                 mutex_control.lock();
                 control_info[i].planning = true;
                 mutex_control.unlock();
@@ -246,6 +240,21 @@ void control_loop(void)
                 mutex_control.lock();
                 control_info[i].planning = false;
                 mutex_control.unlock();
+            };
+            /* Step time: */
+            VirtualTime::step();
+
+            /* Step agents: */
+            std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->updatePosition(); });
+            if(Config::parallel_planners >= 2) {
+                #pragma omp parallel for num_threads(Config::parallel_planners)
+                for(unsigned int i = 0; i < agents.size(); i++) {
+                    agent_plan(agents.at(i), i);
+                }
+            } else {
+                for(unsigned int i = 0; i < agents.size(); i++) {
+                    agent_plan(agents.at(i), i);
+                }
             }
             std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->step(); });
 
