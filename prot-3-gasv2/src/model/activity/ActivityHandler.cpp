@@ -204,7 +204,7 @@ std::vector<std::shared_ptr<Activity> > ActivityHandler::checkOverlaps(std::shar
     if(a->isDiscarded()) {
         return retvec;
     }
-    for(auto& bi : beta) {
+    for(const auto& bi : beta) {
         if(!bi->isDiscarded()) {
             if(isOverlapping(a, bi)) {
                 Log::err << "Activity [" << a->getAgentId() << ":" << a->getId() << "] overlaps with [" << bi->getAgentId() << ":" << bi->getId() << "]\n";
@@ -223,11 +223,12 @@ void ActivityHandler::markAsSent(int aid)
             if(m_activities_own[idx]->getId() == aid) {
                 m_activities_own[idx]->markAsSent();
                 found = true;
+                break;
             }
         }
     }
     if(!found) {
-        Log::err << "Trying to mark an activity as sent, but is no longer in the knowledge base: [" << m_agent_id << ":" << aid << "]\n";
+        Log::err << "Trying to mark an activity as sent, but is not in the knowledge base: [" << m_agent_id << ":" << aid << "]\n";
     }
 }
 
@@ -352,7 +353,48 @@ std::shared_ptr<Activity> ActivityHandler::createOwnedActivity(
     return a;
 }
 
-// void ActivityHandler::add(std::shared_ptr<Activity> a, std::vector<std::shared_ptr<Activity> >& beta)
+void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, std::shared_ptr<Activity> >& beta)
+{
+    unsigned int aid = a->getId();
+    if(beta.find(aid) != beta.end()) {
+        if(beta[aid]->getLastUpdateTime() < a->getLastUpdateTime()) {
+            beta[aid] = a;
+            if(m_env_model_ptr != nullptr) {
+                m_env_model_ptr->updateActivity(a);
+            }
+            Log::dbg << "Agent " << m_agent_id << " updated an activity from " << a->getAgentId() << ": " << *a << "\n";
+        }
+    } else {
+        std::vector<std::shared_ptr<Activity> > alist;
+        alist.reserve(beta.size());
+        for(auto& bi : beta) {
+            alist.push_back(bi.second);
+        }
+        auto overlap_vec = checkOverlaps(a, alist);
+        Log::dbg << overlap_vec.size() << " activities stored in " << m_agent_id << " overlap with [" << a->getAgentId() << ":" << a->getId() << "]\n";
+        bool valid = true;
+        for(auto& oa : overlap_vec) {
+            if(oa->getLastUpdateTime() > a->getLastUpdateTime()) {
+                /* The received activity overlaps with others that are newer. Discard. */
+                valid = false;
+                break;
+            }
+        }
+        if(valid) {
+            beta[aid] = a;
+            if(m_env_model_ptr != nullptr) {
+                m_env_model_ptr->addActivity(a);
+            }
+            /* All the overlapping activities can safely be discarded locally: */
+            for(auto& oa : overlap_vec) {
+                oa->setDiscarded(true);
+            }
+            Log::dbg << "Agent " << m_agent_id << " added an new activity from " << a->getAgentId() << ": " << *a << "\n";
+        } else {
+            Log::dbg << "Agent " << m_agent_id << " has not added activity [" << a->getAgentId() << ":" << a->getId() << "] bacause it is outdated\n";
+        }
+    }
+}
 
 void ActivityHandler::add(std::shared_ptr<Activity> pa)
 {
@@ -376,21 +418,7 @@ void ActivityHandler::add(std::shared_ptr<Activity> pa)
         }
     } else {
         /* It has been received: */
-        if(m_activities_others[pa->getAgentId()][pa->getId()] != nullptr) {
-            if(m_activities_others[pa->getAgentId()][pa->getId()]->getLastUpdateTime() < pa->getLastUpdateTime()) {
-                m_activities_others[pa->getAgentId()][pa->getId()] = pa;
-                if(m_env_model_ptr != nullptr) {
-                    m_env_model_ptr->updateActivity(pa);
-                }
-                Log::dbg << "Agent " << m_agent_id << " updated an activity from " << pa->getAgentId() << ": " << *pa << "\n";
-            }
-        } else {
-            m_activities_others[pa->getAgentId()][pa->getId()] = pa;
-            if(m_env_model_ptr != nullptr) {
-                m_env_model_ptr->addActivity(pa);
-            }
-            Log::dbg << "Agent " << m_agent_id << " added an new activity from " << pa->getAgentId() << ": " << *pa << "\n";
-        }
+        add(pa, m_activities_others[pa->getAgentId()]);
     }
     if(m_update_view) {
         m_self_view.update();

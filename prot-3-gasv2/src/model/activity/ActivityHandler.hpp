@@ -77,6 +77,11 @@ public:
     void add(std::shared_ptr<Activity> pa);
 
     /*******************************************************************************************//**
+     *  Checks if an activity overlaps with others and decides whether to add it or not.
+     **********************************************************************************************/
+    void add(std::shared_ptr<Activity> a, std::map<unsigned int, std::shared_ptr<Activity> >& beta);
+
+    /*******************************************************************************************//**
      *  Discards this activity (which has to be listed in the `owned` set).
      **********************************************************************************************/
     void discard(std::shared_ptr<Activity> pa);

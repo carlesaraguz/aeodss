@@ -231,11 +231,6 @@ void Agent::plan(void)
             bc /= act_gens[i].c_utility.size();
             scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, bc);
 
-            // if(act_gens[i].prev_act != nullptr) {
-            //     Log::warn << "Allelle (" << i << ") * * * " << *(act_gens[i].prev_act) << "\n";
-            // } else {
-            //     Log::warn << "Allelle (" << i << ") - - -\n";
-            // }
             if(act_gens[i].prev_act != nullptr && pending_aptr == nullptr) {
                 j = i;
                 pending_aptr = act_gens[i].prev_act;
@@ -282,7 +277,7 @@ void Agent::plan(void)
 
         m_activities->update();
         m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
-        Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
+        Log::dbg << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
     }
 }
 
@@ -326,7 +321,8 @@ void Agent::listen(void)
             /* Push these to the link interface, for this agent: */
             for(auto& a : aep.second) {
                 if(a->isOwner(m_id)) {
-                    m_link->scheduleSend(std::static_pointer_cast<const Activity>(a), aep.first, [this](int aid) {
+                    int aid = (int)a->getId();
+                    m_link->scheduleSend(std::static_pointer_cast<const Activity>(a), aep.first, [this, aid](int /* tx_id */) {
                         m_activities->markAsSent(aid);
                     });
                 } else {
