@@ -467,6 +467,7 @@ void Config::loadCmdArgs(int argc, char** argv)
             } catch(const std::exception& e) {
                 Log::err << "Error loading configuration from \'PROJECT_ROOT/" << ("conf/" + opt_val) << "\'.\n";
                 Log::err << e.what() << "\n";
+                std::exit(-1);
             }
         }
     }

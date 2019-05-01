@@ -138,36 +138,77 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     GASChromosome best(m_init_individual);  /* Randomly initializes, copying protected alleles. */
     unsigned int g = 0;
     m_iteration_profile.clear();
+
+    profiler_t0 = 0.0;
+    profiler_t1 = 0.0;
+    profiler_t2 = 0.0;
+    profiler_t3 = 0.0;
+    profiler_t4 = 0.0;
+    profiler_t5 = 0.0;
+    profiler_t6 = 0.0;
+    profiler_t7 = 0.0;
+    profiler_t8 = 0.0;
+    profiler_t9 = 0.0;
+    profiler_it = 0;
     while(iterate(g, best)) {
+        auto ts_loop = std::chrono::high_resolution_clock::now();
         /* Repopulate in case we lost too many invalid options. */
         while(m_population.size() < Config::ga_population_size) {
             m_population.push_back(GASChromosome(m_init_individual));
         }
-
+        auto ts_crossover = std::chrono::high_resolution_clock::now();
         std::vector<GASChromosome> children;
         std::vector<GASChromosome> parents = m_population;  /* Copy. */
+        profiler_it_crossover = 0;
+        profiler_t4 = 0.0;
+        profiler_t5 = 0.0;
+        profiler_t6 = 0.0;
         while(children.size() < m_population.size()) {
+            auto ts_select = std::chrono::high_resolution_clock::now();
             GASChromosome parent1 = select(parents);
             GASChromosome parent2 = select(parents);
-            GASChromosome child1(m_init_individual);
-            GASChromosome child2(m_init_individual);
+            auto te_select = std::chrono::high_resolution_clock::now();
+            GASChromosome child1(m_init_individual, false);
+            GASChromosome child2(m_init_individual, false);
+            auto ts_cofunc = std::chrono::high_resolution_clock::now();
             GASChromosome::crossover(parent1, parent2, child1, child2);
+            auto te_cofunc = std::chrono::high_resolution_clock::now();
+            auto ts_mutate = std::chrono::high_resolution_clock::now();
             child1.mutate();
             child2.mutate();
             children.push_back(child1);
             children.push_back(child2);
+            auto te_mutate = std::chrono::high_resolution_clock::now();
+            profiler_t4 += std::chrono::duration<long double>(te_select - ts_select).count();
+            profiler_t5 += std::chrono::duration<long double>(te_cofunc - ts_cofunc).count();
+            profiler_t6 += std::chrono::duration<long double>(te_mutate - ts_mutate).count();
+            profiler_it_crossover++;
         }
-        #pragma omp parallel for
+        profiler_t7 = std::max(profiler_t4, profiler_t7);
+        profiler_t8 = std::max(profiler_t5, profiler_t8);
+        profiler_t9 = std::max(profiler_t6, profiler_t9);
+        auto te_crossover = std::chrono::high_resolution_clock::now();
+        profiler_t3 += std::chrono::duration<long double>(te_crossover - ts_crossover).count();
+        auto ts_fitness = std::chrono::high_resolution_clock::now();
+        // #pragma omp parallel for
         for(unsigned int i = 0; i < children.size(); i++) {
             computeFitness(children[i]);
         }
+        auto te_fitness = std::chrono::high_resolution_clock::now();
+        profiler_t1 += std::chrono::duration<long double>(te_fitness - ts_fitness).count();
+
 
         if(g == 1) {
             repairPool(m_population);               /* Removes invalid parents. */
         }
         repairPool(children);                       /* Removes invalid children. */
+        auto ts_repair = std::chrono::high_resolution_clock::now();
         best = combine(m_population, children);     /* Environment selection: updates population. */
-
+        auto te_repair = std::chrono::high_resolution_clock::now();
+        profiler_t2 += std::chrono::duration<long double>(te_repair - ts_repair).count();
+        auto te_loop = std::chrono::high_resolution_clock::now();
+        profiler_t0 += std::chrono::duration<long double>(te_loop - ts_loop).count();
+        profiler_it++;
         /*  DEBUG:
          *  if(!prev_best_valid && best.isValid()) {
          *      Log::dbg << "GA Scheduler found a valid solution at generation " << std::setw(4) << g << ": " << best << ".\n";
@@ -177,6 +218,22 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
          *  prev_best_valid = best.isValid();
          **/
     }
+    profiler_t0 /= (double)profiler_it;
+    profiler_t1 /= (double)profiler_it;
+    profiler_t2 /= (double)profiler_it;
+    profiler_t3 /= (double)profiler_it;
+    profiler_t4 /= (double)profiler_it_crossover;
+    profiler_t5 /= (double)profiler_it_crossover;
+    profiler_t6 /= (double)profiler_it_crossover;
+    Log::err << "===== PROFILER: \n";
+    Log::err << "  --- Whole loop: " << profiler_t0 << "\n";
+    Log::err << "  --- Crossover: " << profiler_t3 << " (" << (int)std::round(10000.0 * (profiler_t3 / profiler_t0)) / 100.0 << " %)\n";
+    Log::err << "  ---    * Select: " << profiler_t7 << " (" << (int)std::round(10000.0 * (profiler_t7 / profiler_t3)) / 100.0 << " %)\n";
+    Log::err << "  ---    * Crossover: " << profiler_t8 << " (" << (int)std::round(10000.0 * (profiler_t8 / profiler_t3)) / 100.0 << " %)\n";
+    Log::err << "  ---    * Mutate: " << profiler_t9 << " (" << (int)std::round(10000.0 * (profiler_t9 / profiler_t3)) / 100.0 << " %)\n";
+    Log::err << "  --- Fitness: " << profiler_t1 << " (" << (int)std::round(10000.0 * (profiler_t1 / profiler_t0)) / 100.0 << " %)\n";
+    Log::err << "  --- Repair + Combine: " << profiler_t2 << " (" << (int)std::round(10000.0 * (profiler_t2 / profiler_t0)) / 100.0 << " %)\n";
+    std::exit(0);
     if(best.isValid()) {
         // Log::dbg << best << "\n";
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
@@ -474,28 +531,40 @@ float GAScheduler::computeFitness(GASChromosome& c)
 GASChromosome GAScheduler::select(std::vector<GASChromosome>& mating_pool) const
 {
     if(mating_pool.size() > 0) {
-        GASChromosome retval(m_individual_info.size()); /* Initializes at random. */
+        GASChromosome retval(m_individual_info.size(), false);  /* Initializes at random. */
         switch(Config::ga_parentsel_op) {
             case GASSelectionOp::TOURNAMENT:
                 {
                     bool bflag = false;
-                    std::vector<GASChromosome>::iterator ind;
+                    // std::vector<GASChromosome>::iterator ind;
+                    // for(unsigned int k = 0; k < Config::ga_tournament_k; k++) {
+                    //     ind = mating_pool.begin() + Random::getUi(0, mating_pool.size() - 1);
+                    //     if(!bflag || *ind > retval) {
+                    //         retval = *ind;
+                    //         bflag = true;
+                    //     }
+                    // }
+                    // mating_pool.erase(ind);
+                    GASChromosome& ind = retval;
+                    int idx = 0;
                     for(unsigned int k = 0; k < Config::ga_tournament_k; k++) {
-                        ind = mating_pool.begin() + Random::getUi(0, mating_pool.size() - 1);
-                        if(!bflag || *ind > retval) {
-                            retval = *ind;
+                        idx = Random::getUi(0, mating_pool.size() - 1);
+                        ind = mating_pool[idx];
+                        if(!bflag || ind > retval) {
+                            retval = ind;
                             bflag = true;
                         }
                     }
-                    mating_pool.erase(ind);
+                    mating_pool.erase(mating_pool.begin() + idx);
                 }
                 break;
             case GASSelectionOp::FITNESS_PROPORTIONATE_ROULETTE_WHEEL:
                 {
-                    float f_sum = 0.f;
                     std::sort(mating_pool.begin(), mating_pool.end(), std::less<GASChromosome>());
-                    for(auto& ind : mating_pool) {
-                        f_sum += ind.getFitness();
+                    float f_sum = 0.f;
+                    #pragma omp parallel for default(shared) reduction(+:f_sum)
+                    for(unsigned int i = 0; i < mating_pool.size(); i++) {
+                        f_sum += mating_pool[i].getFitness();
                     }
                     float s = Random::getUf(0.f, f_sum);
                     for(auto it = mating_pool.begin(); it != mating_pool.end(); it++) {

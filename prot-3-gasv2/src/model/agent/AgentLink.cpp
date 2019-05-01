@@ -371,7 +371,7 @@ void AgentLink::step(void)
                             txt.t_start  = -1.f;
                             txt.t_end    = -1.f;
                             txt.finished = true;
-                            Log::err << "Agent " << getAgentId() << " failed to start a transfer with " << txq.first << ".\n";
+                            Log::warn << "Agent " << getAgentId() << " failed to start a transfer with " << txq.first << ".\n";
                         } else {
                             start_flag = true;
                             /*
@@ -386,11 +386,11 @@ void AgentLink::step(void)
                      *  Do end those transfers that have to, according to their end time.
                      **/
                     if(txt.t_end <= t && !txt.finished && txt.started) {
-                        m_callback_success[txt.id](txt.id);
                         /*
-                        Log::dbg << "Agent " << getAgentId() << " completed transfer " << txt.id << " with " << txq.first
+                        Log::warn << "Agent " << getAgentId() << " completed transfer " << txt.id << " with " << txq.first
                             << " after " << (txt.t_end - txt.t_start) * 24 * 3600 << " sec.\n";
                         */
+                        m_callback_success[txt.id](txt.id);
                         m_other_agents[txq.first]->getLink()->endTransfer(getAgentId(), txt);
                         m_callback_success.erase(m_callback_success.find(txt.id));
                         m_callback_failure.erase(m_callback_failure.find(txt.id));

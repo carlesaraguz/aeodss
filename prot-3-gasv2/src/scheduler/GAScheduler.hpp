@@ -116,6 +116,22 @@ private:
     std::map<std::string, std::shared_ptr<const Resource> > m_resources_init;   /* Agent resources at start time. */
     GASChromosome m_init_individual;            /**< An individual that has protected alleles to initialise others. */
 
+
+    long double profiler_t0;
+    long double profiler_t1;
+    long double profiler_t2;
+    long double profiler_t3;
+    long double profiler_t4;
+    long double profiler_t5;
+    long double profiler_t6;
+    long double profiler_t7;
+    long double profiler_t8;
+    long double profiler_t9;
+    long double profiler_t10;
+    long double profiler_t11;
+    int profiler_it;
+    int profiler_it_crossover;
+
     /*******************************************************************************************//**
      *  Compute fitness of a chromosome. Takes payoffs for all the active alleles (i.e. tasks/
      *  activities) and divides by normalized resource states. Ensures that resource capacities are

@@ -12,18 +12,20 @@
 
 CREATE_LOGGER(GASChromosome)
 
-GASChromosome::GASChromosome(unsigned int sz)
+GASChromosome::GASChromosome(unsigned int sz, bool init_random)
     : m_alleles(sz)
     , m_protected_alleles(sz, false)
     , m_valid(true)
     , m_fitness(0.f)
 {
-    for(unsigned int i = 0; i < sz; i++) {
-        m_alleles[i] = (Random::getUf() > 0.5f);
+    if(init_random) {
+        for(unsigned int i = 0; i < sz; i++) {
+            m_alleles[i] = (Random::getUf() > 0.5f);
+        }
     }
 }
 
-GASChromosome::GASChromosome(const GASChromosome& other)
+GASChromosome::GASChromosome(const GASChromosome& other, bool init_random)
     : m_alleles(other.m_alleles.size())
     , m_protected_alleles(other.m_protected_alleles)
     , m_valid(other.m_valid)
@@ -33,7 +35,9 @@ GASChromosome::GASChromosome(const GASChromosome& other)
         if(m_protected_alleles[i]) {
             m_alleles[i] = other.getAllele(i);
         } else {
-            m_alleles[i] = (Random::getUf() > 0.5f);
+            if(init_random) {
+                m_alleles[i] = (Random::getUf() > 0.5f);
+            }
         }
     }
 }
