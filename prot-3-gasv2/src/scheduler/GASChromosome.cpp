@@ -23,17 +23,19 @@ GASChromosome::GASChromosome(unsigned int sz)
     }
 }
 
-GASChromosome::GASChromosome(const GASChromosome& other)
-    : m_alleles(other.m_alleles.size())
+GASChromosome::GASChromosome(const GASChromosome& other, bool randomize)
+    : m_alleles(other.m_alleles)
     , m_protected_alleles(other.m_protected_alleles)
     , m_valid(other.m_valid)
     , m_fitness(other.m_fitness)
 {
-    for(unsigned int i = 0; i < other.getChromosomeLength(); i++) {
-        if(m_protected_alleles[i]) {
-            m_alleles[i] = other.getAllele(i);
-        } else {
-            m_alleles[i] = (Random::getUf() > 0.5f);
+    if(randomize) {
+        for(unsigned int i = 0; i < other.getChromosomeLength(); i++) {
+            if(m_protected_alleles[i]) {
+                m_alleles[i] = other.getAllele(i);
+            } else {
+                m_alleles[i] = (Random::getUf() > 0.5f);
+            }
         }
     }
 }

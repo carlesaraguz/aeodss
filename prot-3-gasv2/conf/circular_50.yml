@@ -1,6 +1,6 @@
 version: 2
 system:
-    n_agents: 16 # 50
+    n_agents: 1 # 50
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -36,7 +36,7 @@ environment:
 
 # -- Agent configuration: --------------------------------------------------------------------------
 agent:
-    energy_generation: -764     # Energy generation rate.
+    energy_generation: -600     # Energy generation rate. 764
     # Instrument parameters:
     instrument:
         aperture: 100           # Degrees [min, max] or single value.

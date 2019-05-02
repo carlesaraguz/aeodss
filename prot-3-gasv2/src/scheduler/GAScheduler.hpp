@@ -138,9 +138,10 @@ private:
 
     /*******************************************************************************************//**
      *  Repairs a pool of individuals by removing invalid ones.
-     *  @param  pool    The pool to be removed.
+     *  @param  pool    The pool to removed the invalid solutions from.
+     *  @return         The number of invalid solutions.
      **********************************************************************************************/
-    void repairPool(std::vector<GASChromosome>& pool);
+    int repairPool(std::vector<GASChromosome>& pool);
 
     /*******************************************************************************************//**
      *  Combine two generations. Parents and children are combined based on the following

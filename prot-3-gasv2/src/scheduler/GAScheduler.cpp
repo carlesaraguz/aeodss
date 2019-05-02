@@ -135,13 +135,13 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     }
 
     /* Initialize control variables: */
-    GASChromosome best(m_init_individual);  /* Randomly initializes, copying protected alleles. */
+    GASChromosome best(m_init_individual, true);  /* Randomly initializes, copying protected alleles. */
     unsigned int g = 0;
     m_iteration_profile.clear();
     while(iterate(g, best)) {
         /* Repopulate in case we lost too many invalid options. */
         while(m_population.size() < Config::ga_population_size) {
-            m_population.push_back(GASChromosome(m_init_individual));
+            m_population.push_back(GASChromosome(m_init_individual, true));
         }
 
         std::vector<GASChromosome> children;
@@ -161,11 +161,10 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
         for(unsigned int i = 0; i < children.size(); i++) {
             computeFitness(children[i]);
         }
-
         if(g == 1) {
-            repairPool(m_population);               /* Removes invalid parents. */
+            Log::warn << "Repaired " << repairPool(m_population) << " individuals from the population pool\n";               /* Removes invalid parents. */
         }
-        repairPool(children);                       /* Removes invalid children. */
+        Log::warn << "Repaired " << repairPool(children) << " individuals from the children pool\n";                       /* Removes invalid children. */
         best = combine(m_population, children);     /* Environment selection: updates population. */
 
         /*  DEBUG:
@@ -178,7 +177,6 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
          **/
     }
     if(best.isValid()) {
-        // Log::dbg << best << "\n";
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
         return generateSolution(best, adis);
     } else {
@@ -526,15 +524,18 @@ GASChromosome GAScheduler::select(std::vector<GASChromosome>& mating_pool) const
     }
 }
 
-void GAScheduler::repairPool(std::vector<GASChromosome>& pool)
+int GAScheduler::repairPool(std::vector<GASChromosome>& pool)
 {
+    int count_invalid = 0;
     for(auto ind = pool.begin(); ind != pool.end(); ) {
         if(!ind->isValid()) {
             ind = pool.erase(ind);
+            count_invalid++;
         } else {
             ind++;
         }
     }
+    return count_invalid;
 }
 
 GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children)
@@ -551,6 +552,7 @@ GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vect
                 std::vector<GASChromosome> combination(pc.begin(), pc.begin() + elems);
                 m_population = std::move(combination);
                 best_individual = m_population[0];
+
             }
             break;
         case GASSelectionOp::GENERATIONAL:

@@ -42,7 +42,7 @@ void draw_loop(void)
     Log::dbg << "Draw thread started.\n";
     sf::ContextSettings settings;
     settings.antialiasingLevel = 0;
-    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Autonomous Nano-Satellite Swarm", sf::Style::Titlebar | sf::Style::Close, settings);
+    sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Autonomous DSS Simulation Tool", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(20);
 
     /* Configure Agent Views: */
@@ -65,7 +65,7 @@ void draw_loop(void)
     for(unsigned int i = 0; i < agents.size(); i++) {
         mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getLink()));
         mv1.addViewToBack(avs[i]);
-        // mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
+        mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
         mv3.addViewToBack(avs[i]);
         mv4.addViewToBack(avs[i]);
     }
@@ -81,7 +81,7 @@ void draw_loop(void)
     /* Add some background: */
     sf::Texture world_map_texture;
     sf::Sprite world_map1, world_map2, world_map3, world_map4;
-    if(!world_map_texture.loadFromFile(Config::root_path + "res/equirectangular_map.png")) {
+    if(!world_map_texture.loadFromFile(Config::root_path + "res/equirectangular_map_white_outline_transparent_background.png")) {
         Log::err << "Failed to load equirectangular map texture.\n";
         world_map1.setColor(sf::Color(0, 0, 0, 0));
         world_map2.setColor(sf::Color(0, 0, 0, 0));
@@ -94,7 +94,8 @@ void draw_loop(void)
         world_map2.setTexture(world_map_texture);
         world_map3.setTexture(world_map_texture);
         world_map4.setTexture(world_map_texture);
-        sf::Color omod = Config::color_orange;
+        // sf::Color omod = Config::color_orange;
+        sf::Color omod = sf::Color::White;
         omod.a = 127;
         world_map1.setColor(omod); /* Half transparent orange. */
         world_map2.setColor(sf::Color(0, 0, 0, 128)); /* Half transparent gray. */

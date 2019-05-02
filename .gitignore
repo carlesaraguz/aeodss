@@ -44,3 +44,9 @@ prot-*/bin/*
 
 # Old folders
 .old/*
+*/*/.old/*
+*/.old/*
+
+# Prototypes
+*/dev/*
+dev/*
