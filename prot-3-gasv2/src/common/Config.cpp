@@ -39,6 +39,7 @@ unsigned int    Config::n_agents = 1;
 double          Config::start_epoch = 2451545.0;
 double          Config::duration = 30.0;
 double          Config::time_step = 10.0 / 86400.0;
+bool            Config::enable_graphics = true;
 
 /* Concurrency settings: */
 bool            Config::parallel_nested = true;
@@ -219,10 +220,15 @@ void Config::loadCmdArgs(int argc, char** argv)
 
                     } else if(node_it.first.as<std::string>() == "graphics") {
                         Log::dbg << "=== Loading graphics configuration...\n";
-                        getConfigParam("win_width", node_it.second, win_width);
-                        getConfigParam("win_height", node_it.second, win_height);
-                        getConfigParam("agent_size", node_it.second, agent_size);
-                        getConfigParam("font_size", node_it.second, fnt_size);
+                        getConfigParam("enable", node_it.second, enable_graphics);
+                        if(enable_graphics) {
+                            getConfigParam("win_width", node_it.second, win_width);
+                            getConfigParam("win_height", node_it.second, win_height);
+                            getConfigParam("agent_size", node_it.second, agent_size);
+                            getConfigParam("font_size", node_it.second, fnt_size);
+                        } else {
+                            Log::dbg << "Graphics are disabled\n";
+                        }
 
                     } else if(node_it.first.as<std::string>() == "agent") {
                         Log::dbg << "=== Loading agent configuration...\n";

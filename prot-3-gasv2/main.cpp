@@ -210,9 +210,12 @@ void control_loop(void)
     world = std::make_shared<World>();
     world->addAgent(agents);
 
-    Log::dbg << "Starting draw thread.\n";
-    exit_draw_loop = false;
-    std::thread thread_draw(draw_loop);
+    std::thread thread_draw;
+    if(Config::enable_graphics) {
+        Log::dbg << "Starting draw thread.\n";
+        exit_draw_loop = false;
+        thread_draw = std::thread(draw_loop);
+    }
     mutex_draw.unlock();
     mutex_control.unlock();
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -265,21 +268,29 @@ void control_loop(void)
 
             /* Report world values: */
             if(update_world_metrics % 10 == 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                if(Config::enable_graphics) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
                 world->computeMetrics();    /* This only reports to file. */
                 ReportSet::getInstance().outputAll();
             } else {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                if(Config::enable_graphics) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
             }
             update_world_metrics++;
         } else {
             mutex_control.unlock();
             /* Yield CPU. */
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if(Config::enable_graphics) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
         }
     }
-    exit_draw_loop = true;
-    thread_draw.join();
+    if(Config::enable_graphics) {
+        exit_draw_loop = true;
+        thread_draw.join();
+    }
     if(VirtualTime::finished()) {
         Log::dbg << "Simulation reached end time. Exiting control thread.\n";
     } else {

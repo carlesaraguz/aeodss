@@ -36,6 +36,7 @@ public:
     static double start_epoch;                  /**< Start epoch (in J2000) */
     static double duration;                     /**< Units of time. */
     static double time_step;                    /**< Units of time per step. */
+    static bool enable_graphics;                /**< Whether to launch the graphical views. */
 
     /* Concurrency settings: */
     static bool parallel_nested;                /**< Wether to use OMP nested loops or not. */

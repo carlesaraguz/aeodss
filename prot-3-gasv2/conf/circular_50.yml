@@ -19,6 +19,7 @@ graphics:
     win_height: 900
     agent_size: 14
     font_size: 24
+    enable: false
 
 # -- Environment model configuration: --------------------------------------------------------------
 environment:
