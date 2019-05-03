@@ -1,6 +1,6 @@
 version: 2
 system:
-    n_agents: 1 # 50
+    n_agents: 20 # 50
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 10             # Time step seconds in julian_days or seconds mode.
@@ -36,10 +36,10 @@ environment:
 
 # -- Agent configuration: --------------------------------------------------------------------------
 agent:
-    energy_generation: -600     # Energy generation rate. 764
+    energy_generation: -700     # Energy generation rate. 764
     # Instrument parameters:
     instrument:
-        aperture: 100           # Degrees [min, max] or single value.
+        aperture: 100     # Degrees [min, max] or single value.
         energy: [900, 1200]     # Energy consumption rate [min, max] or single value.
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
@@ -60,7 +60,8 @@ agent:
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1000             # Amount of information to transmit.
     planning_window: 1080           # Time-steps.
-    replanning_window: 500          # Time-steps.
+    replanning_window: 250          # Time-steps.
+    knowledge_base_size: 100000     # Max. total tasks that an angent can remember.
     max_tasks: 70                   # Max. tasks to generate.
     max_task_duration: 1.388888e-3  # 2 min. (in JD)
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.

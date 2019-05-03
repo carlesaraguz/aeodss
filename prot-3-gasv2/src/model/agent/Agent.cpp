@@ -91,7 +91,7 @@ void Agent::updateAgentReport(void)
 
 void Agent::initializeResources(void)
 {
-    auto energy = std::make_shared<CumulativeResource>(this, "energy", 10.f, 1.f);
+    auto energy = std::make_shared<CumulativeResource>(this, "energy", 10.f, 0.1f);
     m_resources["energy"] = std::static_pointer_cast<Resource>(energy);
     m_resources["energy"]->addRate(Config::agent_energy_generation_rate, nullptr);  /* Constant generation of energy. */
     // auto storage = std::make_shared<CumulativeResource>(this, "storage", 10.f, 10.f);

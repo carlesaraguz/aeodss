@@ -41,6 +41,8 @@ ReportGenerator::~ReportGenerator(void)
             m_report_file.close();
         }
         Log::dbg << "Output data file generated: " << m_report_filename << "\n";
+    } else if(m_report_filename.length() > 0) {
+        Log::warn << "A report has been configured but no output data file has been generated: " << m_report_filename << "\n";
     }
 }
 
@@ -48,6 +50,7 @@ void ReportGenerator::initReport(std::string name)
 {
     m_report_filename = Config::data_path + name;
     m_initialized = true;
+    Log::dbg << "Report file initialized: \'" << m_report_filename << "\'\n";
 }
 
 void ReportGenerator::initReport(std::string dirname, std::string name)
@@ -66,6 +69,7 @@ void ReportGenerator::initReport(std::string dirname, std::string name)
         std::exit(-1);
     }
     m_initialized = true;
+    Log::dbg << "Report file initialized: \'" << m_report_filename << "\'\n";
 }
 
 void ReportGenerator::enableReport(void)
@@ -158,7 +162,7 @@ void ReportGenerator::setReportColumnValue(std::string col_name, int value)
     setReportColumnValue(col_name, ss.str());
 }
 
-void ReportGenerator::outputReport(void)
+void ReportGenerator::outputReport(bool flush_now)
 {
     if(m_initialized) {
         if(m_enabled && m_report_file.is_open()) {
@@ -173,7 +177,8 @@ void ReportGenerator::outputReport(void)
                 *c = ""; /* Clears this value. */
             }
             m_report_file << std::flush;
-            if(++m_row_count >= 50) {
+
+            if(++m_row_count >= 50 || flush_now) {
                 flush();
                 m_row_count = 0;
             }

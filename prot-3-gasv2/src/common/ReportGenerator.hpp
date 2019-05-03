@@ -29,7 +29,7 @@ public:
     void setReportColumnValue(std::string col_name, float value);
     void setReportColumnValue(unsigned int col_idx, int value);
     void setReportColumnValue(std::string col_name, int value);
-    void outputReport(void);
+    void outputReport(bool flush_now = true);
     void outputReportHeader(void);
     void enableReport(void);
     void enableReport(std::string name);

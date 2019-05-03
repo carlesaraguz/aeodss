@@ -43,7 +43,7 @@ void draw_loop(void)
     sf::ContextSettings settings;
     settings.antialiasingLevel = 0;
     sf::RenderWindow window(sf::VideoMode(Config::win_width, Config::win_height), "Autonomous DSS Simulation Tool", sf::Style::Titlebar | sf::Style::Close, settings);
-    window.setFramerateLimit(20);
+    window.setFramerateLimit(5);
 
     /* Configure Agent Views: */
     for(auto a : agents) {
@@ -65,7 +65,7 @@ void draw_loop(void)
     for(unsigned int i = 0; i < agents.size(); i++) {
         mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getLink()));
         mv1.addViewToBack(avs[i]);
-        mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
+        // mv1.addViewToBack(std::static_pointer_cast<const HasView>(agents[i]->getActivityHandler()));
         mv3.addViewToBack(avs[i]);
         mv4.addViewToBack(avs[i]);
     }
@@ -94,13 +94,10 @@ void draw_loop(void)
         world_map2.setTexture(world_map_texture);
         world_map3.setTexture(world_map_texture);
         world_map4.setTexture(world_map_texture);
-        // sf::Color omod = Config::color_orange;
-        sf::Color omod = sf::Color::White;
-        omod.a = 127;
-        world_map1.setColor(omod); /* Half transparent orange. */
-        world_map2.setColor(sf::Color(0, 0, 0, 128)); /* Half transparent gray. */
-        world_map3.setColor(sf::Color(0, 0, 0, 128)); /* Half transparent gray. */
-        world_map4.setColor(sf::Color(0, 0, 0, 128)); /* Half transparent gray. */
+        world_map1.setColor(sf::Color(255, 255, 255, 128)); /* Half transparent white. */
+        world_map2.setColor(sf::Color(0, 0, 0, 128)); /* Half transparent black. */
+        world_map3.setColor(sf::Color(0, 0, 0, 128)); /* Half transparent black. */
+        world_map4.setColor(sf::Color(0, 0, 0, 128)); /* Half transparent black. */
         world_map1.setScale(scale_factor, scale_factor);
         world_map2.setScale(scale_factor, scale_factor);
         world_map3.setScale(scale_factor, scale_factor);
@@ -137,7 +134,7 @@ void draw_loop(void)
                 draw_world = 0;
                 world->display(World::Layer::REVISIT_TIME_ACTUAL);
                 mv3.drawViews();
-                world->display(World::Layer::REVISIT_TIME_BEST);
+                world->display(World::Layer::REVISIT_TIME_UTOPIA);
                 mv4.drawViews();
             }
             /* The rest is not dependent on objects managed by the control loop: */
@@ -268,8 +265,11 @@ void control_loop(void)
 
             /* Report world values: */
             if(update_world_metrics % 10 == 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 world->computeMetrics();    /* This only reports to file. */
                 ReportSet::getInstance().outputAll();
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             update_world_metrics++;
         } else {

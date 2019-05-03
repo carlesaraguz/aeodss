@@ -59,7 +59,7 @@ sf::Color ColorGradient::getColorAt(float v)
         retcolor.a = c2.a * p + c1.a * (1.f - p);
         return retcolor;
     } else if(v < 0.f) {
-        return m_color_steps[0.f];
+        return sf::Color(127, 127, 127);
     } else if(v > 1.f) {
         return m_color_steps[1.f];
     }

@@ -23,12 +23,8 @@ class World : public TimeStep, public HasView, public ReportGenerator
 {
 public:
     enum class Layer : unsigned int {
-        // COVERAGE_BEST = 0,
-        // COVERAGE_ACTUAL,
-        REVISIT_TIME_BEST = 0,
-        REVISIT_TIME_ACTUAL,
-        // OVERLAPPING_ACTUAL,
-        // OVERLAPPING_WORST  /* NOTE n_layers (!) */
+        REVISIT_TIME_UTOPIA = 0,
+        REVISIT_TIME_ACTUAL  /* NOTE n_layers (!) */
     };
 
     World(void);
@@ -49,9 +45,16 @@ private:
     struct WorldCell {
         float value;
     };
+    struct MetricsGrid {
+        unsigned int x0;
+        unsigned int x1;
+        unsigned int y0;
+        unsigned int y1;
+    };
 
     static unsigned int m_width;
     static unsigned int m_height;
+    std::vector<MetricsGrid> m_metrics_grids;
     GridView m_self_view;
     std::vector<std::vector<std::vector<WorldCell> > > m_cells;
     std::vector<std::shared_ptr<Agent> > m_agents;

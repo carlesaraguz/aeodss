@@ -162,9 +162,9 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
             computeFitness(children[i]);
         }
         if(g == 1) {
-            Log::warn << "Repaired " << repairPool(m_population) << " individuals from the population pool\n";               /* Removes invalid parents. */
+            repairPool(m_population);               /* Removes invalid parents. */
         }
-        Log::warn << "Repaired " << repairPool(children) << " individuals from the children pool\n";                       /* Removes invalid children. */
+        repairPool(children);                       /* Removes invalid children. */
         best = combine(m_population, children);     /* Environment selection: updates population. */
 
         /*  DEBUG:

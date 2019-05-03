@@ -116,6 +116,7 @@ ColorGradient   Config::color_gradient_1;
 ColorGradient   Config::color_gradient_blue;
 
 /* Scheduling hard constraints: */
+unsigned int    Config::knowledge_base_size = 10000; /* Virtually unlimited. */
 unsigned int    Config::max_tasks = 25;
 double          Config::max_task_duration = 7.0 * 60.0 / 86400.0;    /* 7 min. in JD */
 float           Config::min_payoff = 0.f;
@@ -237,6 +238,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                         Log::dbg << "Activity confirmation window is set to: " << VirtualTime::toString(activity_confirm_window, false);
                         Log::dbg << ", " << std::round(activity_confirm_window / time_step) << " steps.\n";
                         getConfigParam("max_tasks", node_it.second, max_tasks);
+                        getConfigParam("knowledge_base_size", node_it.second, knowledge_base_size);
                         getConfigParam("max_task_duration", node_it.second, max_task_duration);
                         getConfigParam("min_payoff", node_it.second, min_payoff);
 

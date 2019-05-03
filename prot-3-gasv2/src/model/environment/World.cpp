@@ -18,21 +18,33 @@ unsigned int World::m_height = Config::world_height;
 std::vector<std::vector<sf::Vector3f> > World::m_world_positions;
 
 World::World(void)
-    : ReportGenerator("world_metrics.csv")
-    , m_self_view(m_width, m_height, 1.f, 1.f, Config::color_gradient_rainbow.getColorAt(0.f))
+    : ReportGenerator(std::string("world_metrics.csv"))
+    , m_self_view(m_width, m_height, 1.f, 1.f, sf::Color(127, 127, 127))
 {
-    // addReportColumn("Mean_best_coverage");          /* 0 */
-    // addReportColumn("Mean_actual_coverage");        /* 1 */
-    // addReportColumn("Mean_best_revisit_time");      /* 2 */
-    // addReportColumn("Max_best_revisit_time");       /* 3 */
-    // addReportColumn("Min_best_revisit_time");       /* 4 */
-    // addReportColumn("Mean_actual_revisit_time");    /* 5 */
-    // addReportColumn("Max_actual_revisit_time");     /* 6 */
-    // addReportColumn("Min_actual_revisit_time");     /* 7 */
-    // addReportColumn("Mean_overlapping");            /* 8 */
-    // addReportColumn("Worst_overlapping");           /* 9 */
-    // addReportColumn("Max_overlapping");             /* 10 */
-    // enableReport();
+    unsigned int wg = m_width / 4;
+    unsigned int hg = m_height / 6;
+    m_metrics_grids.push_back({ (0 * wg), (4 * wg), (0 * hg), (1 * hg) });
+    m_metrics_grids.push_back({ (0 * wg), (2 * wg), (1 * hg), (2 * hg) });
+    m_metrics_grids.push_back({ (2 * wg), (4 * wg), (1 * hg), (2 * hg) });
+    m_metrics_grids.push_back({ (0 * wg), (1 * wg), (2 * hg), (3 * hg) });
+    m_metrics_grids.push_back({ (1 * wg), (2 * wg), (2 * hg), (3 * hg) });
+    m_metrics_grids.push_back({ (2 * wg), (3 * wg), (2 * hg), (3 * hg) });
+    m_metrics_grids.push_back({ (3 * wg), (4 * wg), (2 * hg), (3 * hg) });
+    m_metrics_grids.push_back({ (0 * wg), (1 * wg), (3 * hg), (4 * hg) });
+    m_metrics_grids.push_back({ (1 * wg), (2 * wg), (3 * hg), (4 * hg) });
+    m_metrics_grids.push_back({ (2 * wg), (3 * wg), (3 * hg), (4 * hg) });
+    m_metrics_grids.push_back({ (3 * wg), (4 * wg), (3 * hg), (4 * hg) });
+    m_metrics_grids.push_back({ (0 * wg), (2 * wg), (4 * hg), (5 * hg) });
+    m_metrics_grids.push_back({ (2 * wg), (4 * wg), (4 * hg), (5 * hg) });
+    m_metrics_grids.push_back({ (0 * wg), (4 * wg), (5 * hg), (5 * hg) });
+
+    for(unsigned int i = 0; i < m_metrics_grids.size(); i++) {
+        addReportColumn("RT_utopia_avg_Q" + std::to_string(i));     /* i x 0 */
+        addReportColumn("RT_utopia_max_Q" + std::to_string(i));     /* i x 1 */
+        addReportColumn("RT_diff_avg_Q" + std::to_string(i));       /* i x 2 */
+        addReportColumn("RT_diff_max_Q" + std::to_string(i));       /* i x 3 */
+    }
+    enableReport();
 
     m_cells.reserve(m_width);
     for(unsigned int i = 0; i < m_width; i++) {
@@ -41,12 +53,8 @@ World::World(void)
         for(unsigned int j = 0; j < m_height; j++) {
             std::vector<WorldCell> layers(n_layers, { 0.f });
             /* Initialize values for each layer: */
-            // layers[(int)Layer::COVERAGE_BEST].value = 0.f;
-            // layers[(int)Layer::COVERAGE_ACTUAL].value = 0.f;
-            layers[(int)Layer::REVISIT_TIME_BEST].value = Config::goal_target;
+            layers[(int)Layer::REVISIT_TIME_UTOPIA].value = -1.f;
             layers[(int)Layer::REVISIT_TIME_ACTUAL].value = Config::goal_target;
-            // layers[(int)Layer::OVERLAPPING_WORST].value = 0.f;
-            // layers[(int)Layer::OVERLAPPING_ACTUAL].value = 0.f;
             column.push_back(layers);
         }
         m_cells.push_back(column);
@@ -72,69 +80,73 @@ World::World(void)
 
 void World::display(Layer l)
 {
-    float cell_val, norm_val;
     #pragma omp parallel for
     for(unsigned int i = 0; i < m_width; i++) {
         for(unsigned int j = 0; j < m_height; j++) {
+            float cell_val, norm_val;
             cell_val = m_cells[i][j][(int)l].value;
-            if(l == Layer::REVISIT_TIME_BEST || l == Layer::REVISIT_TIME_ACTUAL) {
-                norm_val = 1.f - (cell_val / Config::goal_target);
+            if(cell_val >= 0.f) {
+                norm_val = 1.f - (cell_val / (2.f * Config::goal_target));
+                norm_val = std::max(norm_val, 0.f);
+                m_self_view.setValue(i, j, norm_val);
             } else {
-                norm_val = cell_val;
+                m_self_view.setValue(i, j, -1.f);
             }
-            m_self_view.setValue(i, j, norm_val);
         }
     }
 }
 
 void World::computeMetrics(void)
 {
-    #pragma omp parallel for
-    for(unsigned int l = 0; l < n_layers; l++) {
-        float norm_val, cell_val;
-        float mean_val = 0.f;
-        float max_val  = 0.f;
-        float min_val  = 1.f;
-        for(unsigned int i = 0; i < m_width; i++) {
-            for(unsigned int j = 0; j < m_height; j++) {
-                cell_val = m_cells[i][j][l].value;
-                if(static_cast<Layer>(l) == Layer::REVISIT_TIME_BEST || static_cast<Layer>(l) == Layer::REVISIT_TIME_ACTUAL) {
-                    norm_val = 1.f - (cell_val / Config::goal_target);
-                } else {
-                    norm_val = cell_val;
+    std::vector<float> avgs_utop(m_metrics_grids.size());
+    std::vector<float> avgs_diff(m_metrics_grids.size());
+    std::vector<float> maxs_utop(m_metrics_grids.size());
+    std::vector<float> maxs_diff(m_metrics_grids.size());
+    // #pragma omp parallel for shared(avgs_utop, avgs_diff, maxs_utop, maxs_diff, m_metrics_grids)
+    for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
+        unsigned int x0, x1, y0, y1;
+        // #pragma omp critical
+        {
+            x0 = m_metrics_grids[q].x0;
+            x1 = m_metrics_grids[q].x1;
+            y0 = m_metrics_grids[q].y0;
+            y1 = m_metrics_grids[q].y1;
+        }
+        float diff_val, cell_val;
+        float avg_val_utop = 0.f;
+        float avg_val_diff = 0.f;
+        float max_val_utop = 0.f;
+        float max_val_diff = 0.f;
+        int count_cells = 0;
+        for(unsigned int i = x0; i < x1; i++) {
+            for(unsigned int j = y0; j < y1; j++) {
+                cell_val = m_cells[i][j][(int)Layer::REVISIT_TIME_UTOPIA].value;
+                if(cell_val >= 0.f) {
+                    diff_val = m_cells[i][j][(int)Layer::REVISIT_TIME_ACTUAL].value;
+                    diff_val -= cell_val;
+                    avg_val_utop += cell_val;
+                    avg_val_diff += diff_val;
+                    max_val_utop = (max_val_utop > cell_val ? max_val_utop : cell_val);
+                    max_val_diff = (max_val_diff > diff_val ? max_val_diff : diff_val);
+                    count_cells++;
                 }
-                mean_val += norm_val;
-                max_val = (max_val > norm_val ? max_val : norm_val);
-                min_val = (min_val < norm_val ? min_val : norm_val);
             }
         }
-        mean_val /= (float)(m_width * m_height);
-
-        switch(static_cast<Layer>(l)) {
-            // case Layer::COVERAGE_BEST:
-                // setReportColumnValue(0, mean_val);  /* Mean_best_coverage. */
-                // break;
-            // case Layer::COVERAGE_ACTUAL:
-                // setReportColumnValue(1, mean_val);  /* Mean_actual_coverage. */
-                // break;
-            case Layer::REVISIT_TIME_BEST:
-                // setReportColumnValue(2, mean_val);  /* Mean_best_revisit_time. */
-                // setReportColumnValue(3, max_val);   /* Max_best_revisit_time. */
-                // setReportColumnValue(4, min_val);   /* Min_best_revisit_time. */
-                break;
-            case Layer::REVISIT_TIME_ACTUAL:
-                // setReportColumnValue(5, mean_val);  /* Mean_actual_revisit_time. */
-                // setReportColumnValue(6, max_val);   /* Max_actual_revisit_time. */
-                // setReportColumnValue(7, min_val);   /* Min_actual_revisit_time. */
-                break;
-            // case Layer::OVERLAPPING_WORST:
-                // setReportColumnValue(9, max_val);   /* Worst_overlapping. */
-                // break;
-            // case Layer::OVERLAPPING_ACTUAL:
-                // setReportColumnValue(8, mean_val);  /* Mean_overlapping. */
-                // setReportColumnValue(10, max_val);  /* Max_overlapping. */
-                // break;
+        avg_val_utop /= (float)(count_cells);
+        avg_val_diff /= (float)(count_cells);
+        // #pragma omp critical
+        {
+            avgs_utop[q] = avg_val_utop;
+            avgs_diff[q] = avg_val_diff;
+            maxs_utop[q] = max_val_utop;
+            maxs_diff[q] = max_val_diff;
         }
+    }
+    for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
+        setReportColumnValue((4 * q) + 0, avgs_utop[q]);
+        setReportColumnValue((4 * q) + 1, avgs_diff[q]);
+        setReportColumnValue((4 * q) + 2, maxs_utop[q]);
+        setReportColumnValue((4 * q) + 3, maxs_diff[q]);
     }
 }
 
@@ -155,8 +167,6 @@ void World::step(void)
     #pragma omp parallel for
     for(unsigned int xx = 0; xx < m_width; xx++) {
         for(unsigned int yy = 0; yy < m_height; yy++) {
-            // m_cells[xx][yy][(int)Layer::OVERLAPPING_WORST].value = 0.f;
-            // m_cells[xx][yy][(int)Layer::OVERLAPPING_ACTUAL].value = 0.f;
             updateAllLayers(xx, yy, false);
         }
     }
@@ -164,12 +174,8 @@ void World::step(void)
         auto cells = a->getWorldFootprint(m_world_positions);
         bool capturing = a->isCapturing();
         for(auto& c : cells) {
-            // updateLayer(Layer::COVERAGE_BEST, c.x, c.y, true);
-            // updateLayer(Layer::COVERAGE_ACTUAL, c.x, c.y, capturing);
-            updateLayer(Layer::REVISIT_TIME_BEST, c.x, c.y, true);
+            updateLayer(Layer::REVISIT_TIME_UTOPIA, c.x, c.y, true);
             updateLayer(Layer::REVISIT_TIME_ACTUAL, c.x, c.y, capturing);
-            // updateLayer(Layer::OVERLAPPING_WORST, c.x, c.y, true);
-            // updateLayer(Layer::OVERLAPPING_ACTUAL, c.x, c.y, capturing);
         }
     }
 }
@@ -185,33 +191,14 @@ void World::updateLayer(Layer l, int x, int y, bool active)
 {
     auto& cell = m_cells[x][y][(int)l];
     switch(l) {
-        // case Layer::COVERAGE_BEST:
-        // case Layer::COVERAGE_ACTUAL:
-        //     if(active) {
-        //         cell.value = 1.f;
-        //     } else {
-        //         cell.value = 0.f;
-        //     }
-        //     break;
-        case Layer::REVISIT_TIME_BEST:
+        case Layer::REVISIT_TIME_UTOPIA:
         case Layer::REVISIT_TIME_ACTUAL:
             if(active) {
                 cell.value = 0.f;
             } else {
-                if(cell.value < Config::goal_target) {
-                    cell.value += Config::time_step;
-                }
-                if(cell.value > Config::goal_target) {
-                    cell.value = Config::goal_target;
-                }
+                cell.value += Config::time_step;
             }
             break;
-        // case Layer::OVERLAPPING_WORST:
-        // case Layer::OVERLAPPING_ACTUAL:
-        //     if(active) {
-        //         cell.value += 1.f;
-        //     }
-        //     break;
         default:
             Log::err << "Unrecognized layer " << (unsigned int)l;
             break;

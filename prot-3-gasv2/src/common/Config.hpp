@@ -113,6 +113,7 @@ public:
     static unsigned int fnt_size;
 
     /* Activity management, scheduling configuration, and knowledge base parameters: */
+    static unsigned int knowledge_base_size;    /**< Max. total number of activities that an agent can know. */
     static unsigned int max_tasks;              /**< Maximum number of tasks (i.e. chromosome length). */
     static float min_payoff;                    /**< Payoff threshold below which tasks will not be generated. */
     static double max_task_duration;            /**< Max. task duration (in time units). */

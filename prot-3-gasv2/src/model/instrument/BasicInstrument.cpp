@@ -171,7 +171,9 @@ void BasicInstrument::applyToDistance3D(
             Log::dbg << "  s = (" << s_ecef.x << ", " << s_ecef.y << ", " << s_ecef.z << ").\n";
         }
     };
-
+    ox %= lut.size();
+    oy %= lut.at(0).size();
+    /*
     check_cell(ox, oy);
     if(!at_r) {
         check_cell(ox, oy, true);
@@ -183,6 +185,7 @@ void BasicInstrument::applyToDistance3D(
         Log::warn << "Origin   in ECEF = (" << o_ecef.x << ", " << o_ecef.y << ", " << o_ecef.z << ").\n";
         Log::warn << "Error: " << MathUtils::norm(p - o_eci) << ".\n";
     }
+    */
 
     /* Iterate for every quadrant until no more cells are found horizontally. */
     for(int quadrant = 0; quadrant < 4; quadrant++) {
@@ -253,14 +256,14 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
         if(world_cells) {
             ox = std::floor(position.x);
             oy = std::floor(position.y);
-            if(ox > (int)Config::world_width || oy > (int)Config::world_height || ox < 0 || oy < 0) {
+            if(ox >= (int)Config::world_width || oy >= (int)Config::world_height || ox < 0 || oy < 0) {
                 Log::err << "Can't get visible cells for a point that is outside the world space O(" << ox << ", " << oy << ")\n";
                 throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
             }
         } else {
             ox = std::floor(position.x / m_env_info.rw);
             oy = std::floor(position.y / m_env_info.rh);
-            if(ox > (int)m_env_info.mw || oy > (int)m_env_info.mh || ox < 0 || oy < 0) {
+            if(ox >= (int)m_env_info.mw || oy >= (int)m_env_info.mh || ox < 0 || oy < 0) {
                 Log::err << "Can't get visible cells for a point that is outside the model space O(" << ox << ", " << oy << ")\n";
                 throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
             }
@@ -287,6 +290,7 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
         applyToDistance3D(ox, oy, position, t, dist, world_cells, f, lut);
     }
     if(cells.size() == 0) {
+        #if 0
         Log::err << "Could not find visible (" << (world_cells ? "world" : "model") << ") cells at distance " << dist << ".\n";
         Log::err << "  Will provide one (i.e. the projected position) and try to continue.\n";
 
@@ -306,12 +310,13 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
             << (World::getHeight() * (-geo_coord.x) / 180.f) + (World::getHeight() / 2.f) << ".\n";
         Log::err << "  }\n";
         Log::err << "This geographic values in World coordinates are then converted to Model coordinates:\n";
-        Log::err << "  std::round(proj.x / m_env_info.rw) = std::round("
-            << proj.x << " / " << m_env_info.rw << ") = " << (int)std::round(proj.x / m_env_info.rw) << "\n";
-        Log::err << "  std::round(proj.x / m_env_info.rw) = std::round("
-            << proj.y << " / " << m_env_info.rh << ") = " << (int)std::round(proj.y / m_env_info.rh) << ". And then:\n";
+        Log::err << "  std::floor(proj.x / m_env_info.rw) = std::floor("
+            << proj.x << " / " << m_env_info.rw << ") = " << (int)std::floor(proj.x / m_env_info.rw) << "\n";
+        Log::err << "  std::floor(proj.x / m_env_info.rw) = std::floor("
+            << proj.y << " / " << m_env_info.rh << ") = " << (int)std::floor(proj.y / m_env_info.rh) << ". And then:\n";
         Log::err << "    modulo(" << m_env_info.mw << ")  = " << ox << ".\n";
         Log::err << "    modulo(" << m_env_info.mh << ")  = " << oy << ".\n";
+        #endif
         cells.push_back(sf::Vector2i(ox, oy));
     }
     return cells;

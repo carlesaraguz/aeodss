@@ -63,7 +63,7 @@ bool DepletableResource::applyFor(float c, double t)
     for(auto& r : m_rates) {
         acc += r.second;
     }
-    if(m_max_capacity - acc - m_instantaneous >= m_reserved_capacity) {
+    if(m_max_capacity - acc - m_instantaneous > m_reserved_capacity) {
         m_capacity = m_max_capacity - acc - m_instantaneous;
         return true;
     } else {

@@ -36,6 +36,8 @@ void ActivityHandler::setAgentId(std::string aid)
     addReportColumn("confirmed_others");    /* 3 */
     addReportColumn("undecided_own");       /* 4 */
     addReportColumn("undecided_others");    /* 5 */
+    enableReport();
+    outputReportHeader();
 }
 
 void ActivityHandler::report(void)
@@ -77,6 +79,7 @@ void ActivityHandler::report(void)
     setReportColumnValue(3, count_confirmed_others);
     setReportColumnValue(4, count_undecided_own);
     setReportColumnValue(5, count_undecided_others);
+    outputReport(false);
 }
 
 void ActivityHandler::discard(std::shared_ptr<Activity> pa)
@@ -86,6 +89,7 @@ void ActivityHandler::discard(std::shared_ptr<Activity> pa)
         pa->setDiscarded(true);
         buildActivityLUT();
     }
+    report();
 }
 
 
@@ -149,6 +153,7 @@ void ActivityHandler::buildActivityLUT(void)
 
 void ActivityHandler::update(void)
 {
+    bool report_flag = false;
     double t = VirtualTime::now();
     for(auto ait = m_activities_own.begin(); ait != m_activities_own.end(); ait++) {
         auto aptr = *ait;
@@ -157,6 +162,7 @@ void ActivityHandler::update(void)
             if(aptr->getStartTime() - t <= Config::activity_confirm_window) {
                 /* Can be confirmed now: */
                 aptr->setConfirmed(true);
+                report_flag = true;
             }
         }
     }
@@ -180,6 +186,9 @@ void ActivityHandler::update(void)
                 j = it->second;
             }
         }
+    }
+    if(report_flag) {
+        report();
     }
 }
 
@@ -371,7 +380,7 @@ void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, st
             alist.push_back(bi.second);
         }
         auto overlap_vec = checkOverlaps(a, alist);
-        Log::dbg << overlap_vec.size() << " activities stored in " << m_agent_id << " overlap with [" << a->getAgentId() << ":" << a->getId() << "]\n";
+        // Log::dbg << overlap_vec.size() << " activities stored in " << m_agent_id << " overlap with [" << a->getAgentId() << ":" << a->getId() << "]\n";
         bool valid = true;
         for(auto& oa : overlap_vec) {
             if(oa->getLastUpdateTime() > a->getLastUpdateTime()) {
@@ -380,18 +389,22 @@ void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, st
                 break;
             }
         }
+        beta[aid] = a;
+        if(m_env_model_ptr != nullptr) {
+            m_env_model_ptr->addActivity(a);
+        }
         if(valid) {
-            beta[aid] = a;
-            if(m_env_model_ptr != nullptr) {
-                m_env_model_ptr->addActivity(a);
-            }
             /* All the overlapping activities can safely be discarded locally: */
             for(auto& oa : overlap_vec) {
                 oa->setDiscarded(true);
             }
-            Log::dbg << "Agent " << m_agent_id << " added an new activity from " << a->getAgentId() << ": " << *a << "\n";
+            // Log::dbg << "Agent " << m_agent_id << " added an new activity from " << a->getAgentId() << ": " << *a << "\n";
         } else {
-            Log::dbg << "Agent " << m_agent_id << " has not added activity [" << a->getAgentId() << ":" << a->getId() << "] bacause it is outdated\n";
+            /* This activity can actually be discarded: */
+            if(!a->isFact()) {
+                a->setDiscarded(true);
+            }
+            // Log::dbg << "Agent " << m_agent_id << " has added and discarded an activity [" << a->getAgentId() << ":" << a->getId() << "] bacause it is outdated\n";
         }
     }
 }
@@ -418,11 +431,18 @@ void ActivityHandler::add(std::shared_ptr<Activity> pa)
         }
     } else {
         /* It has been received: */
-        add(pa, m_activities_others[pa->getAgentId()]);
+        unsigned int count_activities = 0;
+        for(auto& kbi : m_activities_others) {
+            count_activities += kbi.second.size();
+        }
+        if(count_activities < Config::knowledge_base_size) {
+            add(pa, m_activities_others[pa->getAgentId()]);
+        }
     }
     if(m_update_view) {
         m_self_view.update();
     }
+    report();
 }
 
 const sf::Drawable& ActivityHandler::getView(void) const
