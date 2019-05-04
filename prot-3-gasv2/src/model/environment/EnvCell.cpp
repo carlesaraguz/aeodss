@@ -68,7 +68,7 @@ bool EnvCell::removeCellActivity(std::shared_ptr<Activity> aptr)
 bool EnvCell::removeCellActivityById(std::string agent_id, unsigned int activity_id)
 {
     for(auto it = m_activities.begin(); it != m_activities.end(); ) {
-        if(it->first->getAgentId() == agent_id && it->first->getId() == activity_id) {
+        if(it->first->getAgentId() == agent_id && it->first->getId() == (int)activity_id) {
             if(it->second.nts > 0) {
                 delete[] it->second.t0s;
                 delete[] it->second.t1s;

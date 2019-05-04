@@ -80,8 +80,6 @@ void ReportGenerator::enableReport(void)
             if(!m_report_file.is_open()) {
                 Log::err << "Error creating file: " << m_report_filename << "\n";
                 std::exit(-1);
-            } else {
-                Log::dbg << "Data file successfully created: " << m_report_filename << "\n";
             }
         }
         m_enabled = true;

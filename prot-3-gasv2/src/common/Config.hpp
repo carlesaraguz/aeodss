@@ -142,9 +142,13 @@ public:
     static float ga_confidence_th;              /**< Min. confidence to use the P.O. multiplier. */
 
     /* Global values: */
-    static std::string root_path;   /**< Root path of the project. */
-    static std::string data_path;   /**< Path were simulation results will be saved to.*/
-    static SandboxMode mode;        /**< The mode of this sandbox. */
+    static bool create_data_dirname;    /**< Create a directory (true) or use the name provided in command arguments. */
+    static bool load_agents_from_yaml;  /**< Whether to configure agents from a pre-generated YAML file. */
+    static std::string system_yml;      /**< Path to the YAML file that has `n_agents` agent configurations. */
+    static std::string simulation_name; /**< Simulation name. */
+    static std::string root_path;       /**< Root path of the project. */
+    static std::string data_path;       /**< Path were simulation results will be saved to.*/
+    static SandboxMode mode;            /**< The mode of this sandbox. */
 
     /*******************************************************************************************//**
      *  Loads command arguments from console and parses them.

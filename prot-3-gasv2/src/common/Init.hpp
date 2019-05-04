@@ -21,6 +21,7 @@ class Init
 {
 public:
     static void doInit(void);
+    static void createOutputDirectories(void);
 private:
     static std::string getRootPath(void);
     static std::string createDataDir(void);

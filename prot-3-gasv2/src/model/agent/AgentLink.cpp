@@ -9,7 +9,6 @@
  **************************************************************************************************/
 
 #include "AgentLink.hpp"
-#include "Agent.hpp"
 
 CREATE_LOGGER(AgentLink)
 
@@ -18,15 +17,20 @@ AgentLink::AgentLink(Agent* aptr)
 { }
 
 AgentLink::AgentLink(Agent* aptr, float range)
+    : AgentLink(aptr, range, Random::getUf(Config::agent_datarate_min, Config::agent_datarate_max))
+{ }
+
+AgentLink::AgentLink(Agent* aptr, float range, float datarate)
     : m_enabled(false)
     , m_range(range)
-    , m_datarate(Random::getUf(Config::agent_datarate_min, Config::agent_datarate_max))
+    , m_datarate(datarate)
     , m_energy_consumed(0.f)
     , m_agent(aptr)
     , m_tx_count(0)
     , m_encounter_callback([](std::string) -> bool { return true; })
     , m_connected_callback([](std::string) { })
 { }
+
 
 void AgentLink::setAgents(std::vector<std::shared_ptr<Agent> > agents)
 {

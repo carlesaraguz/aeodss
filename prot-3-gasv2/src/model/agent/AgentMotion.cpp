@@ -10,6 +10,7 @@
  **************************************************************************************************/
 
 #include "AgentMotion.hpp"
+#include "Agent.hpp"
 
 CREATE_LOGGER(AgentMotion)
 
@@ -103,7 +104,7 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
             m_position.push_back(getPositionFromOrbital(os));
             m_velocity.push_back(getVelocityFromOrbital(os));
             break;
-        }
+    }
 }
 
 void AgentMotion::step(void)

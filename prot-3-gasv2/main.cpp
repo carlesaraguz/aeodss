@@ -10,6 +10,7 @@
 #include "prot.hpp"
 
 #include "Agent.hpp"
+#include "AgentBuilder.hpp"
 #include "MultiView.hpp"
 #include "MessageBox.hpp"
 #include "Init.hpp"
@@ -196,7 +197,14 @@ void control_loop(void)
 
     /* Create agents: --------------------------------------------------------------------------- */
     for(unsigned int i = 0; i < Config::n_agents; i++) {
-        auto aptr = std::make_shared<Agent>("A" + std::to_string(i));
+        AgentBuilder ab;
+        if(Config::load_agents_from_yaml) {
+            Log::warn << "Loading agent from YAML file...\n";
+            ab.load(i, Config::system_yml);
+        } else {
+            ab.generateAndStore(i);
+        }
+        auto aptr = std::make_shared<Agent>(&ab);
         agents.push_back(aptr);
         control_info.push_back({false, ("A" + std::to_string(i))});
     }
@@ -302,6 +310,7 @@ int main(int argc, char** argv)
 {
     Init::doInit();
     Config::loadCmdArgs(argc, argv);
+    Init::createOutputDirectories();
 
     if(Config::mode != SandboxMode::SIMULATE) {
         switch(Config::mode) {

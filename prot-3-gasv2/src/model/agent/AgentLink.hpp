@@ -44,6 +44,11 @@ public:
     AgentLink(Agent* aptr, float range);
 
     /*******************************************************************************************//**
+     *  Constructs an AgentLink providing all values. No random prameter is set.
+     **********************************************************************************************/
+    AgentLink(Agent* aptr, float range, float datarate);
+
+    /*******************************************************************************************//**
      *  Getter for the actual range of this link.
      **********************************************************************************************/
     float getRange(void) const { return m_range; }
@@ -254,5 +259,7 @@ private:
      **********************************************************************************************/
     bool isInRange(const std::shared_ptr<Agent>& aptr);
 };
+
+#include "Agent.hpp"
 
 #endif /* AGENT_LINK_HPP */

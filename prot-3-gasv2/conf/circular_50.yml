@@ -1,17 +1,18 @@
 version: 2
 system:
-    n_agents: 20 # 50
+    n_agents: 2 # 50
     time:
         type: julian_days   # julian_days, seconds or arbitrary
-        sec: 10             # Time step seconds in julian_days or seconds mode.
-        min: 0              # Time step minutes in julian_days mode.
+        sec: 0              # Time step seconds in julian_days or seconds mode.
+        min: 1              # Time step minutes in julian_days mode.
         hour: 0             # Time step hours in julian_days mode.
         days: 0             # Time step days in julian_days mode.
         start_epoch: 2451545.0  # Start epoch in julian_days mode.
-        duration: 2         # Duration (in days, seconds or units of time depending upon mode).
+        duration: 0         # Duration (in days, seconds or units of time depending upon mode).
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
+    name: test              # Simulation name for the folder where files are stored.
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -19,7 +20,7 @@ graphics:
     win_height: 900
     agent_size: 14
     font_size: 24
-    enable: false
+    enable: true
 
 # -- Environment model configuration: --------------------------------------------------------------
 environment:
@@ -60,11 +61,11 @@ agent:
         argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1000             # Amount of information to transmit.
-    planning_window: 1080           # Time-steps.
-    replanning_window: 250          # Time-steps.
+    planning_window: 180            # Time-steps.
+    replanning_window: 45           # Time-steps.
     knowledge_base_size: 100000     # Max. total tasks that an angent can remember.
-    max_tasks: 70                   # Max. tasks to generate.
-    max_task_duration: 1.388888e-3  # 2 min. (in JD)
+    max_tasks: 50                   # Max. tasks to generate.
+    max_task_duration: 2.8e-3       # 4 min. (in JD)
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.
     confirm_window: 0.02083         # In time units --> 0.02083 = 0.5 hours (in JD).
     confidence:
@@ -85,7 +86,7 @@ agent:
         payoff_k: 5                 # P.o. multiplier for previously scheduled activities.
         confidence_th: 0.5          # Min. confidence to apply payoff multiplier.
         min_improvement_rate: 0.01  # Minimum improvement rate.
-        population_size: 600        # Number of individuals in the population.
+        population_size: 500        # Number of individuals in the population.
         mutation_rate: 0.2          # Mutation probability for each chromosome's allele.
         crossover:                  # Crossover operator options:
             type: multiple          # multiple, single, or uniform.

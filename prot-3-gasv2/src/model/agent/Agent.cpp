@@ -10,6 +10,7 @@
  **************************************************************************************************/
 
 #include "Agent.hpp"
+#include "AgentBuilder.hpp"
 
 CREATE_LOGGER(Agent)
 
@@ -26,7 +27,6 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_link_energy_available(false)
     , m_replan_horizon(VirtualTime::now())
 {
-    configAgentReport();
     if(Config::motion_model == AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n";
         Log::err << "The world is modelled in 3-d (i.e. `motion_model` is set to AgentMotionType::ORBITAL). Please use a different constructor.\n";
@@ -43,6 +43,40 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
     m_link->setConnectedCallback([this](std::string aid) { return connected(aid); });
     initializeResources();
+    configAgentReport();
+}
+
+Agent::Agent(AgentBuilder* ab)
+    : ReportGenerator("agents/" + ab->getAgentId() + "/", std::string("state.csv"))
+    , m_id(ab->getAgentId())
+    , m_self_view(ab->getAgentId())
+    , m_motion(this, ab->getMeanAnomalyInit(), ab->getOrbitalParams())
+    , m_environment(std::make_shared<EnvModel>(this, (Config::world_width / Config::model_unity_size), (Config::world_height / Config::model_unity_size)))
+    , m_link(std::make_shared<AgentLink>(this, ab->getLinkRange(), ab->getLinkDatarate()))
+    , m_activities(std::make_shared<ActivityHandler>(this))
+    , m_current_activity(nullptr)
+    , m_display_resources(false)
+    , m_link_energy_available(false)
+    , m_replan_horizon(VirtualTime::now())
+{
+    if(Config::motion_model != AgentMotionType::ORBITAL) {
+        Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
+        Log::err << "The world is modelled in 2-d (i.e. `motion_model` is not set to AgentMotionType::ORBITAL). Please use a different constructor.\n";
+        throw std::runtime_error("Wrong Agent constructor");
+    }
+
+    /* 3-D mode / ORBITAL constructor: */
+    m_motion.debug();
+    m_payload.setAperture(ab->getInstrumentAperture(), m_motion.getMaxAltitude());
+    m_payload.setDimensions(m_environment->getEnvModelInfo());
+    m_payload.setPosition(m_motion.getPosition());
+    m_activities->setAgentId(m_id);
+    m_activities->setEnvironment(m_environment);
+    m_activities->setInstrumentAperture(m_payload.getAperture());
+    m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
+    m_link->setConnectedCallback([this](std::string aid) { return connected(aid); });
+    initializeResources();
+    configAgentReport();
 }
 
 Agent::Agent(std::string id)
@@ -58,7 +92,6 @@ Agent::Agent(std::string id)
     , m_link_energy_available(false)
     , m_replan_horizon(VirtualTime::now())
 {
-    configAgentReport();
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
         Log::err << "The world is modelled in 2-d (i.e. `motion_model` is not set to AgentMotionType::ORBITAL). Please use a different constructor.\n";
@@ -76,17 +109,24 @@ Agent::Agent(std::string id)
     m_link->setEncounterCallback([this](std::string aid) -> bool { return encounter(aid); });
     m_link->setConnectedCallback([this](std::string aid) { return connected(aid); });
     initializeResources();
+    configAgentReport();
 }
 
 void Agent::configAgentReport(void)
 {
-    addReportColumn("energy");      /* 0 */
+    for(auto& r : m_resources) {
+        addReportColumn(r.first);
+    }
     enableReport();
 }
 
 void Agent::updateAgentReport(void)
 {
-    setReportColumnValue(0, std::to_string(m_resources["energy"]->getCapacity()));
+    unsigned int j = 0;
+    for(auto rit = m_resources.begin(); rit != m_resources.end(); rit++) {
+        setReportColumnValue(j, std::to_string(rit->second->getCapacity()));
+        j++;
+    }
 }
 
 void Agent::initializeResources(void)
@@ -138,7 +178,21 @@ void Agent::plan(void)
 {
     /* Schedule activities: */
     double tv_now = VirtualTime::now();
-    if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr && !m_activities->isCapturing()) {
+    /*  NOTE IMPORTANT / TODO / DEBUG: =============================================================
+     *  The following section has been coded to prevent "resource" depletion. There must be a bug
+     *  somewhere in the implementation of CumulativeResource because the solutions scheduled by the
+     *  GAScheduler have been shown to deplete resources (although they are valid when the planning
+     *  algorithm is run). This simply forces the planner to only be triggered if there are 25% of
+     *  resources available but does not preclude the solutions from using the whole capacity.
+     */
+    bool resources_ok = true;
+    for(auto& r : m_resources) {
+        if((r.second->getCapacity() / r.second->getMaxCapacity()) < 0.25f) {
+            resources_ok = false;
+            break;
+        }
+    }
+    if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr && !m_activities->isCapturing() && resources_ok) {
         /*  Ensures that old activities are removed from the agent's knowledge base:
          *  The following call also removes activities that have not been shared with other agents.
          **/
@@ -193,11 +247,16 @@ void Agent::plan(void)
         /* Create scheduler instance: */
         if(!m_link_energy_available && !m_link->isEnabled()) {
             /* Only enable if it was disabled due to energy issues: */
-            Log::dbg << "The link for agent " << m_id << " will now be (re-)enabled.\n";
-            m_link->enable();
+            try {
+                m_resources.at("energy")->setReservedCapacity(0.1f);
+                m_link_energy_available = true;
+                Log::dbg << "The link for agent " << m_id << " will now be (re-)enabled.\n";
+                m_link->enable();
+            } catch(const std::exception& e) {
+                Log::warn << "The link for agent " << m_id << " could still not be (re-)enabled. Reason:\n";
+                Log::warn << e.what() << "\n";
+            }
         }
-        m_link_energy_available = true;
-        m_resources.at("energy")->setReservedCapacity(0.1f /* TODO: change for Config::reserved_energy_capacity */);
         std::map<std::string, std::shared_ptr<const Resource> > rs_cpy_const(m_resources.begin(), m_resources.end());
         GAScheduler scheduler(ts, te, rs_cpy_const);
 

@@ -102,8 +102,11 @@ void Activity::setConfirmed(bool c)
         }
         m_last_update = VirtualTime::now();
         Log::dbg << "Activity [" << m_agent_id << ":" << m_id << "] has been confirmed.\n";
+    } else if(isConfimed()) {
+        Log::warn << "Trying to change fact [" << m_agent_id << ":" << m_id << "] is confirmed; setting confirmed to \'"
+            << std::boolalpha << c << "\'. This call has no effect.\n";
     } else {
-        Log::err << "Trying to change fact [" << m_agent_id << ":" << m_id << "]; setting confirmed to \'"
+        Log::err << "Trying to change fact [" << m_agent_id << ":" << m_id << "] is discarded; setting confirmed to \'"
             << std::boolalpha << c << "\'. This call has no effect.\n";
     }
 }
@@ -119,8 +122,11 @@ void Activity::setDiscarded(bool d)
         }
         m_last_update = VirtualTime::now();
         Log::err << "Activity [" << m_agent_id << ":" << m_id << "] has been discarded.\n";
+    } else if(isDiscarded()) {
+        Log::warn << "Trying to change fact [" << m_agent_id << ":" << m_id << "] is discarded; setting discarded to \'"
+            << std::boolalpha << d << "\'. This call has no effect.\n";
     } else {
-        Log::err << "Trying to change fact [" << m_agent_id << ":" << m_id << "]; setting discarded to \'"
+        Log::err << "Trying to change fact [" << m_agent_id << ":" << m_id << "] is confirmed; setting discarded to \'"
             << std::boolalpha << d << "\'. This call has no effect.\n";
     }
 }

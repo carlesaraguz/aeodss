@@ -208,6 +208,5 @@ private:
     double transfMeanToTrue(double mean_anomaly) const;
 };
 
-#include "Agent.hpp"
 
 #endif /* AGENT_MOTION_HPP */

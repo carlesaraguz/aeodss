@@ -307,9 +307,8 @@ std::vector<std::shared_ptr<Activity> > ActivityHandler::getPending(void) // con
     buildActivityLUT();
     for(auto& idx : m_act_own_lut) {
         auto ac = m_activities_own[idx.second];
-        if(ac->getStartTime() >= t) {
+        if(ac->getStartTime() >= t && !ac->isDiscarded()) {
             retvec.push_back(ac);
-        } else {
         }
     }
     return retvec;
