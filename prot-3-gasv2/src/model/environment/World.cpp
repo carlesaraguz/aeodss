@@ -39,10 +39,12 @@ World::World(void)
     m_metrics_grids.push_back({ (0 * wg), (4 * wg), (5 * hg), (5 * hg) });
 
     for(unsigned int i = 0; i < m_metrics_grids.size(); i++) {
-        addReportColumn("RT_utopia_avg_Q" + std::to_string(i));     /* i x 0 */
-        addReportColumn("RT_utopia_max_Q" + std::to_string(i));     /* i x 1 */
-        addReportColumn("RT_diff_avg_Q" + std::to_string(i));       /* i x 2 */
-        addReportColumn("RT_diff_max_Q" + std::to_string(i));       /* i x 3 */
+        addReportColumn("utopia_avg" + std::to_string(i));     /* i x 0 */
+        addReportColumn("utopia_max" + std::to_string(i));     /* i x 1 */
+        addReportColumn("diff_avg" + std::to_string(i));       /* i x 2 */
+        addReportColumn("diff_max" + std::to_string(i));       /* i x 3 */
+        addReportColumn("actual_avg" + std::to_string(i));     /* i x 4 */
+        addReportColumn("actual_max" + std::to_string(i));     /* i x 5 */
     }
     enableReport();
 
@@ -100,9 +102,11 @@ void World::computeMetrics(void)
 {
     std::vector<float> avgs_utop(m_metrics_grids.size());
     std::vector<float> avgs_diff(m_metrics_grids.size());
+    std::vector<float> avgs_curr(m_metrics_grids.size());
     std::vector<float> maxs_utop(m_metrics_grids.size());
     std::vector<float> maxs_diff(m_metrics_grids.size());
-    // #pragma omp parallel for shared(avgs_utop, avgs_diff, maxs_utop, maxs_diff, m_metrics_grids)
+    std::vector<float> maxs_curr(m_metrics_grids.size());
+    // #pragma omp parallel for shared(avgs_utop, avgs_diff, avgs_curr, maxs_utop, maxs_diff, maxs_curr, m_metrics_grids)
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
         unsigned int x0, x1, y0, y1;
         // #pragma omp critical
@@ -112,41 +116,52 @@ void World::computeMetrics(void)
             y0 = m_metrics_grids[q].y0;
             y1 = m_metrics_grids[q].y1;
         }
-        float diff_val, cell_val;
+        float utop_val = 0.f;
+        float diff_val = 0.f;
+        float curr_val = 0.f;
         float avg_val_utop = 0.f;
         float avg_val_diff = 0.f;
+        float avg_val_curr = 0.f;
         float max_val_utop = 0.f;
         float max_val_diff = 0.f;
-        int count_cells = 0;
+        float max_val_curr = 0.f;
+        int count_cells = 1;
         for(unsigned int i = x0; i < x1; i++) {
             for(unsigned int j = y0; j < y1; j++) {
-                cell_val = m_cells[i][j][(int)Layer::REVISIT_TIME_UTOPIA].value;
-                if(cell_val >= 0.f) {
-                    diff_val = m_cells[i][j][(int)Layer::REVISIT_TIME_ACTUAL].value;
-                    diff_val -= cell_val;
-                    avg_val_utop += cell_val;
+                utop_val = m_cells[i][j][(int)Layer::REVISIT_TIME_UTOPIA].value;
+                if(utop_val >= 0.f) {
+                    curr_val = m_cells[i][j][(int)Layer::REVISIT_TIME_ACTUAL].value;
+                    diff_val = curr_val - utop_val;
+                    avg_val_utop += utop_val;
+                    avg_val_curr += curr_val;
                     avg_val_diff += diff_val;
-                    max_val_utop = (max_val_utop > cell_val ? max_val_utop : cell_val);
+                    max_val_utop = (max_val_utop > utop_val ? max_val_utop : utop_val);
                     max_val_diff = (max_val_diff > diff_val ? max_val_diff : diff_val);
+                    max_val_curr = (max_val_curr > curr_val ? max_val_curr : curr_val);
                     count_cells++;
                 }
             }
         }
         avg_val_utop /= (float)(count_cells);
         avg_val_diff /= (float)(count_cells);
+        avg_val_curr /= (float)(count_cells);
         // #pragma omp critical
         {
             avgs_utop[q] = avg_val_utop;
             avgs_diff[q] = avg_val_diff;
+            avgs_curr[q] = avg_val_diff;
             maxs_utop[q] = max_val_utop;
             maxs_diff[q] = max_val_diff;
+            maxs_curr[q] = max_val_diff;
         }
     }
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
-        setReportColumnValue((4 * q) + 0, avgs_utop[q]);
-        setReportColumnValue((4 * q) + 1, avgs_diff[q]);
-        setReportColumnValue((4 * q) + 2, maxs_utop[q]);
-        setReportColumnValue((4 * q) + 3, maxs_diff[q]);
+        setReportColumnValue((6 * q) + 0, avgs_utop[q]);
+        setReportColumnValue((6 * q) + 1, maxs_utop[q]);
+        setReportColumnValue((6 * q) + 2, avgs_diff[q]);
+        setReportColumnValue((6 * q) + 3, maxs_diff[q]);
+        setReportColumnValue((6 * q) + 4, avgs_curr[q]);
+        setReportColumnValue((6 * q) + 5, maxs_curr[q]);
     }
 }
 

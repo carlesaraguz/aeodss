@@ -29,8 +29,6 @@ std::map<LogStream::Color, const std::string> LogStream::m_color_lut = {
     { Color::NO_COLOR     , "\x1b[0m" }
 };
 
-
-
 LogStream::LogStream(void)
     : LogStream(std::clog, Level::NONE, "UNDEFINED", '#', Color::NO_COLOR)
 { }
@@ -84,9 +82,13 @@ std::streamsize LogStream::xsputn(const char* s, std::streamsize n)
 void LogStream::conditionalPrintHeader(void)
 {
     if(m_new_line) {
-        m_out << m_color_lut[Color::GRAY] << "[ " << m_color_lut[Color::NO_COLOR]
-            << WallTime::getTimeStr();
-        m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " ";
+        if(Config::simple_log) {
+            m_out << "[ " << WallTime::getTimeStr() << " | ";
+        } else {
+            m_out << m_color_lut[Color::GRAY] << "[ " << m_color_lut[Color::NO_COLOR]
+                << WallTime::getTimeStr();
+            m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " ";
+        }
 
         if(Config::time_type == TimeValueType::JULIAN_DAYS) {
             if(VirtualTime::isInit()) {
@@ -105,11 +107,16 @@ void LogStream::conditionalPrintHeader(void)
         } else {
             m_out << std::setw(7) << std::setprecision(1) << std::fixed << VirtualTime::now();
         }
-        m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " "
-            << std::right << std::setfill(' ') << std::setw(m_max_cname_len) << m_cname;
-        m_out << m_color_lut[Color::GRAY] << " ]" << m_color_lut[Color::NO_COLOR] << " ("
-            << m_color_lut[m_color_icon] << m_icon << m_color_lut[Color::NO_COLOR] << ") ";
-        m_out << m_color_lut[m_color_text];
+        if(Config::simple_log) {
+            m_out << " | " << std::right << std::setfill(' ') << std::setw(m_max_cname_len) << m_cname;
+            m_out << " ] (" << m_icon << ") ";
+        } else {
+            m_out << m_color_lut[Color::GRAY] << " |" << m_color_lut[Color::NO_COLOR] << " "
+                << std::right << std::setfill(' ') << std::setw(m_max_cname_len) << m_cname;
+            m_out << m_color_lut[Color::GRAY] << " ]" << m_color_lut[Color::NO_COLOR] << " ("
+                << m_color_lut[m_color_icon] << m_icon << m_color_lut[Color::NO_COLOR] << ") ";
+            m_out << m_color_lut[m_color_text];
+        }
         m_new_line = false;
     }
 }

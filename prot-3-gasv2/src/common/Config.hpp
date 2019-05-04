@@ -149,6 +149,7 @@ public:
     static std::string root_path;       /**< Root path of the project. */
     static std::string data_path;       /**< Path were simulation results will be saved to.*/
     static SandboxMode mode;            /**< The mode of this sandbox. */
+    static bool simple_log;             /**< Whether to print colors (false) or not (true). */
 
     /*******************************************************************************************//**
      *  Loads command arguments from console and parses them.
