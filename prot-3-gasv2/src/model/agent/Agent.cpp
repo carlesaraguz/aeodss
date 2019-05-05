@@ -196,9 +196,8 @@ void Agent::plan(void)
         /*  Ensures that old activities are removed from the agent's knowledge base:
          *  The following call also removes activities that have not been shared with other agents.
          **/
-        m_activities->purge(true);
-        m_environment->cleanActivities();
-
+        m_activities->purge(true, m_link->listSending(m_id));   /* NOT all the "old" activities are removed here. */
+        m_environment->cleanActivities();                       /* All the "old" activities are removed here. */
         /* Create a temporal activity (won't be added to the Activities Handler): */
         double t_end = tv_now + Config::agent_planning_window * Config::time_step;
         auto tmp_act = createActivity(tv_now, t_end);
@@ -225,12 +224,8 @@ void Agent::plan(void)
         /* Based on previously computed payoff and pending activities, generate potential activities: */
         auto pending_activities = m_activities->getPending();
         auto act_gens = m_environment->generateActivities(tmp_act, pending_activities);
-        if(act_gens.size() == 0) {
-            m_activities->update();
-            m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
-            Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
-            return;
-        }
+        Log::warn << "Watchpoint (1)\n";
+
         std::vector<std::shared_ptr<Activity> > acts;
         for(auto& ag : act_gens) {
             if(ag.t0 < ag.t1) {
@@ -241,6 +236,14 @@ void Agent::plan(void)
                 Log::err << "[" << m_id << "] Was trying to create an activity where tstart > tend (1). Skipping.\n";
             }
         }
+        if(act_gens.size() == 0 || acts.size() == 0) {
+            m_activities->update();
+            m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
+            Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
+            return;
+        }
+        Log::warn << "Watchpoint (2)\n";
+
         double ts = acts.front()->getStartTime();
         double te = acts.back()->getEndTime();
 
@@ -275,6 +278,8 @@ void Agent::plan(void)
             }
             j++;
         }
+        Log::warn << "Watchpoint (3)\n";
+
         scheduler.setChromosomeInfo(t0s, t1s, m_payload.getResourceRates());
 
         /*  The following loop configures three things:
@@ -308,6 +313,7 @@ void Agent::plan(void)
                 pending_aptr = act_gens[i].prev_act;
             }
         }
+        Log::warn << "Watchpoint (4)\n";
 
         /* Run the scheduler: */
         std::vector<std::shared_ptr<Activity> > adis;

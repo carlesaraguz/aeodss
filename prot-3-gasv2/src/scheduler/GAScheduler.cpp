@@ -138,6 +138,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     GASChromosome best(m_init_individual, true);  /* Randomly initializes, copying protected alleles. */
     unsigned int g = 0;
     m_iteration_profile.clear();
+    Log::dbg << "GA Scheduler will start the evolutionary process now.\n";
     while(iterate(g, best)) {
         /* Repopulate in case we lost too many invalid options. */
         while(m_population.size() < Config::ga_population_size) {
@@ -157,6 +158,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
             children.push_back(child1);
             children.push_back(child2);
         }
+
         #pragma omp parallel for
         for(unsigned int i = 0; i < children.size(); i++) {
             computeFitness(children[i]);
@@ -538,9 +540,12 @@ int GAScheduler::repairPool(std::vector<GASChromosome>& pool)
     return count_invalid;
 }
 
-GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children)
+GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vector<GASChromosome>& children)
 {
-    GASChromosome best_individual(m_individual_info.size());
+    GASChromosome best_individual(m_init_individual, true);
+    if(parents.size() == 0 && children.size() == 0) {
+        return best_individual;
+    }
     switch(Config::ga_environsel_op) {
         case GASSelectionOp::TRUNCATION:
         case GASSelectionOp::ELITIST:
@@ -552,7 +557,6 @@ GASChromosome GAScheduler::combine(std::vector<GASChromosome> parents, std::vect
                 std::vector<GASChromosome> combination(pc.begin(), pc.begin() + elems);
                 m_population = std::move(combination);
                 best_individual = m_population[0];
-
             }
             break;
         case GASSelectionOp::GENERATIONAL:

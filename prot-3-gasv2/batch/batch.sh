@@ -1,6 +1,10 @@
 #!/bin/bash
 
 : ${MAX_PROCS:=2}
+: ${MAX_FAIL:=5}
+
+echo "Running batch simulations with $MAX_PROCS workers."
+echo "Up to $MAX_FAIL failures/attempts allowed."
 
 mkdir -p job_logs
 mkdir -p jobs_completed
@@ -22,18 +26,21 @@ function job {
     done
     log_file="job_logs/$simulation_name.log"
     count=0
-    while [ $count -lt 5 ]; do
+    while [ $count -lt $MAX_FAIL ]; do
         rm $resdir -r 2> /dev/null  # Clean previous contents if there were some.
         # echo "-f ../batch/set/$1 -d $resdir/" > $log_file
         $bin --simple-log -g0 -f ../batch/set/$1 -d $resdir/ > $log_file 2>&1
-        if [[ $? != 0 ]]; then
+        exit_value=$?
+        if [[ $exit_value != 0 ]]; then
+            completed_data=$(date +"%F %T")
+            printf "$completed_data $1 -- Failed ($count): exit value = $exit_value\n"
             count+=1
         else
             break
         fi
     done
     completed_data=$(date +"%F %T")
-    if [ $count -ge 5 ]; then
+    if [ $count -ge $MAX_FAIL ]; then
         # Failed!
         printf "$completed_data %20s -- [ FAIL ] : $resdir\n" $1 | tee -a batch.log
     else

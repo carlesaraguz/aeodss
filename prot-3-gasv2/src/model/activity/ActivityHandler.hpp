@@ -155,8 +155,10 @@ public:
      *                          possible level, i.e. activities are not discarded but removed
      *                          altogether from the knowledge base and the environment model.
      *                          This only applied to owned activities.
+     *  @param  skip_list       List of activities that are currently being sent and that cannot be
+     *                          purged.
      **********************************************************************************************/
-    void purge(bool remove_unsent = false);
+    void purge(bool remove_unsent, std::set<int> skip_list);
 
     /*******************************************************************************************//**
      *  Marks an owned activity as sent. If the activity is not owned or does not belong to the

@@ -466,6 +466,19 @@ void AgentLink::step(void)
     }
 }
 
+std::set<int> AgentLink::listSending(std::string agent_id) const
+{
+    std::set<int> retset;    /* We build a map to prevent repeated. */
+    for(auto& txq : m_tx_queue) {
+        for(auto& txt : txq.second) {
+            if(txt.msg->getAgentId() == agent_id) {
+                retset.insert(txt.msg->getId());
+            }
+        }
+    }
+    return retset;
+}
+
 float AgentLink::distanceFrom(sf::Vector3f p) const
 {
     sf::Vector3f v = p - m_position;

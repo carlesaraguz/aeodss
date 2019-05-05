@@ -148,6 +148,7 @@ public:
     static std::string simulation_name; /**< Simulation name. */
     static std::string root_path;       /**< Root path of the project. */
     static std::string data_path;       /**< Path were simulation results will be saved to.*/
+    static std::string conf_file;       /**< Path to the conf. file. */
     static SandboxMode mode;            /**< The mode of this sandbox. */
     static bool simple_log;             /**< Whether to print colors (false) or not (true). */
 

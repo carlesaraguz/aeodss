@@ -290,10 +290,21 @@ public:
     void markAsSent(void) { m_has_been_sent = true; }
 
     /*******************************************************************************************//**
+     *  Marks this activity as one that has been sent/shared to other agents.
+     **********************************************************************************************/
+    void markAsSending(bool s) { m_sending = s; }
+
+    /*******************************************************************************************//**
      *  Getter for the sent flag. This flag could have been set in the on-success callback for the
      *  agent link.
      **********************************************************************************************/
     bool isSent(void) { return m_has_been_sent; }
+
+    /*******************************************************************************************//**
+     *  Getter for the sent flag. This flag could have been set in the on-success callback for the
+     *  agent link.
+     **********************************************************************************************/
+    bool isSending(void) { return m_sending; }
 
     /*******************************************************************************************//**
      *  Compares the start times of activities, iff both activities are ready.
@@ -325,6 +336,7 @@ private:
     double m_last_update;
     double m_creation_time;
     bool m_has_been_sent;
+    bool m_sending;
 
     /* Spatio-temporal information: */
     std::shared_ptr<SegmentView> m_self_view;

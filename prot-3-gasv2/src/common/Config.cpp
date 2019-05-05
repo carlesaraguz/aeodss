@@ -151,6 +151,7 @@ std::string Config::system_yml;
 std::string Config::simulation_name;
 std::string Config::root_path;
 std::string Config::data_path;
+std::string Config::conf_file;
 SandboxMode Config::mode = SandboxMode::SIMULATE;
 bool        Config::simple_log = false;
 
@@ -219,6 +220,7 @@ void Config::loadCmdArgs(int argc, char** argv)
             opt_val = argv[cmd_idx + 1];
             try {
                 YAML::Node conf = YAML::LoadFile(root_path + "conf/" + opt_val);
+                conf_file = root_path + "conf/" + opt_val;
                 Log::dbg << "Loading configuration from \'" << root_path << ("conf/" + opt_val) << "\'.\n";
                 if(conf["version"].IsDefined()) {
                     unsigned int conf_ver = conf["version"].as<unsigned int>();
@@ -543,8 +545,9 @@ void Config::loadCmdArgs(int argc, char** argv)
                     }
                 }
             } catch(const std::exception& e) {
-                Log::err << "Error loading configuration from \'PROJECT_ROOT/" << ("conf/" + opt_val) << "\'.\n";
+                Log::err << "Error loading configuration from \'" << conf_file << "\'.\n";
                 Log::err << e.what() << "\n";
+                conf_file = "";
                 std::exit(-1);
             }
         }

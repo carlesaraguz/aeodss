@@ -178,6 +178,11 @@ public:
      **********************************************************************************************/
     const sf::Drawable& getView(void) const { return m_self_view; }
 
+    /*******************************************************************************************//**
+     *  Report which activities (their ID's) are being sent that belong to `agent_id`.
+     **********************************************************************************************/
+    std::set<int> listSending(std::string agent_id) const;
+
 private:
     struct Transfer {
         std::shared_ptr<Activity> msg;  /**< The message to send. */

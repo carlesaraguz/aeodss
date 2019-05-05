@@ -154,5 +154,10 @@ std::string Init::createDataDir(void)
         Log::err << "Unable to create data directory: " << data_path << ". Check permissions.\n";
         return "";
     }
+    std::string cp_cmd = "cp " + Config::conf_file + " " + data_path;
+    if(std::system(cp_cmd.c_str()) != 0) {
+        Log::err << "Unable to copy the configuration file in the data directory. Check permissions.\n";
+        Log::err << "This command failed: \'" << cp_cmd << "\'\n";
+    }
     return data_path;
 }

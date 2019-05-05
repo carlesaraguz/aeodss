@@ -93,7 +93,7 @@ void ActivityHandler::discard(std::shared_ptr<Activity> pa)
 }
 
 
-void ActivityHandler::purge(bool remove_unsent)
+void ActivityHandler::purge(bool remove_unsent, std::set<int> skip_list)
 {
     bool bflag = false, report_flag = false;
     int count = 0;
@@ -102,16 +102,21 @@ void ActivityHandler::purge(bool remove_unsent)
     for(auto it = m_activities_own.begin(); it != m_activities_own.end(); ) {
         auto act = *it;
         if((act->getEndTime() < t_horizon) || (remove_unsent && !act->isSent() && act->getStartTime() > tv_now)) {
-            /* We shall remove it: */
-            if(!act->isDiscarded()) {
-                bflag = true;
+            /* Check if it is in the skip list: */
+            if(skip_list.find(act->getId()) == skip_list.end()) {
+                /* We shall remove it: */
+                if(!act->isDiscarded()) {
+                    bflag = true;
+                }
+                report_flag = true;
+                it = m_activities_own.erase(it);
+                if(m_env_model_ptr != nullptr) {
+                    m_env_model_ptr->removeActivity(act);
+                }
+                count++;
+            } else {
+                it++;
             }
-            report_flag = true;
-            it = m_activities_own.erase(it);
-            if(m_env_model_ptr != nullptr) {
-                m_env_model_ptr->removeActivity(act);
-            }
-            count++;
         } else {
             it++;
         }
@@ -394,6 +399,9 @@ void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, st
         }
         if(valid) {
             /* All the overlapping activities can safely be discarded locally: */
+            if(overlap_vec.size() > 0) {
+                Log::warn << "Agent " << m_agent_id << " will locally discard activities from " << aid << "\n";
+            }
             for(auto& oa : overlap_vec) {
                 oa->setDiscarded(true);
             }
@@ -502,9 +510,9 @@ std::vector<std::shared_ptr<Activity> > ActivityHandler::getActivitiesToExchange
     Log::warn << std::defaultfloat; */
 
     /* Limit the number of activities to exchange: */
-    if(retvec.size() > 20) {
-        return std::vector<std::shared_ptr<Activity> >(retvec.begin(), retvec.begin() + 20);
-    } else {
-        return retvec;
-    }
+    // if(retvec.size() > 100) {
+    //     return std::vector<std::shared_ptr<Activity> >(retvec.begin(), retvec.begin() + 100);
+    // } else {
+    // }
+    return retvec;
 }

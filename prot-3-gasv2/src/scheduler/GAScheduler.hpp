@@ -152,7 +152,7 @@ private:
      *  @note   Combination is performed according to the environment combination operator defined
      *          in Config::ga_environsel_op.
      **********************************************************************************************/
-    GASChromosome combine(std::vector<GASChromosome> parents, std::vector<GASChromosome> children);
+    GASChromosome combine(std::vector<GASChromosome> parents, std::vector<GASChromosome>& children);
 
     /*******************************************************************************************//**
      *  Protects chromosome values for activities that are belong to previous solutions and are

@@ -37,6 +37,7 @@ struct ActivityGen {
     std::vector<float> c_payoffs;       /* Cell payoffs for all the visible cells of the activity. */
     std::vector<float> c_utility;       /* Cell utilities for all the visible cells of the activity. */
     std::shared_ptr<Activity> prev_act; /* If is enclosed within an existing activity, a pointer to it. */
+    bool valid;                         /* Whether this activity generator is valid or not. */
 };
 
 class EnvModel : public HasView
