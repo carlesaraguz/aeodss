@@ -106,7 +106,7 @@ void World::computeMetrics(void)
     std::vector<float> maxs_utop(m_metrics_grids.size());
     std::vector<float> maxs_diff(m_metrics_grids.size());
     std::vector<float> maxs_curr(m_metrics_grids.size());
-    // #pragma omp parallel for shared(avgs_utop, avgs_diff, avgs_curr, maxs_utop, maxs_diff, maxs_curr, m_metrics_grids)
+    // #pragma omp parallel for shared(avgs_utop, avgs_diff, avgs_curr, maxs_utop, maxs_diff, maxs_curr, m_metrics_grids, m_cells)
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
         unsigned int x0, x1, y0, y1;
         // #pragma omp critical
@@ -149,10 +149,10 @@ void World::computeMetrics(void)
         {
             avgs_utop[q] = avg_val_utop;
             avgs_diff[q] = avg_val_diff;
-            avgs_curr[q] = avg_val_diff;
+            avgs_curr[q] = avg_val_curr;
             maxs_utop[q] = max_val_utop;
             maxs_diff[q] = max_val_diff;
-            maxs_curr[q] = max_val_diff;
+            maxs_curr[q] = max_val_curr;
         }
     }
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
