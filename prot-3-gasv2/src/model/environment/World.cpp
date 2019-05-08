@@ -39,13 +39,23 @@ World::World(void)
     m_metrics_grids.push_back({ (0 * wg), (4 * wg), (5 * hg), (5 * hg) });
 
     for(unsigned int i = 0; i < m_metrics_grids.size(); i++) {
-        addReportColumn("utopia_avg" + std::to_string(i));     /* i x 0 */
-        addReportColumn("utopia_max" + std::to_string(i));     /* i x 1 */
-        addReportColumn("diff_avg" + std::to_string(i));       /* i x 2 */
-        addReportColumn("diff_max" + std::to_string(i));       /* i x 3 */
-        addReportColumn("actual_avg" + std::to_string(i));     /* i x 4 */
-        addReportColumn("actual_max" + std::to_string(i));     /* i x 5 */
+        addReportColumn("utopia_avg" + std::to_string(i));      /* i x 0 */
+        addReportColumn("utopia_max" + std::to_string(i));      /* i x 1 */
+        addReportColumn("diff_avg" + std::to_string(i));        /* i x 2 */
+        addReportColumn("diff_max" + std::to_string(i));        /* i x 3 */
+        addReportColumn("actual_avg" + std::to_string(i));      /* i x 4 */
+        addReportColumn("actual_max" + std::to_string(i));      /* i x 5 */
+        addReportColumn("coverage" + std::to_string(i));        /* i x 6 */
+        addReportColumn("coverage_avg" + std::to_string(i));    /* i x 7 */
     }
+    addReportColumn("barcelona_utop");      /* 13 x 7 + 1 = 92 */
+    addReportColumn("barcelona_actual");    /* 93 */
+    addReportColumn("singapore_utop");      /* 94 */
+    addReportColumn("singapore_actual");    /* 95 */
+    addReportColumn("greenland_utop");      /* 96 */
+    addReportColumn("greenland_actual");    /* 97 */
+    addReportColumn("cape_town_utop");      /* 98 */
+    addReportColumn("cape_town_actual");    /* 99 */
     enableReport();
 
     m_cells.reserve(m_width);
@@ -106,6 +116,8 @@ void World::computeMetrics(void)
     std::vector<float> maxs_utop(m_metrics_grids.size());
     std::vector<float> maxs_diff(m_metrics_grids.size());
     std::vector<float> maxs_curr(m_metrics_grids.size());
+    std::vector<float> rel_areas(m_metrics_grids.size());
+    std::vector<float> avgs_unmet(m_metrics_grids.size());
     // #pragma omp parallel for shared(avgs_utop, avgs_diff, avgs_curr, maxs_utop, maxs_diff, maxs_curr, m_metrics_grids, m_cells)
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
         unsigned int x0, x1, y0, y1;
@@ -122,10 +134,12 @@ void World::computeMetrics(void)
         float avg_val_utop = 0.f;
         float avg_val_diff = 0.f;
         float avg_val_curr = 0.f;
+        float avg_val_unmet = 0.f;
         float max_val_utop = 0.f;
         float max_val_diff = 0.f;
         float max_val_curr = 0.f;
         int count_cells = 1;
+        rel_areas[q] = 0.f;
         for(unsigned int i = x0; i < x1; i++) {
             for(unsigned int j = y0; j < y1; j++) {
                 utop_val = m_cells[i][j][(int)Layer::REVISIT_TIME_UTOPIA].value;
@@ -139,30 +153,51 @@ void World::computeMetrics(void)
                     max_val_diff = (max_val_diff > diff_val ? max_val_diff : diff_val);
                     max_val_curr = (max_val_curr > curr_val ? max_val_curr : curr_val);
                     count_cells++;
+                    if(curr_val > Config::goal_target) {
+                        rel_areas[q] += 1.f;
+                        avg_val_unmet += curr_val;
+                    }
                 }
             }
         }
         avg_val_utop /= (float)(count_cells);
         avg_val_diff /= (float)(count_cells);
         avg_val_curr /= (float)(count_cells);
+        if(rel_areas[q] == 0.f) {
+            avg_val_unmet = 0.f;            /* Leaves as 0. */
+        } else {
+            avg_val_unmet /= rel_areas[q];  /* Does the average. */
+        }
+        rel_areas[q] /= (float)(count_cells);
         // #pragma omp critical
         {
             avgs_utop[q] = avg_val_utop;
             avgs_diff[q] = avg_val_diff;
             avgs_curr[q] = avg_val_curr;
+            avgs_unmet[q] = avg_val_unmet;
             maxs_utop[q] = max_val_utop;
             maxs_diff[q] = max_val_diff;
             maxs_curr[q] = max_val_curr;
         }
     }
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
-        setReportColumnValue((6 * q) + 0, avgs_utop[q]);
-        setReportColumnValue((6 * q) + 1, maxs_utop[q]);
-        setReportColumnValue((6 * q) + 2, avgs_diff[q]);
-        setReportColumnValue((6 * q) + 3, maxs_diff[q]);
-        setReportColumnValue((6 * q) + 4, avgs_curr[q]);
-        setReportColumnValue((6 * q) + 5, maxs_curr[q]);
+        setReportColumnValue((8 * q) + 0, avgs_utop[q]);
+        setReportColumnValue((8 * q) + 1, maxs_utop[q]);
+        setReportColumnValue((8 * q) + 2, avgs_diff[q]);
+        setReportColumnValue((8 * q) + 3, maxs_diff[q]);
+        setReportColumnValue((8 * q) + 4, avgs_curr[q]);
+        setReportColumnValue((8 * q) + 5, maxs_curr[q]);
+        setReportColumnValue((8 * q) + 6, rel_areas[q]);
+        setReportColumnValue((8 * q) + 7, avgs_unmet[q]);
     }
+    setReportColumnValue(92, m_cells[ 910][242][(int)Layer::REVISIT_TIME_UTOPIA].value);
+    setReportColumnValue(93, m_cells[ 910][242][(int)Layer::REVISIT_TIME_ACTUAL].value);
+    setReportColumnValue(94, m_cells[1419][443][(int)Layer::REVISIT_TIME_UTOPIA].value);
+    setReportColumnValue(95, m_cells[1419][443][(int)Layer::REVISIT_TIME_ACTUAL].value);
+    setReportColumnValue(96, m_cells[ 700][ 70][(int)Layer::REVISIT_TIME_UTOPIA].value);
+    setReportColumnValue(97, m_cells[ 700][ 70][(int)Layer::REVISIT_TIME_ACTUAL].value);
+    setReportColumnValue(98, m_cells[ 992][619][(int)Layer::REVISIT_TIME_UTOPIA].value);
+    setReportColumnValue(99, m_cells[ 992][619][(int)Layer::REVISIT_TIME_ACTUAL].value);
 }
 
 void World::addAgent(std::shared_ptr<Agent> aptr)

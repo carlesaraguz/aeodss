@@ -224,7 +224,6 @@ void Agent::plan(void)
         /* Based on previously computed payoff and pending activities, generate potential activities: */
         auto pending_activities = m_activities->getPending();
         auto act_gens = m_environment->generateActivities(tmp_act, pending_activities);
-        Log::warn << "Watchpoint (1)\n";
 
         std::vector<std::shared_ptr<Activity> > acts;
         for(auto& ag : act_gens) {
@@ -242,7 +241,6 @@ void Agent::plan(void)
             Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
             return;
         }
-        Log::warn << "Watchpoint (2)\n";
 
         double ts = acts.front()->getStartTime();
         double te = acts.back()->getEndTime();
@@ -278,7 +276,6 @@ void Agent::plan(void)
             }
             j++;
         }
-        Log::warn << "Watchpoint (3)\n";
 
         scheduler.setChromosomeInfo(t0s, t1s, m_payload.getResourceRates());
 
@@ -313,7 +310,6 @@ void Agent::plan(void)
                 pending_aptr = act_gens[i].prev_act;
             }
         }
-        Log::warn << "Watchpoint (4)\n";
 
         /* Run the scheduler: */
         std::vector<std::shared_ptr<Activity> > adis;
