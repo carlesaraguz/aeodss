@@ -164,7 +164,7 @@ void ActivityHandler::update(void)
         auto aptr = *ait;
         if(!aptr->isFact()) {
             /* Is neither discarded nor confirmed: */
-            if(aptr->getStartTime() - t <= Config::activity_confirm_window) {
+            if(aptr->getStartTime() - t <= (Config::activity_confirm_window * Config::time_step)) {
                 /* Can be confirmed now: */
                 aptr->setConfirmed(true);
                 report_flag = true;

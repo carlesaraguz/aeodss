@@ -221,7 +221,7 @@ void Activity::setConfidence(void)
 {
     if(!isFact()) {
         double m_last_update = VirtualTime::now();
-        double t_ref = getStartTime() - Config::activity_confirm_window;
+        double t_ref = getStartTime() - (Config::activity_confirm_window * Config::time_step);
         double delta = t_ref - m_last_update;
         if(delta < 0.0) {
             /* This activity should have been confirmed, but it's not. */

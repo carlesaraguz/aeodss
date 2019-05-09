@@ -121,7 +121,7 @@ unsigned int    Config::knowledge_base_size = 10000; /* Virtually unlimited. */
 unsigned int    Config::max_tasks = 25;
 unsigned int    Config::max_task_duration = 10;
 float           Config::min_payoff = 0.f;
-double          Config::activity_confirm_window = 0.05; /* 1.2h in JD. */
+unsigned int    Config::activity_confirm_window = 10; /* 1.2h in JD. */
 float           Config::confidence_mod_exp = 2.f;
 float           Config::utility_floor = 0.f;
 float           Config::utility_k = 10.f;   /* Should be higher than 10. */
@@ -310,8 +310,8 @@ void Config::loadCmdArgs(int argc, char** argv)
                         Log::dbg << ", " << agent_planning_window << " steps.\n";
                         Log::dbg << "Re-scheduling window is set to: " << VirtualTime::toString(agent_replanning_window * time_step, false);
                         Log::dbg << ", " << agent_replanning_window << " steps.\n";
-                        Log::dbg << "Activity confirmation window is set to: " << VirtualTime::toString(activity_confirm_window, false);
-                        Log::dbg << ", " << std::round(activity_confirm_window / time_step) << " steps.\n";
+                        Log::dbg << "Activity confirmation window is set to: " << VirtualTime::toString(activity_confirm_window * time_step, false);
+                        Log::dbg << ", " << activity_confirm_window << " steps.\n";
                         if(max_task_duration <= 3) {
                             Log::warn << "Activity maximum duration is set to: " << VirtualTime::toString(max_task_duration * time_step, false);
                             Log::warn << ", " << max_task_duration << " steps.\n";

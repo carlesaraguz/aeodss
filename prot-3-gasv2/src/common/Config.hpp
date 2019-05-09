@@ -118,7 +118,7 @@ public:
     static unsigned int max_tasks;              /**< Maximum number of tasks (i.e. chromosome length). */
     static float min_payoff;                    /**< Payoff threshold below which tasks will not be generated. */
     static unsigned int max_task_duration;      /**< Max. task duration (in time steps). */
-    static double activity_confirm_window;      /**< Length of the confirmation window (in time units). */
+    static unsigned int activity_confirm_window;/**< Length of the confirmation window (in time steps). */
     static float confidence_mod_exp;            /**< Exponent of the confidence modifier. */
     static float utility_floor;                 /**< Minimum utility for confidence in priority. */
     static float utility_k;                     /**< Utility function (logitic sigmoid func): steepness. */

@@ -325,11 +325,6 @@ void Agent::plan(void)
         for(auto& setimes : result) {
             double new_ts = std::get<0>(setimes);
             double new_te = std::get<1>(setimes);
-            if(m_id == "A0") {
-                Log::warn << "Activity " << VirtualTime::toString(new_ts);
-                Log::warn << "  ---  "   << VirtualTime::toString(new_te) << "\n";
-
-            }
             float new_bc  = std::get<2>(setimes);
             if(new_ts < new_te) {
                 auto new_act = createActivity(new_ts, new_te);
