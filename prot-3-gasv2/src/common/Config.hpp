@@ -92,6 +92,7 @@ public:
     static float instrument_energy_max;
     static float link_tx_energy_rate;
     static float link_rx_energy_rate;
+    static float link_reserved_capacity;
     /* -- Storage: */
     static float instrument_storage_min;
     static float instrument_storage_max;

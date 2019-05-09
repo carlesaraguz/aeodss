@@ -14,6 +14,7 @@
 #include "prot.hpp"
 
 class Activity;
+class Agent;
 
 struct EnvCellState {
     double* t0s;        /* Times when an activity starts influencing. */
@@ -53,8 +54,8 @@ public:
     unsigned int x;
     unsigned int y;
 
-    EnvCell(unsigned int cx, unsigned int cy);
-    EnvCell(unsigned int cx, unsigned int cy, EnvCellPayoffFunc fp, EnvCellCleanFunc fc);
+    EnvCell(Agent* agnt, unsigned int cx, unsigned int cy);
+    EnvCell(Agent* agnt, unsigned int cx, unsigned int cy, EnvCellPayoffFunc fp, EnvCellCleanFunc fc);
 
     void addCellActivity(std::shared_ptr<Activity> aptr);
     bool removeCellActivity(std::shared_ptr<Activity> aptr);
@@ -74,6 +75,7 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const EnvCell& ec);
 
 private:
+    Agent* m_agent;
     std::map<std::shared_ptr<Activity>, EnvCellState> m_activities;
     std::vector<EnvCellPayoffFunc> m_payoff_func;
     std::vector<EnvCellCleanFunc> m_clean_func;

@@ -379,9 +379,9 @@ void AgentLink::step(void)
                         } else {
                             start_flag = true;
                             /*
-                            Log::dbg << "Agent " << getAgentId() << " started transfer " << txt.id << " with " << txq.first << ". ";
-                            Log::dbg << "Transfer completes at " << VirtualTime::toString(txt.t_end);
-                            Log::dbg << " (after " << Config::activity_size / m_datarate << " sec. = " << VirtualTime::toString(tx_duration, false) << ").\n";
+                            Log::warn << "Agent " << getAgentId() << " started transfer " << txt.id << " with " << txq.first << ". ";
+                            Log::warn << "Transfer completes at " << VirtualTime::toString(txt.t_end);
+                            Log::warn << " (after " << Config::activity_size / m_datarate << " sec. = " << VirtualTime::toString(tx_duration, false) << ").\n";
                             */
                             sending = true;
                         }

@@ -51,7 +51,7 @@ EnvModel::EnvModel(Agent* aptr, unsigned int mw, unsigned int mh)
             column_lut.reserve(m_model_h);
         }
         for(unsigned int j = 0; j < m_model_h; j++) {
-            EnvCell c(i, j);
+            EnvCell c(m_agent, i, j);
             c.pushPayoffFunc(PayoffFunctions::f_revisit_time_backwards);
             c.pushPayoffFunc(PayoffFunctions::f_revisit_time_forwards);
             column.push_back(c);

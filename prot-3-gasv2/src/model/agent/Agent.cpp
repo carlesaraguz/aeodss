@@ -249,7 +249,7 @@ void Agent::plan(void)
         if(!m_link_energy_available && !m_link->isEnabled()) {
             /* Only enable if it was disabled due to energy issues: */
             try {
-                m_resources.at("energy")->setReservedCapacity(0.1f);
+                m_resources.at("energy")->setReservedCapacity(Config::link_reserved_capacity);
                 m_link_energy_available = true;
                 Log::dbg << "The link for agent " << m_id << " will now be (re-)enabled.\n";
                 m_link->enable();

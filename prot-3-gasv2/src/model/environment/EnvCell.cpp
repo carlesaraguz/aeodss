@@ -10,17 +10,20 @@
 
 #include "EnvCell.hpp"
 #include "Activity.hpp"
+#include "Agent.hpp"
 
 CREATE_LOGGER(EnvCell)
 
-EnvCell::EnvCell(unsigned int cx, unsigned int cy)
+EnvCell::EnvCell(Agent* agnt, unsigned int cx, unsigned int cy)
     : x(cx)
     , y(cy)
+    , m_agent(agnt)
 { }
 
-EnvCell::EnvCell(unsigned int cx, unsigned int cy, EnvCellPayoffFunc fp, EnvCellCleanFunc fc)
+EnvCell::EnvCell(Agent* agnt, unsigned int cx, unsigned int cy, EnvCellPayoffFunc fp, EnvCellCleanFunc fc)
     : x(cx)
     , y(cy)
+    , m_agent(agnt)
 {
     m_payoff_func.push_back(fp);
     m_clean_func.push_back(fc);
@@ -107,6 +110,12 @@ float EnvCell::computeCellPayoff(double* at0s, double* at1s, int nts)
         std::vector<std::vector<std::pair<double, double> > > arg2;
         std::vector<std::shared_ptr<Activity> > arg3;
         for(auto& ra : m_activities) {
+            if(ra.first->isOwner(m_agent->getId()) && ra.first->getStartTime() > VirtualTime::now()) {
+                /*  This activity is owned by the agent that is computing payoff and is in the future.
+                 *  We will not consider it because we might be re-scheduling.
+                 **/
+                continue;
+            }
             std::vector<std::pair<double, double> > vec_ts;
             for(int j = 0; j < ra.second.nts; j++) {
                 vec_ts.push_back({ra.second.t0s[j], ra.second.t1s[j]});

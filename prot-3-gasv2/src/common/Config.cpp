@@ -93,8 +93,10 @@ float           Config::orbp_init_ma_min = 360.f;
 float Config::agent_energy_generation_rate = -764.f;
 float Config::instrument_energy_min = 900.f;
 float Config::instrument_energy_max = 1200.f;
-float Config::link_tx_energy_rate = 0.5f;
-float Config::link_rx_energy_rate = 0.05f;
+float Config::link_tx_energy_rate = 0.005f;
+float Config::link_rx_energy_rate = 0.0005f;
+float Config::link_reserved_capacity = 0.1f;
+
 /* -- Storage: */
 float Config::instrument_storage_min = 0.01f;
 float Config::instrument_storage_max = 0.01f;
@@ -338,6 +340,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                             getConfigParam("datarate", link_node, agent_datarate_min, agent_datarate_max);
                             getConfigParam("energy_tx", link_node, link_tx_energy_rate);
                             getConfigParam("energy_rx", link_node, link_rx_energy_rate);
+                            getConfigParam("reserved_capacity", link_node, link_reserved_capacity);
                             getConfigParam("allow_during_capture", link_node, link_allow_during_capture);
                         } else {
                             throw std::runtime_error("Agent link model parameters have not been provided.");
