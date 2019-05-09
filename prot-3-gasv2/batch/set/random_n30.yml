@@ -12,7 +12,7 @@ system:
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
-    name: baseline_n10      # Simulation name for the folder where files are stored.
+    name: random_n30        # Simulation name for the folder where files are stored.
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -50,7 +50,7 @@ agent:
         datarate: [10, 20]      # Datarate [min, max] or value.
         energy_tx: 0.0001       # Energy consumption rate.
         energy_rx: 0.000005     # Energy consumption rate.
-        allow_during_capture: true  # Whether to enable link while payload is enabled.
+        allow_during_capture: false  # Whether to enable link while payload is enabled.
     # Agent motion model:
     motion:
         type: orbital           # orbital, linear_bounce, linear_infinite or sinusoidal.
@@ -63,7 +63,7 @@ agent:
     activity_size: 1000             # Amount of information to transmit.
     planning_window: 270            # 270 Time-steps = 180 min.
     replanning_window: 180          # 180 Time-steps = 90 min.
-    knowledge_base_size: 100000     # Max. total tasks that an angent can remember.
+    knowledge_base_size: 0          # Will not accept activities from others.
     max_tasks: 50                   # Max. tasks to generate.
     max_task_duration: 8            # 8 time steps = 4 min.
     min_payoff: 0.2                 # Payoff threshold below which tasks will not be generated.
