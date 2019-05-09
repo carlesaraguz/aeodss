@@ -190,11 +190,13 @@ ActivityGen EnvModel::createActivityGen(double t0, double t1, std::shared_ptr<Ac
     ag.c_coord   = vcells;
     ag.c_payoffs = vec_payoffs;
     ag.c_utility = vec_utility;
-    // Log::dbg << "Activity generator is ready for [" << VirtualTime::toString(t0) << "," << VirtualTime::toString(t1) << "]. ";
-    // if(aptr != nullptr) {
-    //     Log::dbg << "Act: [" << aptr->getAgentId() << ":" << aptr->getId() << "]";
-    // }
-    // Log::dbg << "\n";
+    /* DEBUG with:
+    Log::warn << "Activity generator is ready for [" << VirtualTime::toString(t0) << "," << VirtualTime::toString(t1) << "]. ";
+    if(aptr != nullptr) {
+        Log::warn << "Act: [" << aptr->getAgentId() << ":" << aptr->getId() << "]";
+    }
+    Log::warn << "\n";
+    */
     return ag;
 }
 
@@ -206,7 +208,6 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
         t = t0 + s * Config::time_step;
         if(t >= max_t1) {
             t = max_t1;
-            // Log::dbg << "Found t1 = max_t1 = " << VirtualTime::toString(t) << "\n";
             break;
         }
         auto cells = aptr->getActiveCells(t);
@@ -227,7 +228,6 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
             }
         }
         if(cells.size() == 0) {
-            // Log::dbg << "Found t1 = " << VirtualTime::toString(std::min(t, max_t1)) << "\n";
             break;
         }
     }
@@ -237,7 +237,6 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
     /* Look for next t0: */
     if(t1 + Config::time_step >= max_t1) {
         next_t0 = max_t1;
-        // Log::dbg << "Found next_t0 = max_t1 = " << VirtualTime::toString(max_t1) << "\n";
     } else {
         t = t1;
         for(unsigned int s = 0; s < aptr->getPositionCount(); s++) {
@@ -269,7 +268,6 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
         }
         /* Found next t0: next_t0 = t. */
         next_t0 = t;
-        // Log::dbg << "Found next_t0 = " << VirtualTime::toString(next_t0) << "\n";
     }
     return t1;
 }
@@ -316,7 +314,7 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
             return std::get<0>(a) < std::get<0>(b);
         }
     );
-    /* DEBUG:
+    /* DEBUG with:
     Log::dbg << "Listing horizons:\n";
     for(auto& th : t_horizons) {
         Log::dbg << " -- time: "
@@ -331,25 +329,20 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
     double t_start = tmp_act->getStartTime();
     double t_end = tmp_act->getEndTime();
     if(t_horizons.size() > 0) {
-        // Log::dbg << "There are " << t_horizons.size() << " horizons to split the generation in intervals.\n";
         next_horizon = std::get<0>(t_horizons.front());
     } else {
-        // Log::dbg << "There are no horizons to split the generation of intervals.\n";
         next_horizon = t_end;
     }
-    // Log::warn << "Next horizon is " << VirtualTime::toString(next_horizon) << " (within_old = " << std::boolalpha << within_old << ")\n";
     double t = t_start;
     double t_start_i = t_start;
-    double t_end_i = std::min(t + Config::max_task_duration, next_horizon);
+    double t_end_i = std::min(t + (Config::max_task_duration * Config::time_step), next_horizon);
     do {
         bool created_activity = false;
         while(t_end_i - t > 3.0 * Config::time_step) {
             /* Length is appropiate: */
             if(within_old) {
-                // Log::warn << "Iteration at t = " << VirtualTime::toString(t) << ", t_end_i = " << VirtualTime::toString(t_end_i) << " /// " << std::flush;
                 int idx_lut = std::get<2>(t_horizons.front());
                 auto aptr = prev_acts[idx_lut];
-                // Log::warn << "[" << aptr->getAgentId() << ":" << aptr->getId() << "]\n";
                 if(aptr->isConfimed()) {
                     t_end_i = std::get<1>(t_horizons.front());  /* Move directly to end time, which is next horizon. */
                     auto ag = createActivityGen(t, t_end_i, tmp_act, aptr);
@@ -364,10 +357,9 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
                     }
                 }
                 t = t_end_i;
-                t_end_i = std::min(t + Config::max_task_duration, next_horizon);
+                t_end_i = std::min(t + (Config::max_task_duration * Config::time_step), next_horizon);
                 created_activity = true;
             } else {
-                // Log::warn << "Iteration at t = " << VirtualTime::toString(t) << ", t_end_i = " << VirtualTime::toString(t_end_i) << ".\n";
                 /* We need to iterate over time to detect earlier stopping points: */
                 t_end_i = findEndTime(t, t_end_i, tmp_act, t_start_i);  /* May be left unchanged. */
                 if(t_end_i - t > 3.0 * Config::time_step) {
@@ -379,7 +371,7 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
                 }
                 if(t_start_i < next_horizon) {
                     t = t_start_i;
-                    t_end_i = std::min(t + Config::max_task_duration, next_horizon);
+                    t_end_i = std::min(t + (Config::max_task_duration * Config::time_step), next_horizon);
                 } else {
                     /* We exit the loop but do not enter the following if-clause because within_old = false. */
                     t = next_horizon;
@@ -397,7 +389,6 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
          **/
         if(!created_activity && within_old) {
             /* This is not correct. We must create (at least) one activity: */
-            // Log::err << "Careful! We were within old but did not create an activity. Will do now.\n";
             int idx_lut = std::get<2>(t_horizons.front());
             auto aptr = prev_acts[idx_lut];
             auto ag = createActivityGen(std::get<0>(t_horizons.front()), std::get<1>(t_horizons.front()), tmp_act, aptr);
@@ -437,16 +428,13 @@ std::vector<ActivityGen> EnvModel::generateActivities(std::shared_ptr<Activity> 
                 Log::err << "Error generating new activities [#3]\n";
             }
         }
-        t_end_i = std::min(t + Config::max_task_duration, next_horizon);
+        t_end_i = std::min(t + (Config::max_task_duration * Config::time_step), next_horizon);
 
-        // Log::warn << "Next horizon is " << VirtualTime::toString(next_horizon) << " (within_old = " << std::boolalpha << within_old << ")\n";
         if(!within_old && retval.size() >= Config::max_tasks) {
             /* We need to stop here: */
-            Log::warn << "Reached the maximum number of activities.\n";
             break;
-        } else if(within_old && std::ceil((next_horizon - t) / Config::max_task_duration) + retval.size() >= Config::max_tasks) {
+        } else if(within_old && std::ceil((next_horizon - t) / (Config::max_task_duration * Config::time_step)) + retval.size() >= Config::max_tasks) {
             /* We also need to stop here: */
-            Log::warn << "Will reach the maximum number of activities.\n";
             break;
         }
     } while(t_horizons.size() >= 1 || (!within_old && t_end - t > 3.0 * Config::time_step));

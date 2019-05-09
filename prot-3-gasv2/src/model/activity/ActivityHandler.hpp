@@ -113,6 +113,7 @@ public:
      *                  the agent.
      **********************************************************************************************/
     std::shared_ptr<Activity> createOwnedActivity(
+        double t0, double t1,
         const std::map<double, sf::Vector3f>& a_pos,
         const std::vector<ActivityCell>& a_cells
     );

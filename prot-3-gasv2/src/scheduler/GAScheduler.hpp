@@ -21,6 +21,7 @@
 class GAScheduler
 {
 public:
+    std::string aid;
     /*******************************************************************************************//**
      *  (1) double: start time of a new task.
      *  (2) double: end time of a new task.

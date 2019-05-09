@@ -231,6 +231,7 @@ void control_loop(void)
     Log::dbg << "Starting control loop.\n";
     ReportSet::getInstance().outputAllHeaders();
     int update_world_metrics = 0;
+
     while(!VirtualTime::finished() && !exit_control_loop) {
         /* Update loop: ------------------------------------------------------------------------- */
         mutex_control.lock();

@@ -58,6 +58,7 @@ private:
     GridView m_self_view;
     std::vector<std::vector<std::vector<WorldCell> > > m_cells;
     std::vector<std::shared_ptr<Agent> > m_agents;
+    std::map<unsigned int, std::tuple<std::string, unsigned int, unsigned int, unsigned int> > m_spots; /* report Idx. -> name, m_cell indices. */
 
     static std::vector<std::vector<sf::Vector3f> > m_world_positions;  /**< Look-up table of world 3D coordinates (ECEF). */
 

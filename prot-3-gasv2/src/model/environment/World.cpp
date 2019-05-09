@@ -36,7 +36,7 @@ World::World(void)
     m_metrics_grids.push_back({ (3 * wg), (4 * wg), (3 * hg), (4 * hg) });
     m_metrics_grids.push_back({ (0 * wg), (2 * wg), (4 * hg), (5 * hg) });
     m_metrics_grids.push_back({ (2 * wg), (4 * wg), (4 * hg), (5 * hg) });
-    m_metrics_grids.push_back({ (0 * wg), (4 * wg), (5 * hg), (5 * hg) });
+    m_metrics_grids.push_back({ (0 * wg), (4 * wg), (5 * hg), (6 * hg) });
 
     for(unsigned int i = 0; i < m_metrics_grids.size(); i++) {
         addReportColumn("utopia_avg" + std::to_string(i));      /* i x 0 */
@@ -48,14 +48,14 @@ World::World(void)
         addReportColumn("coverage" + std::to_string(i));        /* i x 6 */
         addReportColumn("coverage_avg" + std::to_string(i));    /* i x 7 */
     }
-    addReportColumn("barcelona_utop");      /* 13 x 7 + 1 = 92 */
-    addReportColumn("barcelona_actual");    /* 93 */
-    addReportColumn("singapore_utop");      /* 94 */
-    addReportColumn("singapore_actual");    /* 95 */
-    addReportColumn("greenland_utop");      /* 96 */
-    addReportColumn("greenland_actual");    /* 97 */
-    addReportColumn("cape_town_utop");      /* 98 */
-    addReportColumn("cape_town_actual");    /* 99 */
+    m_spots[addReportColumn("barcelona_utopia")] = std::make_tuple("barcelona_utopia",  910, 242, (int)Layer::REVISIT_TIME_UTOPIA);
+    m_spots[addReportColumn("barcelona_actual")] = std::make_tuple("barcelona_actual",  910, 242, (int)Layer::REVISIT_TIME_ACTUAL);
+    m_spots[addReportColumn("singapore_utopia")] = std::make_tuple("singapore_utopia", 1419, 443, (int)Layer::REVISIT_TIME_UTOPIA);
+    m_spots[addReportColumn("singapore_actual")] = std::make_tuple("singapore_actual", 1419, 443, (int)Layer::REVISIT_TIME_ACTUAL);
+    m_spots[addReportColumn("greenland_utopia")] = std::make_tuple("greenland_utopia",  700,  70, (int)Layer::REVISIT_TIME_UTOPIA);
+    m_spots[addReportColumn("greenland_actual")] = std::make_tuple("greenland_actual",  700,  70, (int)Layer::REVISIT_TIME_ACTUAL);
+    m_spots[addReportColumn("cape_town_utopia")] = std::make_tuple("cape_town_utopia",  992, 619, (int)Layer::REVISIT_TIME_UTOPIA);
+    m_spots[addReportColumn("cape_town_actual")] = std::make_tuple("cape_town_actual",  992, 619, (int)Layer::REVISIT_TIME_ACTUAL);
     enableReport();
 
     m_cells.reserve(m_width);
@@ -152,6 +152,7 @@ void World::computeMetrics(void)
                     max_val_utop = (max_val_utop > utop_val ? max_val_utop : utop_val);
                     max_val_diff = (max_val_diff > diff_val ? max_val_diff : diff_val);
                     max_val_curr = (max_val_curr > curr_val ? max_val_curr : curr_val);
+
                     count_cells++;
                     if(curr_val > Config::goal_target) {
                         rel_areas[q] += 1.f;
@@ -169,16 +170,13 @@ void World::computeMetrics(void)
             avg_val_unmet /= rel_areas[q];  /* Does the average. */
         }
         rel_areas[q] /= (float)(count_cells);
-        // #pragma omp critical
-        {
-            avgs_utop[q] = avg_val_utop;
-            avgs_diff[q] = avg_val_diff;
-            avgs_curr[q] = avg_val_curr;
-            avgs_unmet[q] = avg_val_unmet;
-            maxs_utop[q] = max_val_utop;
-            maxs_diff[q] = max_val_diff;
-            maxs_curr[q] = max_val_curr;
-        }
+        avgs_utop[q] = avg_val_utop;
+        avgs_diff[q] = avg_val_diff;
+        avgs_curr[q] = avg_val_curr;
+        avgs_unmet[q] = avg_val_unmet;
+        maxs_utop[q] = max_val_utop;
+        maxs_diff[q] = max_val_diff;
+        maxs_curr[q] = max_val_curr;
     }
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
         setReportColumnValue((8 * q) + 0, avgs_utop[q]);
@@ -190,14 +188,12 @@ void World::computeMetrics(void)
         setReportColumnValue((8 * q) + 6, rel_areas[q]);
         setReportColumnValue((8 * q) + 7, avgs_unmet[q]);
     }
-    setReportColumnValue(92, m_cells[ 910][242][(int)Layer::REVISIT_TIME_UTOPIA].value);
-    setReportColumnValue(93, m_cells[ 910][242][(int)Layer::REVISIT_TIME_ACTUAL].value);
-    setReportColumnValue(94, m_cells[1419][443][(int)Layer::REVISIT_TIME_UTOPIA].value);
-    setReportColumnValue(95, m_cells[1419][443][(int)Layer::REVISIT_TIME_ACTUAL].value);
-    setReportColumnValue(96, m_cells[ 700][ 70][(int)Layer::REVISIT_TIME_UTOPIA].value);
-    setReportColumnValue(97, m_cells[ 700][ 70][(int)Layer::REVISIT_TIME_ACTUAL].value);
-    setReportColumnValue(98, m_cells[ 992][619][(int)Layer::REVISIT_TIME_UTOPIA].value);
-    setReportColumnValue(99, m_cells[ 992][619][(int)Layer::REVISIT_TIME_ACTUAL].value);
+    for(auto& s : m_spots) {
+        setReportColumnValue(
+            s.first,
+            (float)m_cells[std::get<1>(s.second)][std::get<2>(s.second)][std::get<3>(s.second)].value
+        );
+    }
 }
 
 void World::addAgent(std::shared_ptr<Agent> aptr)

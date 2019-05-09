@@ -307,9 +307,51 @@ double Activity::getEndTime(void) const
     if(m_trajectory->size() > 0 && m_ready) {
         return m_trajectory->crbegin()->first;
     } else {
-        Log::warn << "Trying to retrieve start time of activity "
+        Log::warn << "Trying to retrieve end time of activity "
             << m_agent_id << ":" << m_id << ", but its trajectory has yet not been defined.\n";
         return -1.f;
+    }
+}
+
+void Activity::setStartTime(double t)
+{
+    if(m_trajectory->size() > 1 && m_ready) {
+        auto i = m_trajectory->cbegin();
+        auto j = std::next(i);
+        if(t < j->first) {
+            if(std::abs(t - i->first) > Config::time_step) {
+                Log::warn << "Changing start time of an activity will result in a change of more than one time step.\n";
+            }
+            auto p = i->second;
+            m_trajectory->erase(i);         /* Remove the previous start point. */
+            m_trajectory->emplace(t, p);    /* Add it again with the new time. */
+        } else {
+            Log::err << "Can't change the start time of an activity for a value that is past the second trajectory point.\n";
+        }
+    } else {
+        Log::warn << "Trying to set start time of activity "
+            << m_agent_id << ":" << m_id << ", but its trajectory has yet not been defined.\n";
+    }
+}
+
+void Activity::setEndTime(double t)
+{
+    if(m_trajectory->size() > 1 && m_ready) {
+        auto i = m_trajectory->crbegin();
+        auto j = std::prev(i);
+        if(t > j->first) {
+            if(std::abs(t - i->first) > Config::time_step) {
+                Log::warn << "Changing end time of an activity will result in a change of more than one time step.\n";
+            }
+            auto p = i->second;
+            m_trajectory->erase(std::prev(m_trajectory->end()));    /* Remove the previous end point. */
+            m_trajectory->emplace(t, p);    /* Add it again with the new time. */
+        } else {
+            Log::err << "Can't change the end time of an activity for a value that is before the previous-to-last trajectory point.\n";
+        }
+    } else {
+        Log::warn << "Trying to set end time of activity "
+            << m_agent_id << ":" << m_id << ", but its trajectory has yet not been defined.\n";
     }
 }
 

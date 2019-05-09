@@ -23,6 +23,7 @@ struct ActivityCell {
     double* t1s;        /* Times when this cell ends being active by the activity. */
     unsigned int nts;   /* The number of elements in the lists t0s and t1s. */
     bool ready;         /* The information in this cell is ready/valid. */
+    int aux;            /* An auxiliary value. Ignore. */
 };
 
 enum class ActivityPriorityModel {
@@ -257,6 +258,20 @@ public:
      *              trajectory has not been defined).
      **********************************************************************************************/
     double getEndTime(void) const;
+
+    /*******************************************************************************************//**
+     *  Setter for the start time of the activity.
+     *  @param  t   The new start time. Should differ less than one time step from the first point
+     *              in the trajectory.
+     **********************************************************************************************/
+    void setStartTime(double t);
+
+    /*******************************************************************************************//**
+     *  Setter for the end time of the activity.
+     *  @param  t   The new end time. Should differ less than one time step from the first point in
+     *              the trajectory.
+     **********************************************************************************************/
+    void setEndTime(double t);
 
     /*******************************************************************************************//**
      *  Getter for the last-update time of this activity.

@@ -14,7 +14,7 @@
 
 CREATE_LOGGER(Config)
 
-#define CONF_VERSION  2
+#define CONF_VERSION  4
 
 /*  NOTE:
  *  Some of the following are variables might be ODR-used somewhere and, therefore, could need a
@@ -119,7 +119,7 @@ ColorGradient   Config::color_gradient_blue;
 /* Scheduling hard constraints: */
 unsigned int    Config::knowledge_base_size = 10000; /* Virtually unlimited. */
 unsigned int    Config::max_tasks = 25;
-double          Config::max_task_duration = 7.0 * 60.0 / 86400.0;    /* 7 min. in JD */
+unsigned int    Config::max_task_duration = 10;
 float           Config::min_payoff = 0.f;
 double          Config::activity_confirm_window = 0.05; /* 1.2h in JD. */
 float           Config::confidence_mod_exp = 2.f;
@@ -225,12 +225,15 @@ void Config::loadCmdArgs(int argc, char** argv)
                 if(conf["version"].IsDefined()) {
                     unsigned int conf_ver = conf["version"].as<unsigned int>();
                     if(conf_ver < CONF_VERSION) {
-                        Log::warn << "Configuration file version " << conf_ver << " is older than the implementation.\n";
+                        Log::err << "Configuration file version " << conf_ver << " is older than the implementation.\n";
                     } else if(conf_ver > CONF_VERSION) {
                         Log::err << "Unexpected config. file version " << conf_ver
                             << ". Implementation only supports versions <= " << CONF_VERSION << ".\n";
                         throw std::runtime_error("Unsupported configuration file. Wrong version specs.");
                     }
+                } else {
+                    Log::err << "Config. file version has not been defined. Aborting.\n";
+                    throw std::runtime_error("Unknown configuration file version.");
                 }
                 for(auto node_it : conf) {
                     if(node_it.first.as<std::string>() == "version") {
@@ -303,18 +306,18 @@ void Config::loadCmdArgs(int argc, char** argv)
                         getConfigParam("replanning_window", node_it.second, agent_replanning_window);
                         getConfigParam("confirm_window", node_it.second, activity_confirm_window);
                         getConfigParam("max_task_duration", node_it.second, max_task_duration);
-                        Log::dbg << "Planning window is set to: " << VirtualTime::toString(agent_planning_window * Config::time_step, false);
+                        Log::dbg << "Planning window is set to: " << VirtualTime::toString(agent_planning_window * time_step, false);
                         Log::dbg << ", " << agent_planning_window << " steps.\n";
-                        Log::dbg << "Re-scheduling window is set to: " << VirtualTime::toString(agent_replanning_window * Config::time_step, false);
+                        Log::dbg << "Re-scheduling window is set to: " << VirtualTime::toString(agent_replanning_window * time_step, false);
                         Log::dbg << ", " << agent_replanning_window << " steps.\n";
                         Log::dbg << "Activity confirmation window is set to: " << VirtualTime::toString(activity_confirm_window, false);
                         Log::dbg << ", " << std::round(activity_confirm_window / time_step) << " steps.\n";
-                        if(std::round(max_task_duration / time_step) <= 4) {
-                            Log::warn << "Activity maximum duration is set to: " << VirtualTime::toString(max_task_duration, false);
-                            Log::warn << ", " << std::round(max_task_duration / time_step) << " steps.\n";
+                        if(max_task_duration <= 3) {
+                            Log::warn << "Activity maximum duration is set to: " << VirtualTime::toString(max_task_duration * time_step, false);
+                            Log::warn << ", " << max_task_duration << " steps.\n";
                         } else {
-                            Log::dbg << "Activity maximum duration is set to: " << VirtualTime::toString(max_task_duration, false);
-                            Log::dbg << ", " << std::round(max_task_duration / time_step) << " steps.\n";
+                            Log::dbg << "Activity maximum duration is set to: " << VirtualTime::toString(max_task_duration * time_step, false);
+                            Log::dbg << ", " << max_task_duration << " steps.\n";
                         }
                         getConfigParam("max_tasks", node_it.second, max_tasks);
                         getConfigParam("knowledge_base_size", node_it.second, knowledge_base_size);

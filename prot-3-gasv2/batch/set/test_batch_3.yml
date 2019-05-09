@@ -1,4 +1,4 @@
-version: 2
+version: 4
 system:
     n_agents: 15
     time:

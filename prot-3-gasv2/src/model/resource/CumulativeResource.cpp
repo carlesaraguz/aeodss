@@ -73,7 +73,7 @@ bool CumulativeResource::applyFor(float c, double t)
         acc += r.second;
     }
     m_capacity -= acc * t;
-    if(m_capacity > m_reserved_capacity + (Config::time_step * c)) {
+    if(m_capacity > m_reserved_capacity) {
         if(m_capacity > m_max_capacity) {
             m_capacity = m_max_capacity;
         }

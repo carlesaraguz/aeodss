@@ -117,7 +117,7 @@ public:
     static unsigned int knowledge_base_size;    /**< Max. total number of activities that an agent can know. */
     static unsigned int max_tasks;              /**< Maximum number of tasks (i.e. chromosome length). */
     static float min_payoff;                    /**< Payoff threshold below which tasks will not be generated. */
-    static double max_task_duration;            /**< Max. task duration (in time units). */
+    static unsigned int max_task_duration;      /**< Max. task duration (in time steps). */
     static double activity_confirm_window;      /**< Length of the confirmation window (in time units). */
     static float confidence_mod_exp;            /**< Exponent of the confidence modifier. */
     static float utility_floor;                 /**< Minimum utility for confidence in priority. */

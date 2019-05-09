@@ -357,12 +357,19 @@ unsigned int ActivityHandler::pending(void) const
 
 
 std::shared_ptr<Activity> ActivityHandler::createOwnedActivity(
+    double /* t0 */, double /* t1 */,
     const std::map<double, sf::Vector3f>& a_pos,
     const std::vector<ActivityCell>& a_cells)
 {
     auto a = std::make_shared<Activity>(m_agent_id);
     a->setAperture(m_aperture);
     a->setTrajectory(a_pos, a_cells);
+    /*  NOTE: We have ignored the following lines because start and end times are guaranteed to be
+     *      t0 and t1 by the current implementation of Agent::findActiveCells.
+     *
+     * a->setStartTime(t0);
+     * a->setEndTime(t1);
+     **/
     return a;
 }
 

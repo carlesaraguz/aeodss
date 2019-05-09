@@ -313,6 +313,7 @@ void Agent::plan(void)
 
         /* Run the scheduler: */
         std::vector<std::shared_ptr<Activity> > adis;
+        scheduler.aid = m_id;
         auto result = scheduler.schedule(adis);
 
         /* Discard activities: */
@@ -324,6 +325,11 @@ void Agent::plan(void)
         for(auto& setimes : result) {
             double new_ts = std::get<0>(setimes);
             double new_te = std::get<1>(setimes);
+            if(m_id == "A0") {
+                Log::warn << "Activity " << VirtualTime::toString(new_ts);
+                Log::warn << "  ---  "   << VirtualTime::toString(new_te) << "\n";
+
+            }
             float new_bc  = std::get<2>(setimes);
             if(new_ts < new_te) {
                 auto new_act = createActivity(new_ts, new_te);
@@ -372,7 +378,7 @@ void Agent::listen(void)
             }
             BasicInstrument tmp_imodel(act->getAperture(), -1.f);
             tmp_imodel.setDimensions(m_environment->getEnvModelInfo());
-            auto active_cells = findActiveCells(traj->cbegin()->first, traj_vec, &tmp_imodel);
+            auto active_cells = findActiveCells(traj->cbegin()->first, traj->crbegin()->first, traj_vec, &tmp_imodel);
             act->setActiveCells(active_cells);
             m_activities->add(act);
         }
@@ -406,6 +412,7 @@ void Agent::execute(void)
             Log::dbg << "Agent " << m_id << " is ending activity " << m_current_activity->getId()
                 << ", T = [" << VirtualTime::toString(m_current_activity->getStartTime())
                 << ", " << VirtualTime::toString(m_current_activity->getEndTime()) << ").\n";
+            // m_print_resources = true;
             m_payload.disable();
             for(auto& r : m_resources) {
                 r.second->removeRate(m_current_activity.get());
@@ -423,12 +430,11 @@ void Agent::execute(void)
         /* This activity has to start: */
         Log::dbg << "Agent " << m_id << " is starting activity " << m_current_activity->getId() << ".\n";
         m_current_activity->setActive();
-
         if(!Config::link_allow_during_capture) {
             /* Must disable link at this point. */
             m_link->disable();
         }
-
+        // m_print_resources = true;
         m_payload.enable();
         for(auto& r : m_resources) {
             r.second->addRate(m_payload.getResourceRate(r.first), m_current_activity.get());
@@ -454,12 +460,20 @@ void Agent::consume(void)
 
     /* Update resources: */
     for(auto& r : m_resources) {
+        // if(m_print_resources) {
+        //     Log::warn << "R{\'" << r.first << "\'} " << r.second->getCapacity() << " ... ";
+        // }
         try {
             r.second->step();
+            // if(m_print_resources) {
+            //     Log::warn << r.second->getCapacity() << "\n";
+            // }
+
         } catch(const std::runtime_error& e) {
             Log::err << "Resource violation exception catched. Will continue for debugging purposes.\n";
         }
     }
+    // m_print_resources = false;
 }
 
 void Agent::showResources(bool d)
@@ -483,16 +497,16 @@ bool Agent::operator!=(const Agent& ra)
 }
 
 std::vector<ActivityCell> Agent::findActiveCells(
-    double t0,
+    double t0, double t1,
     const std::vector<sf::Vector3f>& ps,
     const Instrument* instrument,
     std::map<double, sf::Vector3f>* a_pos) const
 {
-    return findActiveCells(t0, ps.cbegin(), ps.cend(), instrument, a_pos);
+    return findActiveCells(t0, t1, ps.cbegin(), ps.cend(), instrument, a_pos);
 }
 
 std::vector<ActivityCell> Agent::findActiveCells(
-    double t0,
+    double t0, double t1,
     const std::vector<sf::Vector3f>::const_iterator& ps0,
     const std::vector<sf::Vector3f>::const_iterator& ps1,
     const Instrument* instrument,
@@ -506,10 +520,16 @@ std::vector<ActivityCell> Agent::findActiveCells(
 
     /* Find active cells and their times: */
     double t = t0;
+    double t_next = t0 + Config::time_step;
+    int curr_it = 0;
     for(auto p = ps0; p != ps1; p++) {
         sf::Vector2f p2d = AgentMotion::getProjection2D(*p, t);
         if(a_pos != nullptr) {
-            a_pos->emplace(t, *p);
+            if(std::next(p) == ps1) {
+                a_pos->emplace(t1, *p);
+            } else {
+                a_pos->emplace(t, *p);
+            }
         }
         std::vector<sf::Vector2i> cell_coords;
         if(Config::motion_model == AgentMotionType::ORBITAL) {
@@ -529,7 +549,7 @@ std::vector<ActivityCell> Agent::findActiveCells(
             /* Check whether that cell was already in the list: */
             int idx = a_cells_lut[cit.x][cit.y].v;
             if(idx != -1) {
-                if(a_cells[idx].ready) {
+                if(a_cells[idx].ready && a_cells[idx].aux < (curr_it - 1)) {
                     /* Was added but T1 was already set. Create a new pair T0 and T1. */
                     double* prev_t0s = a_cells[idx].t0s;
                     double* prev_t1s = a_cells[idx].t1s;
@@ -544,11 +564,14 @@ std::vector<ActivityCell> Agent::findActiveCells(
                     delete[] prev_t1s;
                     a_cells[idx].nts = new_size;
                     a_cells[idx].t0s[a_cells[idx].nts - 1] = t;
-                    a_cells[idx].t1s[a_cells[idx].nts - 1] = t;
+                    a_cells[idx].t1s[a_cells[idx].nts - 1] = t_next;
                     a_cells[idx].ready = false;
+                    a_cells[idx].aux = curr_it;
                 } else {
                     /* Previously added, update its t1 time: */
-                    a_cells[idx].t1s[a_cells[idx].nts - 1] = t;
+                    a_cells[idx].t1s[a_cells[idx].nts - 1] = t_next;
+                    a_cells[idx].ready = true;
+                    a_cells[idx].aux = curr_it;
                 }
             } else {
                 /* New cell, add it now: */
@@ -559,13 +582,16 @@ std::vector<ActivityCell> Agent::findActiveCells(
                 cell.t1s = new double[1];
                 cell.nts = 1;
                 cell.t0s[0] = t;
-                cell.t1s[0] = t;
+                cell.t1s[0] = t_next;
                 cell.ready = false;
+                cell.aux = curr_it;
                 a_cells.push_back(cell);
                 a_cells_lut[cit.x][cit.y].v = a_cells.size() - 1; /* Update look-up table. */
             }
         }
         t += Config::time_step;
+        t_next = std::min(t + Config::time_step, t1);
+        curr_it++;
     }
     return a_cells;
 }
@@ -581,7 +607,6 @@ std::shared_ptr<Activity> Agent::createActivity(double t0, double t1)
     unsigned int n_steps = std::ceil((t1 - t0) / Config::time_step);
     unsigned int n_delay = (t0 - VirtualTime::now()) / Config::time_step;
     std::vector<sf::Vector3f> ps = m_motion.propagate(n_delay + n_steps);
-
     if(ps.size() != n_delay + n_steps) {
         Log::err << "Agent " << m_id << " failed when creating activity, unexpected propagation points ("
             << n_delay + n_steps << " req., " << ps.size() << " returned).\n";
@@ -591,8 +616,8 @@ std::shared_ptr<Activity> Agent::createActivity(double t0, double t1)
     std::map<double, sf::Vector3f> a_pos;
     std::vector<sf::Vector3f>::const_iterator it0 = ps.cbegin() + n_delay;
     std::vector<sf::Vector3f>::const_iterator it1 = ps.cbegin() + n_delay + n_steps;
-    std::vector<ActivityCell> a_cells = findActiveCells(t0, it0, it1, &m_payload, &a_pos);
-    return m_activities->createOwnedActivity(a_pos, a_cells);
+    std::vector<ActivityCell> a_cells = findActiveCells(t0, t1, it0, it1, &m_payload, &a_pos);
+    return m_activities->createOwnedActivity(t0, t1, a_pos, a_cells);
 }
 
 void Agent::displayActivities(ActivityDisplayType af)

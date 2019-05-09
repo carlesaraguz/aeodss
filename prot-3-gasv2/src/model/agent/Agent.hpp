@@ -63,6 +63,7 @@ public:
     bool operator!=(const Agent& ra);
 
 private:
+    // bool m_print_resources;
     /* Model parameters and components: */
     BasicInstrument m_payload;
     AgentMotion m_motion;
@@ -82,10 +83,10 @@ private:
     bool m_display_resources;
     double m_replan_horizon;
 
-    std::vector<ActivityCell> findActiveCells(double t0,
+    std::vector<ActivityCell> findActiveCells(double t0, double t1,
         const std::vector<sf::Vector3f>& ps,
         const Instrument* instrument, std::map<double, sf::Vector3f>* a_pos = nullptr) const;
-    std::vector<ActivityCell> findActiveCells(double t0,
+    std::vector<ActivityCell> findActiveCells(double t0, double t1,
         const std::vector<sf::Vector3f>::const_iterator& ps0, const std::vector<sf::Vector3f>::const_iterator& ps1,
         const Instrument* instrument, std::map<double, sf::Vector3f>* a_pos = nullptr) const;
     std::shared_ptr<Activity> createActivity(double t0, double t1);
