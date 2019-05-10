@@ -1,10 +1,20 @@
 #!/bin/bash
 
 : ${MAX_PROCS:=4}
+: ${BATCH_CONF:=batch.conf}
+
+if [ "$#" -ge 1 ]; then
+    BATCH_CONF=$1
+fi
 
 sleep 1
 echo -e "\nRunning batch simulations with $MAX_PROCS workers."
-echo "Up to $MAX_FAIL failures/attempts allowed."
+echo "Reading batch configuration from '$BATCH_CONF'."
+
+if [ ! -f "$BATCH_CONF" ]; then
+    echo "Error: unable to find configuration file."
+    exit
+fi
 
 mkdir -p job_logs
 mkdir -p jobs_completed
@@ -79,4 +89,4 @@ export -f job   # Exports the function so that it can be used in xargs.
 #       https://stackoverflow.com/a/11003457/1876268
 
 sed -i '/^$/d' batch.conf
-cat batch.conf | xargs -n 1 -P $MAX_PROCS -I {} bash -c 'job "{}"'
+cat $BATCH_CONF | xargs -n 1 -P $MAX_PROCS -I {} bash -c 'job "{}"'
