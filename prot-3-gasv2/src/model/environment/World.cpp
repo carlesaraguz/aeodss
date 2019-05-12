@@ -197,16 +197,16 @@ void World::computeMetrics(void)
         unmet_avg_curr[q] = curr_unmet_val;
     }
     for(unsigned int q = 0; q < m_metrics_grids.size(); q++) {
-        setReportColumnValue((8 * q) + 0, avgs_utop[q]);
-        setReportColumnValue((8 * q) + 1, maxs_utop[q]);
-        setReportColumnValue((8 * q) + 2, avgs_diff[q]);
-        setReportColumnValue((8 * q) + 3, maxs_diff[q]);
-        setReportColumnValue((8 * q) + 4, avgs_curr[q]);
-        setReportColumnValue((8 * q) + 5, maxs_curr[q]);
-        setReportColumnValue((8 * q) + 6, unmet_coverage_curr[q]);
-        setReportColumnValue((8 * q) + 7, unmet_avg_curr[q]);
-        setReportColumnValue((8 * q) + 8, unmet_coverage_utop[q]);
-        setReportColumnValue((8 * q) + 9, unmet_avg_utop[q]);
+        setReportColumnValue((10 * q) + 0, avgs_utop[q]);
+        setReportColumnValue((10 * q) + 1, maxs_utop[q]);
+        setReportColumnValue((10 * q) + 2, avgs_diff[q]);
+        setReportColumnValue((10 * q) + 3, maxs_diff[q]);
+        setReportColumnValue((10 * q) + 4, avgs_curr[q]);
+        setReportColumnValue((10 * q) + 5, maxs_curr[q]);
+        setReportColumnValue((10 * q) + 6, unmet_coverage_curr[q]);
+        setReportColumnValue((10 * q) + 7, unmet_avg_curr[q]);
+        setReportColumnValue((10 * q) + 8, unmet_coverage_utop[q]);
+        setReportColumnValue((10 * q) + 9, unmet_avg_utop[q]);
     }
     for(auto& s : m_spots) {
         setReportColumnValue(
@@ -261,7 +261,7 @@ void World::updateLayer(Layer l, int x, int y, bool active)
         case Layer::REVISIT_TIME_ACTUAL:
             if(active) {
                 cell.value = 0.f;
-            } else {
+            } else if(cell.value >= 0.f) {
                 cell.value += Config::time_step;
             }
             break;
