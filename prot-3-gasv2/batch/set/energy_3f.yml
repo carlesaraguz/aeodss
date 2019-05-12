@@ -1,18 +1,18 @@
 version: 4
 system:
-    n_agents: 20
+    n_agents: 30
     time:
         type: julian_days   # julian_days, seconds or arbitrary
-        sec: 30             # Time step seconds in julian_days or seconds mode.
-        min: 0              # Time step minutes in julian_days mode.
+        sec: 0              # Time step seconds in julian_days or seconds mode.
+        min: 1              # Time step minutes in julian_days mode.
         hour: 0             # Time step hours in julian_days mode.
         days: 0             # Time step days in julian_days mode.
         start_epoch: 2451545.0  # Start epoch in julian_days mode.
-        duration: 7         # Duration (in days, seconds or units of time depending upon mode).
+        duration: 5         # Duration (in days, seconds or units of time depending upon mode).
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
-    name: energy_1d_rand    # Simulation name for the folder where files are stored.
+    name: energy_3f         # Simulation name for the folder where files are stored.
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -30,9 +30,6 @@ environment:
     payoff:
         goal_target: 1          # System goal: revisit time target (in time units).
         type: sigmoid           # Model [sigmoid, linear]
-        payoff_mid: 0           # Linear model: center payoff value (revisit time = target).
-        goal_max: 0.9           # Linear model: maximum revisit time to generate payoff.
-        goal_min: 0.2           # Linear model: minimum revisit time to generate payoff.
         steepness: 7.5          # Sigmoid model: steepness of logistic curve.
 
 # -- Agent configuration: --------------------------------------------------------------------------
@@ -41,16 +38,16 @@ agent:
     # Instrument parameters:
     instrument:
         aperture: 80            # Degrees [min, max] or single value.
-        energy: 1600             # Energy consumption rate: 45 min to depletion.
+        energy: 200             # Energy consumption rate: 72 min to depletion.
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
     link:
-        range: 1                # Never communicate.
+        range: 1e9              # Distance units (world pixels or meters), [min, max] or single value.
         datarate: 1             # 1s transfer time.
         energy_tx: 0.000003     # 1000 activities for 30 agents in 1 sched. cycle.
         energy_rx: 0.0000003    # Energy consumption rate.
         reserved_capacity: 0.1  # The reserved capacity (energy) for links.
-        allow_during_capture: false  # Whether to enable link while payload is enabled.
+        allow_during_capture: true  # Whether to enable link while payload is enabled.
     # Agent motion model:
     motion:
         type: orbital           # orbital, linear_bounce, linear_infinite or sinusoidal.
@@ -61,12 +58,12 @@ agent:
         argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1                # 1s transfer time.
-    planning_window: 360            # 360 Time-steps = 180 min.
-    replanning_window: 370          # Never.
-    confirm_window: 360             # 180 Time-steps = 90 min.
-    knowledge_base_size: 0          # --
-    max_tasks: 50                   # Max. tasks to generate.
-    max_task_duration: 8            # 8 time-steps.
+    planning_window: 180            # 180 Time-steps = 180 min.
+    replanning_window: 45           # 45 Time-steps = 45 min.
+    confirm_window: 90              # 90 Time-steps = 90 min.
+    knowledge_base_size: 1000       # Max. total tasks that an angent can remember.
+    max_tasks: 45                   # Max. tasks to generate: 45 * 4 min = 180 min = sched. window.
+    max_task_duration: 4            # 4 time-steps = 4 min.
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.
     confidence:
         exp: 2                      # Used when baseline is updated.
@@ -78,7 +75,7 @@ agent:
         utility_weight: 0.5         # Weight applied to utility (no need to normalise).
         decay_weight: 0.5           # Weight applied to decay (no need to normalise).
     ga_scheduler:                   # Genetic Algorithm Scheduler paramaters.
-        generations: 1              # Random output
+        generations: 1000           # Max. number of iterations in the search.
         timeout: 500                # Timeout (in iterations) as # of iterations without improvement.
         payoff_aggregation: avg     # Aggregation of payoff in tasks [min, max, avg, sum].
         payoff_k: 25                # P.o. multiplier for previously scheduled activities.

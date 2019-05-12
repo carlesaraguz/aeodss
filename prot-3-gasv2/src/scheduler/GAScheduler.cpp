@@ -178,7 +178,9 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
          *  prev_best_valid = best.isValid();
          **/
     }
+    m_dbg_str = "DEBUG MESSAGE ========================== Previous solutions: " + std::to_string(m_previous_solutions.size()) + "\n";
     if(best.isValid()) {
+        computeFitness(best, &m_dbg_str);
         Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
         return generateSolution(best, adis);
     } else {
@@ -213,14 +215,14 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vecto
             for(unsigned int psa = ps.a_start; psa < ps.a_end + 1; psa++) {
                 c.setAllele(psa, false);
             }
-            // Log::dbg << c << " -- " << ps.activity->getId() << " : Is kept [" << ps.a_start << "," << ps.a_end << "]\n";
+            Log::warn << c << " -- " << ps.activity->getId() << " : Is kept [" << ps.a_start << "," << ps.a_end << "]\n";
         } else {
             /* Does not modify the alleles and adds this activity to the discarded list. */
             adis.push_back(ps.activity);
-            // Log::dbg << c << " -- " << ps.activity->getId() << " : Is discarded [" << ps.a_start << "," << ps.a_end << "]\n";
+            Log::warn << c << " -- " << ps.activity->getId() << " : Is discarded [" << ps.a_start << "," << ps.a_end << "]\n";
         }
     }
-    // Log::dbg << c << "\n";
+    Log::warn << c << "\n";
 
     /* Now the chromosome only has alleles set for strictly NEW tasks: */
     double t0 = -1.0, t1 = -1.0;
@@ -245,9 +247,9 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vecto
             /* Record the activity: */
             bc /= (float)bc_count;
             retvec.push_back(std::make_tuple(t0, t1, bc));
-            // Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
-            //     << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
-            //     << "). B.conf: " << bc << "\n";
+            Log::warn << " # Activity " << (retvec.size() - 1) << ": ["
+                << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
+                << "). B.conf: " << bc << "\n";
             bflag = false;
         }
     }
@@ -379,11 +381,12 @@ void GAScheduler::setPreviousSolution(unsigned int a_start, unsigned int a_end, 
 }
 
 
-float GAScheduler::computeFitness(GASChromosome& c)
+float GAScheduler::computeFitness(GASChromosome& c, std::string* dbg_str)
 {
     float po = 0.f;                     /* Payoff. */
     float r = 0.f;                      /* Normalized and aggregated resource consumption. */
     std::map<std::string, float> rk;    /* Single resource capacity consumption (normalized). */
+    std::stringstream ss;
 
     /*  NOTE, `r` is computed as:
      *  R(k) = Σ consumption over t --> absolute accumulated consumption of resource `k`.
@@ -405,6 +408,12 @@ float GAScheduler::computeFitness(GASChromosome& c)
             count_active_alleles++;
         }
         if(c.isValid()) {
+            if(dbg_str != nullptr) {
+                ss << "Allele " << i << " -- " << c.getAllele(i) << ". T:{"
+                    << VirtualTime::toString(m_individual_info[i].t_start) << ", "
+                    << VirtualTime::toString(m_individual_info[i].t_end) << "}. R:["
+                    << res_cpy["energy"]->getCapacity();
+            }
             if(c.getAllele(i)) {
                 /* Allele is active: apply consumptions: */
                 for(auto cost : m_costs) {
@@ -421,6 +430,9 @@ float GAScheduler::computeFitness(GASChromosome& c)
                     res_cpy[cost.first]->applyFor(0.f, (m_individual_info[i].t_end - m_individual_info[i].t_start));
                 }
             }
+            if(dbg_str != nullptr) {
+                ss << ", " << res_cpy["energy"]->getCapacity() << "]\n";
+            }
         }
     }
     if(count_active_alleles == 0) {
@@ -428,7 +440,9 @@ float GAScheduler::computeFitness(GASChromosome& c)
     }
     float fitness = 0.f;
     if(c.isValid()) {
-
+        if(dbg_str != nullptr) {
+            *dbg_str = ss.str();
+        }
         /* There hasn't been resource violations, complete the calculation of the metric `r` */
         for(auto rit : rk) {
             r += rit.second / m_max_cost[rit.first];

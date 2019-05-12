@@ -36,31 +36,34 @@ function job {
     simulation_name=$(basename $conf_file | sed 's/\.[^.]*$//')
     resdir="$data_path$dirdate"
     resdir+="_$simulation_name"
-    while [ -d $resdir ]; do
-        resdir="$data_path$dirdate"
-        resdir+="_$simulation_name"
-        resdir+="_$dircount"
-        dircount+=1
-    done
+    resdir+="_$dircount"
     log_file="job_logs/$simulation_name.log"
     count=0
     while [ ${count} -lt 3 ]; do
-        rm $resdir -r 2> /dev/null  # Clean previous contents if there were some.
-        # echo "-f ../batch/set/$1 -d $resdir/" > $log_file
+        # Loop until the folder name doesn't exist
+        while [ -d $resdir ]; do
+            dircount+=1
+            resdir="$data_path$dirdate"
+            resdir+="_$simulation_name"
+            resdir+="_$dircount"
+        done
         if [ -f "$load_file" ]; then
             # echo "-f ../batch/$conf_file -l $load_file -d $resdir/"
             # sleep 1
-            $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
+            # $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
+            $bin -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
             exit_value=$?
         else
             # echo "-f ../batch/$conf_file -d $resdir/"
             # sleep 1
-            $bin --simple-log -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
+            # $bin --simple-log -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
+            $bin -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
             exit_value=$?
         fi
         if [[ $exit_value != 0 ]]; then
             completed_data=$(date +"%F %T")
             printf "$completed_data $simulation_name -- Failed ($count): exit value = $exit_value\n"
+            printf "$completed_data %20s -- [ FAIL ] : $resdir [C:$count, E:$exit_value]\n" $simulation_name | tee -a batch.log
             count=$(($count + 1))
         else
             break
@@ -69,11 +72,11 @@ function job {
     completed_data=$(date +"%F %T")
     if [ ${count} -ge 3 ]; then
         # Failed!
-        printf "$completed_data %20s -- [ FAIL ] : $resdir\n" $simulation_name | tee -a batch.log
+        printf "$completed_data %20s -- [ FAIL ] : $resdir [aborted]\n" $simulation_name | tee -a batch.log
     else
         # Succeeded:
         printf "$completed_data %20s -- [ OK-$count ] : $resdir\n" $simulation_name | tee -a batch.log
-        mv $conf_file jobs_completed/ 2> /dev/null
+        cp $conf_file jobs_completed/ 2> /dev/null
     fi
 }
 

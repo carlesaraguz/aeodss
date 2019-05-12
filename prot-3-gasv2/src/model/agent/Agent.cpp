@@ -186,12 +186,14 @@ void Agent::plan(void)
      *  resources available but does not preclude the solutions from using the whole capacity.
      */
     bool resources_ok = true;
+    /*
     for(auto& r : m_resources) {
         if((r.second->getCapacity() / r.second->getMaxCapacity()) < 0.25f) {
             resources_ok = false;
             break;
         }
     }
+    */
     if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr && !m_activities->isCapturing() && resources_ok) {
         /*  Ensures that old activities are removed from the agent's knowledge base:
          *  The following call also removes activities that have not been shared with other agents.
@@ -313,8 +315,8 @@ void Agent::plan(void)
 
         /* Run the scheduler: */
         std::vector<std::shared_ptr<Activity> > adis;
-        scheduler.aid = m_id;
         auto result = scheduler.schedule(adis);
+        m_dbg_str = scheduler.m_dbg_str;
 
         /* Discard activities: */
         for(auto& act_dis : adis) {
@@ -407,7 +409,7 @@ void Agent::execute(void)
             Log::dbg << "Agent " << m_id << " is ending activity " << m_current_activity->getId()
                 << ", T = [" << VirtualTime::toString(m_current_activity->getStartTime())
                 << ", " << VirtualTime::toString(m_current_activity->getEndTime()) << ").\n";
-            // m_print_resources = true;
+            m_print_resources = true;
             m_payload.disable();
             for(auto& r : m_resources) {
                 r.second->removeRate(m_current_activity.get());
@@ -429,7 +431,7 @@ void Agent::execute(void)
             /* Must disable link at this point. */
             m_link->disable();
         }
-        // m_print_resources = true;
+        m_print_resources = true;
         m_payload.enable();
         for(auto& r : m_resources) {
             r.second->addRate(m_payload.getResourceRate(r.first), m_current_activity.get());
@@ -455,20 +457,23 @@ void Agent::consume(void)
 
     /* Update resources: */
     for(auto& r : m_resources) {
-        // if(m_print_resources) {
-        //     Log::warn << "R{\'" << r.first << "\'} " << r.second->getCapacity() << " ... ";
-        // }
+        if(m_print_resources) {
+            Log::warn << "[" << m_id << "] Is consuming t = " << VirtualTime::toString(VirtualTime::now())
+                << ". R{\'" << r.first << "\'} " << r.second->getCapacity() << " ... ";
+        }
         try {
             r.second->step();
-            // if(m_print_resources) {
-            //     Log::warn << r.second->getCapacity() << "\n";
-            // }
+            if(m_print_resources) {
+                Log::warn << r.second->getCapacity() << "\n";
+            }
 
         } catch(const std::runtime_error& e) {
+            Log::warn << "(not ready!)\n";
             Log::err << "Resource violation exception catched. Will continue for debugging purposes.\n";
+            Log::err << m_dbg_str << "\n";
         }
     }
-    // m_print_resources = false;
+    m_print_resources = false;
 }
 
 void Agent::showResources(bool d)

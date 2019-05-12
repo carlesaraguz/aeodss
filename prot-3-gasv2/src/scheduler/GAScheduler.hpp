@@ -21,7 +21,8 @@
 class GAScheduler
 {
 public:
-    std::string aid;
+    std::string m_dbg_str;     /* DEBUG TODO REMOVE WHEN DONE. */
+
     /*******************************************************************************************//**
      *  (1) double: start time of a new task.
      *  (2) double: end time of a new task.
@@ -125,7 +126,7 @@ private:
      *  @param  c   The chromosome to compute the fitness of. Its fitness attribute will be set.
      *  @return     The chromosome fitness (which is also stored internally).
      **********************************************************************************************/
-    float computeFitness(GASChromosome& c);
+    float computeFitness(GASChromosome& c, std::string* dbg_str = nullptr);
 
     /*******************************************************************************************//**
      *  Select a parent from the mating pool. Parent selection is based on either of the following

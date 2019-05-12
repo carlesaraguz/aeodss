@@ -12,7 +12,7 @@ system:
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
-    name: energy_1f         # Simulation name for the folder where files are stored.
+    name: energy_2f         # Simulation name for the folder where files are stored.
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -38,7 +38,7 @@ agent:
     # Instrument parameters:
     instrument:
         aperture: 80            # Degrees [min, max] or single value.
-        energy: 1600             # Energy consumption rate: 9 min to depletion.
+        energy: 320             # Energy consumption rate: 45 min to depletion.
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
     link:

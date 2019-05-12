@@ -246,7 +246,7 @@ float Activity::getPriority(ActivityPriorityModel pmodel_type) const
     switch(pmodel_type) {
         case ActivityPriorityModel::BASIC:
         {
-            float d = decay(m_last_update); /* Decay: time since last update. */
+            float d = decay(VirtualTime::now()); /* Decay: time since last update. */
             float u = utility(m_confidence, Config::utility_floor);  /* Confidence-utility.  */
             retval = (Config::decay_weight * d) + (Config::utility_weight * u);
             /* decay_weight + utility_weight should be = 1. */
@@ -255,9 +255,51 @@ float Activity::getPriority(ActivityPriorityModel pmodel_type) const
     return retval;
 }
 
-float Activity::decay(double /* t */)
+float Activity::decay(double t)
 {
-    return 0.f;
+    double tg = Config::goal_target;
+    double tu = m_last_update;
+
+    double ts = getStartTime();
+    double te = getEndTime();
+
+    double td = te - ts;
+    double th = te + tg;
+
+    if(tu >= th) {
+        return 0.f;
+    } else if(t <= tu) {
+        return 1.f;
+    } else if(t > th) {
+        return 0.f;
+    }
+    double tt;
+    double delta_time;
+    if(ts > tu) {
+        delta_time  = th - tu - td;
+        if(t <= ts) {
+            /* Before execution time: */
+            tt = t - tu;
+        } else if(t >= te) {
+            /* After execution time: */
+            tt = (ts - tu) + (t - te);
+        } else {
+            /* During execution time: */
+            tt = ts - tu;
+        }
+    } else if(te > tu) {
+        delta_time = tg;
+        if(t >= te) {
+            tt = t - te;
+        } else {
+            tt = 0.0;
+        }
+    } else { /* m_last_update >= getEndTime*/
+        delta_time = th - tu;
+        tt = t - tu;
+    }
+    float delta_decay = 1.f / delta_time;
+    return 1.f - delta_decay * tt;
 }
 
 float Activity::utility(float c, float fl)
