@@ -79,8 +79,12 @@ public:
 
     /*******************************************************************************************//**
      *  Computes the decay value for a given time `t`.
+     *  @param  t   The current time.
+     *  @param  tu  Last update time of the activity.
+     *  @param  ts  Start time.
+     *  @param  te  End time.
      **********************************************************************************************/
-    static float decay(double t);
+    static float decay(double t, double tu, double ts, double te);
 
     /*******************************************************************************************//**
      *  Getter for the confirmed activity flag. Activities that are confirmed have confidence of 1,

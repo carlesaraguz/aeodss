@@ -246,7 +246,7 @@ float Activity::getPriority(ActivityPriorityModel pmodel_type) const
     switch(pmodel_type) {
         case ActivityPriorityModel::BASIC:
         {
-            float d = decay(VirtualTime::now()); /* Decay: time since last update. */
+            float d = decay(VirtualTime::now(), m_last_update, getStartTime(), getEndTime()); /* Decay: time since last update. */
             float u = utility(m_confidence, Config::utility_floor);  /* Confidence-utility.  */
             retval = (Config::decay_weight * d) + (Config::utility_weight * u);
             /* decay_weight + utility_weight should be = 1. */
@@ -255,14 +255,9 @@ float Activity::getPriority(ActivityPriorityModel pmodel_type) const
     return retval;
 }
 
-float Activity::decay(double t)
+float Activity::decay(double t, double tu, double ts, double te)
 {
     double tg = Config::goal_target;
-    double tu = m_last_update;
-
-    double ts = getStartTime();
-    double te = getEndTime();
-
     double td = te - ts;
     double th = te + tg;
 
