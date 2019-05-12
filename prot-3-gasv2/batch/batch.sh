@@ -1,14 +1,51 @@
 #!/bin/bash
 
-: ${MAX_PROCS:=4}
-: ${BATCH_CONF:=batch.conf}
+# Default values:
+WORKERS=4
+BATCH_CONF=batch.conf
+MAX_CPUS=$(grep -c ^processor /proc/cpuinfo)
+OMP_CPUS=$(($MAX_CPUS / $WORKERS))
 
-if [ "$#" -ge 1 ]; then
-    BATCH_CONF=$1
-fi
+# Read command arguments:
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        -j|--jobs)
+        WORKERS="$2"
+        if [ "$WORKERS" -gt 36 ]; then
+            WORKERS=36
+        fi
+        OMP_CPUS=$(($MAX_CPUS / $WORKERS))
+        shift # past argument
+        shift # past value
+        ;;
+        -f|--file-config)
+        BATCH_CONF="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        -l|--limit-cpus)
+        OMP_CPUS="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        -m|--max-cpus)
+        MAX_CPUS="$2"
+        OMP_CPUS=$(($MAX_CPUS / $WORKERS))
+        shift # past argument
+        shift # past value
+        ;;
+        *)    # unknown option
+        POSITIONAL+=("$1") # save it in an array for later
+        shift # past argument
+        ;;
+    esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
 
 sleep 1
-echo -e "\nRunning batch simulations with $MAX_PROCS workers."
+echo -e "\nRunning batch simulations with $WORKERS workers. Concurrent threads per job: $OMP_CPUS."
 echo "Reading batch configuration from '$BATCH_CONF'."
 
 if [ ! -f "$BATCH_CONF" ]; then
@@ -51,13 +88,13 @@ function job {
             # echo "-f ../batch/$conf_file -l $load_file -d $resdir/"
             # sleep 1
             # $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
-            $bin -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
+            OMP_NUM_THREADS=$OMP_CPUS $bin -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
             exit_value=$?
         else
             # echo "-f ../batch/$conf_file -d $resdir/"
             # sleep 1
             # $bin --simple-log -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
-            $bin -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
+            OMP_NUM_THREADS=$OMP_CPUS $bin -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
             exit_value=$?
         fi
         if [[ $exit_value != 0 ]]; then
@@ -92,4 +129,4 @@ export -f job   # Exports the function so that it can be used in xargs.
 #       https://stackoverflow.com/a/11003457/1876268
 
 sed -i '/^$/d' batch.conf
-cat $BATCH_CONF | xargs -n 1 -P $MAX_PROCS -I {} bash -c 'job "{}"'
+cat $BATCH_CONF | xargs -n 1 -P $WORKERS -I {} bash -c 'job "{}"'
