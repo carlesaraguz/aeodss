@@ -19,6 +19,7 @@ GAScheduler::GAScheduler(double t0, double t1, std::map<std::string, std::shared
     , m_best(0)
     , m_max_payoff(0.f)
     , m_init_individual(1)  /* arbitrary */
+    , m_generation_timeout(0)
 {
     m_population.reserve(Config::ga_population_size);
 }
@@ -29,7 +30,13 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
     if(m_iteration_profile.size() == 0) {
         m_iteration_profile.push_back(std::make_pair(g, best.getFitness()));
     }
+    if(g == 0) {
+        m_generation_timeout = 0;
+    }
     if(best == m_best) {
+        m_generation_timeout++;
+    } else if(best.getFitness() == m_best.getFitness()) {
+        // Log::dbg << "GA Scheduler found a different solution but did not improve: " << best << ".\n";
         m_generation_timeout++;
     } else {
         m_best = best;
@@ -43,9 +50,9 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
     if(g >= Config::ga_generations) {
         do_continue = false;
         Log::dbg << "GA Scheduler reached the maximum amount of generations, stopping now.\n";
-    } else if(/* (g > Config::ga_generations / 3) && */ m_best.isValid() && (m_generation_timeout >= Config::ga_timeout)) {
+    } else if(m_best.isValid() && (m_generation_timeout >= Config::ga_timeout)) {
         do_continue = false;
-        Log::dbg << "GA Scheduler timed out after " << g << " generations, stopping now.\n";
+        Log::dbg << "GA Scheduler timed out after " << g << " generations, stopping now. " << Config::ga_timeout << "\n";
         /*  NOTE:
          *  Previous version checked improvement rate and decided to complete the heuristic process
          *  by assessing that figure. The code is left commented below for future reference:
