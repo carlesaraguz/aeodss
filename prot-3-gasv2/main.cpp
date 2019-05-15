@@ -320,10 +320,13 @@ int main(int argc, char** argv)
                 std::exit(0);
                 break;
             case SandboxMode::SIMULATE:
+            case SandboxMode::RANDOM:
             default:
                 break;
         }
     }
+    std::exit(0);
+    
     exit_control_loop = false;
     std::thread thread_control(control_loop);
     thread_control.join();
