@@ -42,7 +42,7 @@ agent:
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
     link:
-        range: 1e9              # Distance units (world pixels or meters), [min, max] or single value.
+        range: 1e7              # Distance units (world pixels or meters), [min, max] or single value.
         datarate: 1             # 1s transfer time.
         energy_tx: 0.000003     # 1000 activities for 30 agents in 1 sched. cycle.
         energy_rx: 0.0000003    # Energy consumption rate.
@@ -61,7 +61,7 @@ agent:
     planning_window: 180            # 180 Time-steps = 180 min.
     replanning_window: 45           # 45 Time-steps = 45 min.
     confirm_window: 90              # 90 Time-steps = 90 min.
-    knowledge_base_size: 1000       # Max. total tasks that an angent can remember.
+    knowledge_base_size: 500        # Max. total tasks that an angent can remember.
     max_tasks: 45                   # Max. tasks to generate: 45 * 4 min = 180 min = sched. window.
     max_task_duration: 4            # 4 time-steps = 4 min.
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.

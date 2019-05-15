@@ -79,7 +79,7 @@ function job {
     while [ ${count} -lt 3 ]; do
         # Loop until the folder name doesn't exist
         while [ -d $resdir ]; do
-            dircount+=1
+            dircount=$(($dircount + 1))
             resdir="$data_path$dirdate"
             resdir+="_$simulation_name"
             resdir+="_$dircount"
