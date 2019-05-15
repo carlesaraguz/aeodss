@@ -325,8 +325,7 @@ int main(int argc, char** argv)
                 break;
         }
     }
-    std::exit(0);
-    
+
     exit_control_loop = false;
     std::thread thread_control(control_loop);
     thread_control.join();
