@@ -21,6 +21,7 @@ public:
     static int getUi(void);
     static int getUi(int a, int b);
     static void doInit(void);
+    static std::mt19937& getUniformEngine(void) { return m_uniform_gen; };
 private:
     static std::random_device m_rd;
     static std::mt19937 m_uniform_gen;

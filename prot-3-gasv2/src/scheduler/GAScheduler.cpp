@@ -142,8 +142,10 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     }
 
     if(Config::mode == SandboxMode::RANDOM) {
-        Log::warn << "GA Scheduler will pick one solution at random.\n";
-        for(auto solution = m_population.rbegin(); solution != m_population.rend(); solution++) {
+        Log::warn << "GA Scheduler will pick one solution at random, from the population of " << m_population.size() << ".\n";
+        std::shuffle(std::begin(m_population), std::end(m_population), Random::getUniformEngine());
+
+        for(auto solution = m_population.begin(); solution != m_population.end(); solution++) {
             if(solution->isValid()) {
                 Log::dbg << "GA Scheduler found one valid random solution.\n";
                 return generateSolution(*solution, adis);
