@@ -141,6 +141,18 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
         computeFitness(m_population[i]);
     }
 
+    if(Config::mode == SandboxMode::RANDOM) {
+        Log::warn << "GA Scheduler will pick one solution at random.\n";
+        for(auto solution = m_population.rbegin(); solution != m_population.rend(); solution++) {
+            if(solution->isValid()) {
+                Log::dbg << "GA Scheduler found one valid random solution.\n";
+                return generateSolution(*solution, adis);
+            }
+        }
+        Log::warn << "GA Scheduler could not find a solution.\n";
+        return GAScheduler::Solution();
+    }
+
     /* Initialize control variables: */
     GASChromosome best(m_init_individual, true);  /* Randomly initializes, copying protected alleles. */
     unsigned int g = 0;
@@ -310,28 +322,44 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<double>
         return;
     }
 
-    /*  We always insert two types of baseline options:
-     *  - `l` solutions with a single activity enabled; and
-     *  - one solution where all activities are enabled.
-     *  Note that this happens without checking protected alleles because it is supposed to happen
-     *  before alleles are actually protected.
-     **/
-    for(unsigned int b = 0; b < l + 1; b++) {
-        GASChromosome cbaseline(l);
-        for(unsigned int a = 0; a < cbaseline.getChromosomeLength(); a++) {
-            if(a == b && b < l) {
-                cbaseline.setAllele(a, true);
-            } else if(a != b && b < l) {
-                cbaseline.setAllele(a, false);
-            } else {
-                cbaseline.setAllele(a, true);
+    if(l <= 6 && Config::mode != SandboxMode::RANDOM) {
+        /*  The length of the chromosomes is that small that we can skip the evolutionary process
+         *  optimise the schedule by exhaustively creating every possible solution.
+         *  Note that in random mode we let the population initialise normally and then we will pick
+         *  one valid solution at random.
+         **/
+        for(unsigned int i = 0; i < std::pow(2, l); i++) {
+            GASChromosome solution(l);
+            std::string binary_chain = std::bitset<6>(i).to_string();
+            for(unsigned int a = 0; a < l; a++) {
+                solution.setAllele(a, (binary_chain[binary_chain.size() - 1 - a] == '1'));
             }
+            m_population.push_back(solution);
         }
-        m_population.push_back(cbaseline);
-    }
+    } else {
+        /*  We always insert two types of baseline options:
+         *  - `l` solutions with a single activity enabled; and
+         *  - one solution where all activities are enabled.
+         *  Note that this happens without checking protected alleles because it is supposed to happen
+         *  before alleles are actually protected.
+         **/
+        for(unsigned int b = 0; b < l + 1; b++) {
+            GASChromosome cbaseline(l);
+            for(unsigned int a = 0; a < cbaseline.getChromosomeLength(); a++) {
+                if(a == b && b < l) {
+                    cbaseline.setAllele(a, true);
+                } else if(a != b && b < l) {
+                    cbaseline.setAllele(a, false);
+                } else {
+                    cbaseline.setAllele(a, true);
+                }
+            }
+            m_population.push_back(cbaseline);
+        }
 
-    while(m_population.size() < Config::ga_population_size) {
-        m_population.push_back(GASChromosome(l));   /* Randomly initializes the new chromosome. */
+        while(m_population.size() < Config::ga_population_size) {
+            m_population.push_back(GASChromosome(l));   /* Randomly initializes the new chromosome. */
+        }
     }
 }
 
