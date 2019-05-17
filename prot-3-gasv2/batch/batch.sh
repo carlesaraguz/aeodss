@@ -137,9 +137,8 @@ function job {
         log_file="job_logs/$simulation_name.log"
         randresdir="$data_path$dirdate"
         randresdir+="_$simulation_name"
-        load_file="$resdir"
-        load_file="_$count/system.yml"
-        OMP_NUM_THREADS=$OMP_CPUS $bin -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1
+        load_file="$resdir/system.yml"
+        OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1
         exit_value=$?
         cp $log_file $randresdir/ 2>/dev/null
         completed_data=$(date +"%F %T")
