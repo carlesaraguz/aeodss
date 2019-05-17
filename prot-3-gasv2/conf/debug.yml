@@ -29,10 +29,10 @@ environment:
     world_height: 900
     payoff:
         goal_target: 1          # System goal: revisit time target (in time units).
-        type: sigmoid           # Model [sigmoid, linear]
-        payoff_mid: 0           # Linear model: center payoff value (revisit time = target).
-        goal_max: 0.9           # Linear model: maximum revisit time to generate payoff.
-        goal_min: 0.2           # Linear model: minimum revisit time to generate payoff.
+        type: linear            # Model [sigmoid, linear]
+        payoff_mid: 0.5         # Linear model: center payoff value (revisit time = target).
+        goal_max: 1.75          # Linear model: maximum revisit time to generate payoff.
+        goal_min: 0.25          # Linear model: minimum revisit time to generate payoff.
         steepness: 7.5          # Sigmoid model: steepness of logistic curve.
 
 # -- Agent configuration: --------------------------------------------------------------------------

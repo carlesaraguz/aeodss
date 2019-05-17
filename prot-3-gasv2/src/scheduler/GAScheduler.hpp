@@ -12,6 +12,8 @@
 #define GA_SCHEDULER_HPP
 
 #include "prot.hpp"
+#include <bitset>
+
 #include "Utils.hpp"
 #include "Resource.hpp"
 #include "GASChromosome.hpp"

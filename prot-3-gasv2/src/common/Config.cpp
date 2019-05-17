@@ -201,9 +201,9 @@ void Config::loadCmdArgs(int argc, char** argv)
             Log::dbg << " -- Config. parameter \'replanning_window\' is set to: " << agent_replanning_window << "\n";
             knowledge_base_size = 0;
             Log::dbg << " -- Config. parameter \'knowledge_base_size\' is set to: " << knowledge_base_size << "\n";
-            ga_generations = 1;
+            ga_generations = 0;
             Log::dbg << " -- Config. parameter \'ga_generations\' is set to: " << ga_generations << "\n";
-            ga_timeout = 2;
+            ga_timeout = 0;
             Log::dbg << " -- Config. parameter \'ga_timeout\' is set to: " << ga_timeout << "\n";
             ga_population_size = 500;
             Log::dbg << " -- Config. parameter \'ga_population_size\' is set to: " << ga_population_size << "\n";
@@ -544,7 +544,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                                 if(payoff_node["type"].as<std::string>() == "sigmoid") {
                                     payoff_model = PayoffModel::SIGMOID;
                                     Log::dbg << " -- Config. parameter \'payoff.type\' is set to: SIGMOID.\n";
-                                } else if(payoff_node["type"].as<std::string>() == "sigmoid") {
+                                } else if(payoff_node["type"].as<std::string>() == "linear") {
                                     payoff_model = PayoffModel::LINEAR;
                                     Log::dbg << " -- Config. parameter \'payoff.type\' is set to: LINEAR.\n";
                                 } else {

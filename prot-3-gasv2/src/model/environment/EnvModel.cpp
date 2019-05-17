@@ -216,7 +216,7 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
             EnvCell& c = m_cells[it->x][it->y];
             bool remove_cell = true;
             for(auto p : c.getAllPayoffs()) {
-                if(p.second.first > Config::min_payoff) {
+                if(p.second.first > Config::min_payoff || Config::mode == SandboxMode::RANDOM) {
                     remove_cell = false;
                     break;
                 }
@@ -251,7 +251,7 @@ double EnvModel::findEndTime(double t0, double max_t1, std::shared_ptr<Activity>
                 EnvCell& c = m_cells[it->x][it->y];
                 bool remove_cell = true;
                 for(auto p : c.getAllPayoffs()) {
-                    if(p.second.first > Config::min_payoff) {
+                    if(p.second.first > Config::min_payoff || Config::mode == SandboxMode::RANDOM) {
                         remove_cell = false;
                         break;
                     }

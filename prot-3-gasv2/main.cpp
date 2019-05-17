@@ -368,6 +368,18 @@ void testModePayoff(void)
     const int max_iter = 10000000;
     Log::dbg << "-- Stopping when payoff delta < " << min_payoff << ", or iterations > " << max_iter << ".\n";
     Log::dbg << "-- Displaying points for delta min = " << min_display_payoff << ".\n";
+    switch(Config::payoff_model) {
+        case PayoffModel::SIGMOID:
+            Log::dbg << "-- Payoff model: SIGMOID.\n";
+            Log::dbg << "-- kg = " << Config::payoff_steepness << ".\n";
+            break;
+        case PayoffModel::LINEAR:
+            Log::dbg << "-- Payoff model: LINEAR.\n";
+            Log::dbg << "-- Pmid = " << Config::payoff_mid << ".\n";
+            Log::dbg << "-- Gmin = " << Config::goal_min << ".\n";
+            Log::dbg << "-- Gmax = " << Config::goal_max << ".\n";
+            break;
+    }
     int i = 0;
     float payoff = 0.f, delta_payoff, prev_disp_po = 0.f, rt;
     do {
