@@ -238,8 +238,17 @@ void PayoffFunctions::bindPayoffFunctions(void)
     };
     f_revisit_time_forwards.second = [](CFArg0 t, CFArg1 as) {
         std::vector<std::shared_ptr<Activity> > retval;
+        double t_fact_end = t - Config::goal_target;
         for(auto& ac_ptr : as) {
-            if(t - ac_ptr->getEndTime() > Config::goal_target){
+            if(ac_ptr->isConfimed()) {
+                double te = ac_ptr->getEndTime();
+                if(te <= t && te > t_fact_end) {
+                    t_fact_end = te;
+                }
+            }
+        }
+        for(auto& ac_ptr : as) {
+            if((ac_ptr->getEndTime() < t_fact_end) || ac_ptr->isDiscarded()){
                 retval.push_back(ac_ptr);
             }
         }
@@ -414,8 +423,17 @@ void PayoffFunctions::bindPayoffFunctions(void)
     };
     f_revisit_time_backwards.second = [](CFArg0 t, CFArg1 as) {
         std::vector<std::shared_ptr<Activity> > retval;
+        double t_fact_end = t - Config::goal_target;
         for(auto& ac_ptr : as) {
-            if(t - ac_ptr->getEndTime() > Config::goal_target){
+            if(ac_ptr->isConfimed()) {
+                double te = ac_ptr->getEndTime();
+                if(te <= t && te > t_fact_end) {
+                    t_fact_end = te;
+                }
+            }
+        }
+        for(auto& ac_ptr : as) {
+            if((ac_ptr->getEndTime() < t_fact_end) || ac_ptr->isDiscarded()){
                 retval.push_back(ac_ptr);
             }
         }

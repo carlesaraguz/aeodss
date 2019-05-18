@@ -154,6 +154,21 @@ void EnvModel::cleanActivities(double t)
     }
 }
 
+std::set<std::pair<std::string, unsigned int> > EnvModel::getCrosscheckList(void) const
+{
+    std::set<std::pair<std::string, unsigned int> > retset;
+    for(unsigned int xx = 0; xx < m_model_w; xx++) {
+        for(unsigned int yy = 0; yy < m_model_h; yy++) {
+            auto cellset = m_cells[xx][yy].getCellCrosscheckList();
+            for(auto& cellpair : cellset) {
+                retset.insert(cellpair);
+            }
+        }
+    }
+    return retset;
+}
+
+
 ActivityGen EnvModel::createActivityGen(double t0, double t1, std::shared_ptr<Activity> tmp_aptr, std::shared_ptr<Activity> aptr)
 {
     ActivityGen ag;

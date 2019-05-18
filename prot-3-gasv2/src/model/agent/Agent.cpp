@@ -468,9 +468,8 @@ void Agent::consume(void)
             }
 
         } catch(const std::runtime_error& e) {
-            Log::warn << "(not ready!)\n";
             Log::err << "Resource violation exception catched. Will continue for debugging purposes.\n";
-            Log::err << m_dbg_str << "\n";
+            Log::err << "\n" << m_dbg_str << "\n";
         }
     }
     m_print_resources = false;

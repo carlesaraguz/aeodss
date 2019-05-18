@@ -155,6 +155,23 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
         return GAScheduler::Solution();
     }
 
+
+    if(m_init_individual.getChromosomeLength() <= 6) {
+        GASChromosome best_exhaustive(m_population[0]);
+        for(auto& sol : m_population) {
+            if(sol.isValid() && sol > best_exhaustive) {
+                best_exhaustive = sol;
+            }
+        }
+        if(best_exhaustive.isValid()) {
+            Log::dbg << "GA Scheduler completed after exhaustive search. Solution:\n";
+            return generateSolution(best_exhaustive, adis);
+        } else {
+            Log::warn << "GA Scheduler completed after exhaustive search, but could not find a solution.\n";
+            return GAScheduler::Solution();
+        }
+    }
+
     /* Initialize control variables: */
     GASChromosome best(m_init_individual, true);  /* Randomly initializes, copying protected alleles. */
     unsigned int g = 0;

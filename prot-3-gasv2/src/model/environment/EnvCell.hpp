@@ -64,6 +64,7 @@ public:
     std::vector<std::shared_ptr<Activity> > getAllActivities(void) const;
     float computeCellPayoff(double* at0s, double* at1s, int nts);
     void clean(double t);
+    std::set<std::pair<std::string, unsigned int> > getCellCrosscheckList(void) const;
     std::size_t pushPayoffFunc(const EnvCellPayoffFunc fp, const EnvCellCleanFunc fc);
     std::size_t pushPayoffFunc(const std::pair<EnvCellPayoffFunc, EnvCellCleanFunc> f);
     std::size_t getPayoffFuncCount(void) { return m_payoff_func.size(); }

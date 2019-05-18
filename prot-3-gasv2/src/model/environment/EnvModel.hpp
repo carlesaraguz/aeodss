@@ -130,6 +130,13 @@ public:
     void cleanActivities(double t = -1.f);
 
     /*******************************************************************************************//**
+     *  Generates a list of activity identifiers from all agents so that the ActivityHandler can
+     *  remove activities more efficiently. This only takes into account confirmed and undecided,
+     *  because discarded activities are automatically cleaned from EnvCells.
+     **********************************************************************************************/
+    std::set<std::pair<std::string, unsigned int> > getCrosscheckList(void) const;
+
+    /*******************************************************************************************//**
      *  Getter for the environment model size information.
      **********************************************************************************************/
     EnvModelInfo getEnvModelInfo(void) const { return { m_model_h, m_model_w, m_ratio_w, m_ratio_h }; }

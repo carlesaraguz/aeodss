@@ -131,6 +131,9 @@ void ActivityHandler::purge(bool remove_unsent, std::set<int> skip_list)
             if(act_it->second->getEndTime() < t_horizon) {
                 /* We shall remove it: */
                 act_it = act_others.second.erase(act_it);
+                if(m_env_model_ptr != nullptr) {
+                    m_env_model_ptr->removeActivity(act_it->second);
+                }
                 bflag = true;
                 report_flag = true;
                 count++;
@@ -143,6 +146,65 @@ void ActivityHandler::purge(bool remove_unsent, std::set<int> skip_list)
     if(report_flag) {
         report();
         bflag = false;
+    }
+
+    /*  Perform crosscheck with environment model, forget confirmed/undecided activities that are no
+     *  longer relevant for the system. These activities have been dismissed by new knowledge that
+     *  this agent has. Removing them from the knowledge base is OK because we know they are no
+     *  longer meaningful to anyone.
+     **/
+    if(m_env_model_ptr != nullptr) {
+        /* Build crosscheck set: */
+        std::set<std::pair<std::string, unsigned int> > xcset_ah;
+        for(auto& acown : m_activities_own) {
+            xcset_ah.insert(std::make_pair(acown->getAgentId(), acown->getId()));
+        }
+        for(auto& acothers : m_activities_others) {
+            for(auto& act : acothers.second) {
+                xcset_ah.insert(std::make_pair(act.second->getAgentId(), act.second->getId()));
+            }
+        }
+        auto xcset_env = m_env_model_ptr->getCrosscheckList();
+        /* Remove coincident: */
+        for(auto& pair : xcset_env) {
+            if(xcset_ah.count(pair)) {
+                xcset_ah.erase(pair);
+            } else {
+                Log::err << "[" << m_agent_id << "] Environment model retained an activity that is not in the knowledge base ";
+                Log::err << "[" << pair.first << ":" << pair.second << "].\n";
+            }
+        }
+        if(xcset_ah.size() > 0) {
+            count = 0;
+            for(auto& pair : xcset_ah) {
+                if(pair.first == m_agent_id) {
+                    if(skip_list.find(pair.second) == skip_list.end()) {
+                        /* It's not in the skip list. We shall remove it: */
+                        for(auto it = m_activities_own.begin(); it != m_activities_own.end(); ) {
+                            if((*it)->getId() == (int)pair.second && !(*it)->isDiscarded()) {
+                                m_activities_own.erase(it);
+                                count++;
+                                break;
+                            } else if((*it)->getId() == (int)pair.second && (*it)->isDiscarded()) {
+                                break;
+                            } else {
+                                it++;
+                            }
+                        }
+                    }
+                } else {
+                    /* We can safely use the subscript operator[] because we have just built `xcset_ah`: */
+                    if(!m_activities_others[pair.first][pair.second]->isDiscarded()) {
+                        m_activities_others[pair.first].erase(pair.second);
+                        count++;
+                    }
+                }
+            }
+            if(count > 0) {
+                Log::err << "Agent " << m_agent_id << " has pruned " << count << "/" << xcset_ah.size() << " additional activities (***)\n";
+            }
+            buildActivityLUT();
+        }
     }
 }
 
@@ -378,9 +440,9 @@ void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, st
     unsigned int aid = a->getId();
     if(beta.find(aid) != beta.end()) {
         if(beta[aid]->getLastUpdateTime() < a->getLastUpdateTime()) {
-            beta[aid] = a;
+            beta[aid]->clone(a);
             if(m_env_model_ptr != nullptr) {
-                m_env_model_ptr->updateActivity(a);
+                m_env_model_ptr->updateActivity(a);     /* Will also clone (in EnvCell::updateCellActivity.) */
             }
             Log::dbg << "Agent " << m_agent_id << " updated an activity from " << a->getAgentId() << ": " << *a << "\n";
         }
@@ -400,11 +462,12 @@ void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, st
                 break;
             }
         }
-        beta[aid] = a;
-        if(m_env_model_ptr != nullptr) {
-            m_env_model_ptr->addActivity(a);
-        }
+        beta[aid] = a;  /* We add it even if it is invalid, because we may want to propagate it (as discarded). */
         if(valid) {
+            /* We only add it to the EnvModel if it is valid and is not discarded: */
+            if(!a->isDiscarded() && m_env_model_ptr != nullptr) {
+                m_env_model_ptr->addActivity(a);
+            }
             /* All the overlapping activities can safely be discarded locally: */
             if(overlap_vec.size() > 0) {
                 Log::warn << "Agent " << m_agent_id << " will locally discard activities from " << aid << "\n";

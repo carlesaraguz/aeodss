@@ -192,6 +192,16 @@ void EnvCell::clean(double t)
     }
 }
 
+std::set<std::pair<std::string, unsigned int> > EnvCell::getCellCrosscheckList(void) const
+{
+    std::set<std::pair<std::string, unsigned int> > retset;
+    auto all_activities = getAllActivities();
+    for(auto& ac : all_activities) {
+        retset.insert(std::make_pair(ac->getAgentId(), ac->getId()));
+    }
+    return retset;
+}
+
 std::size_t EnvCell::pushPayoffFunc(const EnvCellPayoffFunc fp, const EnvCellCleanFunc fc)
 {
     m_payoff_func.push_back(fp);

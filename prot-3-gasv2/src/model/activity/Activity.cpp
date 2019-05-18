@@ -335,7 +335,7 @@ double Activity::getStartTime(void) const
     } else {
         Log::warn << "Trying to retrieve start time of activity "
             << m_agent_id << ":" << m_id << ", but its trajectory has yet not been defined.\n";
-        return -1.f;
+        return -1.0;
     }
 }
 
@@ -346,7 +346,7 @@ double Activity::getEndTime(void) const
     } else {
         Log::warn << "Trying to retrieve end time of activity "
             << m_agent_id << ":" << m_id << ", but its trajectory has yet not been defined.\n";
-        return -1.f;
+        return -1.0;
     }
 }
 
