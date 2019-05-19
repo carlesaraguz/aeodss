@@ -8,7 +8,7 @@ system:
         hour: 0             # Time step hours in julian_days mode.
         days: 0             # Time step days in julian_days mode.
         start_epoch: 2451545.0  # Start epoch in julian_days mode.
-        duration: 7         # Duration (in days, seconds or units of time depending upon mode).
+        duration: 3.5       # Duration (in days, seconds or units of time depending upon mode).
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
@@ -28,11 +28,11 @@ environment:
     world_width: 1800
     world_height: 900
     payoff:
-        goal_target: 2          # System goal: revisit time target (in time units).
+        goal_target: 0.5        # System goal: revisit time target (in time units).
         type: linear            # Model [sigmoid, linear]
         payoff_mid: 0.5         # Linear model: center payoff value (revisit time = target).
-        goal_max: 2.5           # Linear model: maximum revisit time to generate payoff.
-        goal_min: 1.5           # Linear model: minimum revisit time to generate payoff.
+        goal_max: 0.25          # Linear model: maximum revisit time to generate payoff.
+        goal_min: 0.75          # Linear model: minimum revisit time to generate payoff.
 
 # -- Agent configuration: --------------------------------------------------------------------------
 agent:
