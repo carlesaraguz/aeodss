@@ -16,6 +16,7 @@
 #include "HasView.hpp"
 #include "GridView.hpp"
 #include "ReportGenerator.hpp"
+#include "HeatMap.hpp"
 
 class Agent;
 
@@ -33,7 +34,7 @@ public:
     void addAgent(std::vector<std::shared_ptr<Agent> > aptrs);
     void step(void) override;
     void display(Layer l);
-    void computeMetrics(void);
+    void computeMetrics(bool last = false);
     const GridView& getView(void) const override { return m_self_view; }
 
     static const std::vector<std::vector<sf::Vector3f> >& getPositionLUT(void) { return m_world_positions; }
@@ -59,6 +60,13 @@ private:
     std::vector<std::vector<std::vector<WorldCell> > > m_cells;
     std::vector<std::shared_ptr<Agent> > m_agents;
     std::map<unsigned int, std::tuple<std::string, unsigned int, unsigned int, unsigned int> > m_spots; /* report Idx. -> name, m_cell indices. */
+    HeatMap m_hm_max_actual;
+    HeatMap m_hm_max_utopia;
+    HeatMap m_hm_avg_actual;
+    HeatMap m_hm_avg_utopia;
+    HeatMap m_hm_count_actual;
+    HeatMap m_hm_count_utopia;
+    unsigned int m_count_hm;
 
     static std::vector<std::vector<sf::Vector3f> > m_world_positions;  /**< Look-up table of world 3D coordinates (ECEF). */
 

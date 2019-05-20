@@ -11,6 +11,7 @@
 #include "Config.hpp"
 #include "ColorGradient.hpp"
 #include "Random.hpp"
+#include "PayoffFunctions.hpp"
 
 CREATE_LOGGER(Config)
 
@@ -52,6 +53,7 @@ double          Config::goal_max = 0.7;         /* 16.8 hours. */
 PayoffModel     Config::payoff_model = PayoffModel::SIGMOID;
 float           Config::payoff_mid = 0.5f;
 float           Config::payoff_steepness = 20.f;
+float           Config::payoff_slope = 1.f;
 
 /* Earth WGS84 parameters: */
 const double    Config::earth_radius  = 6371000.0;
@@ -123,6 +125,7 @@ unsigned int    Config::knowledge_base_size = 10000; /* Virtually unlimited. */
 unsigned int    Config::max_tasks = 25;
 unsigned int    Config::max_task_duration = 10;
 float           Config::min_payoff = 0.f;
+float           Config::max_payoff = 1.f;
 unsigned int    Config::activity_confirm_window = 10; /* 1.2h in JD. */
 float           Config::confidence_mod_exp = 2.f;
 float           Config::utility_floor = 0.f;
@@ -547,6 +550,12 @@ void Config::loadCmdArgs(int argc, char** argv)
                                 } else if(payoff_node["type"].as<std::string>() == "linear") {
                                     payoff_model = PayoffModel::LINEAR;
                                     Log::dbg << " -- Config. parameter \'payoff.type\' is set to: LINEAR.\n";
+                                } else if(payoff_node["type"].as<std::string>() == "constant_slope") {
+                                    payoff_model = PayoffModel::CONSTANT_SLOPE;
+                                    Log::dbg << " -- Config. parameter \'payoff.type\' is set to: CONSTANT_SLOPE.\n";
+                                } else if(payoff_node["type"].as<std::string>() == "quadratic") {
+                                    payoff_model = PayoffModel::QUADRATIC;
+                                    Log::dbg << " -- Config. parameter \'payoff.type\' is set to: QUADRATIC.\n";
                                 } else {
                                     payoff_model = PayoffModel::SIGMOID;
                                     Log::warn << " -- Config. parameter \'payoff.type\' is not defined. Default value: SIGMOID.\n";
@@ -563,6 +572,15 @@ void Config::loadCmdArgs(int argc, char** argv)
                                     Log::dbg << "The system min. revisit time is: " << VirtualTime::toString(goal_min, false, true) << ".\n";
                                     Log::dbg << "The system max. revisit time is: " << VirtualTime::toString(goal_max, false, true) << ".\n";
                                     break;
+                                case PayoffModel::CONSTANT_SLOPE:
+                                    getConfigParam("goal_min", payoff_node, goal_min);
+                                    getConfigParam("slope", payoff_node, payoff_slope);
+                                    Log::dbg << "The system min. revisit time is: " << VirtualTime::toString(goal_min, false, true) << ".\n";
+                                    break;
+                                case PayoffModel::QUADRATIC:
+                                    getConfigParam("goal_min", payoff_node, goal_min);
+                                    Log::dbg << "The system min. revisit time is: " << VirtualTime::toString(goal_min, false, true) << ".\n";
+                                    break;
                             }
                         } else {
                             Log::err << "System goals and payoff model have not been defined.\n";
@@ -578,6 +596,8 @@ void Config::loadCmdArgs(int argc, char** argv)
                 conf_file = "";
                 std::exit(-1);
             }
+            max_payoff = PayoffFunctions::payoff(Config::duration);
+            Log::dbg << "The maximum payoff value for this configuration is: " << max_payoff << "\n";
         }
     }
     if(force_graphics) {

@@ -49,6 +49,7 @@ public:
     static PayoffModel payoff_model;            /**< Model used to compute payoff. */
     static float payoff_mid;                    /**< Unit-less (payoff RT = target) */
     static float payoff_steepness;              /**< Steepness of logistic curve. */
+    static float payoff_slope;                  /**< Slope of linear payoff. */
 
     /* Earth WGS84 parameters: */
     static const double earth_radius;           /**< Standard radius of the Earth (in meters). */
@@ -118,6 +119,7 @@ public:
     static unsigned int knowledge_base_size;    /**< Max. total number of activities that an agent can know. */
     static unsigned int max_tasks;              /**< Maximum number of tasks (i.e. chromosome length). */
     static float min_payoff;                    /**< Payoff threshold below which tasks will not be generated. */
+    static float max_payoff;                    /**< Maximum payoff value ever generated in the simulation. */
     static unsigned int max_task_duration;      /**< Max. task duration (in time steps). */
     static unsigned int activity_confirm_window;/**< Length of the confirmation window (in time steps). */
     static float confidence_mod_exp;            /**< Exponent of the confidence modifier. */

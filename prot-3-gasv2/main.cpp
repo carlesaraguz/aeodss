@@ -296,6 +296,8 @@ void control_loop(void)
             }
         }
     }
+    world->computeMetrics(true);    /* Make the last measurements. */
+    ReportSet::getInstance().outputAll();
     if(Config::enable_graphics) {
         exit_draw_loop = true;
         thread_draw.join();
@@ -326,9 +328,18 @@ int main(int argc, char** argv)
         }
     }
 
-    exit_control_loop = false;
-    std::thread thread_control(control_loop);
-    thread_control.join();
+    std::vector<std::shared_ptr<Agent> >* release_resources = new std::vector<std::shared_ptr<Agent> >();
+    try {
+        exit_control_loop = false;
+        std::thread thread_control(control_loop);
+        thread_control.join();
+    } catch(const std::exception& e) {
+        /* Attempt to release resources: */
+        agents.swap(*release_resources);
+        delete release_resources;
+        Log::err << "Attempted to exit clean after a fatal failure:\n";
+        Log::err << e.what() << "\n";
+    }
     return 0;
 }
 
@@ -378,6 +389,15 @@ void testModePayoff(void)
             Log::dbg << "-- Pmid = " << Config::payoff_mid << ".\n";
             Log::dbg << "-- Gmin = " << Config::goal_min << ".\n";
             Log::dbg << "-- Gmax = " << Config::goal_max << ".\n";
+            break;
+        case PayoffModel::CONSTANT_SLOPE:
+            Log::dbg << "-- Payoff model: CONSTANT_SLOPE.\n";
+            Log::dbg << "-- Gmin  = " << Config::goal_min << ".\n";
+            Log::dbg << "-- Slope = " << Config::payoff_slope << ".\n";
+            break;
+        case PayoffModel::QUADRATIC:
+            Log::dbg << "-- Payoff model: QUADRATIC.\n";
+            Log::dbg << "-- Gmin = " << Config::goal_min << ".\n";
             break;
     }
     int i = 0;

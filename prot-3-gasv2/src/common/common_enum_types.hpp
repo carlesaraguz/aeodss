@@ -17,6 +17,7 @@ enum class Aggregate {
     MIN_VALUE,
     MEAN_VALUE,
     SUM_VALUE,
+    COUNT
 };
 
 enum class AgentMotionType {
@@ -34,7 +35,9 @@ enum class TimeValueType {
 
 enum class PayoffModel {
     SIGMOID,            /* Sigmoid model (i.e. logitic function). */
-    LINEAR              /* Linear normalisation with min-mid-max points.*/
+    LINEAR,             /* Linear normalisation with min-mid-max points.*/
+    CONSTANT_SLOPE,     /* Linear function with constant slope and 0 at goal_min. */
+    QUADRATIC           /* Quadratic function with slope and 0 at goal_min. */
 };
 
 enum class SandboxMode {

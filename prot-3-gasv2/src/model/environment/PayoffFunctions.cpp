@@ -61,6 +61,20 @@ float PayoffFunctions::payoff(double rev_time)
                 return 1.f;
             }
             break;
+        case PayoffModel::CONSTANT_SLOPE:
+            if(rev_time < Config::goal_min) {
+                return 0.f;
+            } else {
+                return Config::payoff_slope * (rev_time - Config::goal_min);
+            }
+            break;
+        case PayoffModel::QUADRATIC:
+            if(rev_time < Config::goal_min) {
+                return 0.f;
+            } else {
+                return (rev_time - Config::goal_min) * (rev_time - Config::goal_min);
+            }
+            break;
     }
     Log::err << "Payoff computation error. Aborting.\n";
     throw std::runtime_error("Payoff computation error");
@@ -341,7 +355,7 @@ void PayoffFunctions::bindPayoffFunctions(void)
          **/
         if((!prev_act || t_diff == -1.0) && t_horizon_overlap == -1.0) {
             /* There weren't activities to check with. Payoff is maximum. */
-            return std::make_pair(1.f, Config::utility_unknown);
+            return std::make_pair(Config::max_payoff, Config::utility_unknown);
         } else {
             if(t_horizon == -1.0 && t_diff == -1.0 && t_horizon_overlap != -1.0) {
                 t_horizon = t_horizon_overlap;

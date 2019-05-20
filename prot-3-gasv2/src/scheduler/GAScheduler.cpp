@@ -397,6 +397,10 @@ void GAScheduler::setAggregatedPayoff(unsigned int idx,
         case Aggregate::MIN_VALUE:
             po = 1.f;
             break;
+        default:
+            Log::err << "Selected a wrong aggregate type for payoff.\n";
+            std::exit(1);
+            break;
     }
     for(auto& p : payoff) {
         switch(Config::ga_payoff_aggregate) {
@@ -409,6 +413,10 @@ void GAScheduler::setAggregatedPayoff(unsigned int idx,
             case Aggregate::MEAN_VALUE:
             case Aggregate::SUM_VALUE:
                 po += p;
+                break;
+            default:
+                Log::err << "Selected a wrong aggregate type for payoff.\n";
+                std::exit(1);
                 break;
         }
     }

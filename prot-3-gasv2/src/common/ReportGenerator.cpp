@@ -89,6 +89,17 @@ void ReportGenerator::enableReport(void)
     }
 }
 
+void ReportGenerator::truncateReport(void)
+{
+    if(!m_enabled || !m_initialized) {
+        return;
+    }
+    if(m_report_file.is_open()) {
+        m_report_file.close();
+    }
+    m_report_file.open(m_report_filename, std::ios_base::out | std::ios::trunc);
+}
+
 void ReportGenerator::disableReport(void)
 {
     if(m_report_file.is_open()) {
@@ -140,6 +151,20 @@ void ReportGenerator::setReportColumnValue(unsigned int col_idx, float value)
 }
 
 void ReportGenerator::setReportColumnValue(std::string col_name, float value)
+{
+    std::stringstream ss;
+    ss << value;
+    setReportColumnValue(col_name, ss.str());
+}
+
+void ReportGenerator::setReportColumnValue(unsigned int col_idx, double value)
+{
+    std::stringstream ss;
+    ss << value;
+    setReportColumnValue(col_idx, ss.str());
+}
+
+void ReportGenerator::setReportColumnValue(std::string col_name, double value)
 {
     std::stringstream ss;
     ss << value;

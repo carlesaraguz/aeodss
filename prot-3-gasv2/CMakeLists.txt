@@ -16,6 +16,11 @@ if(SFML_FOUND)
     link_libraries(${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 endif()
 
+# -- Matlab:
+# find_package(Matlab REQUIRED)
+# include_directories(SYSTEM ${Matlab_INCLUDE_DIRS})
+# link_libraries(${Matlab_LIBRARIES})
+
 # -- GNU Scientific Library:
 find_package(GSL REQUIRED)
 include_directories(SYSTEM ${GSL_INCLUDE_DIRS})

@@ -27,6 +27,8 @@ public:
     void setReportColumnValue(std::string col_name, std::string value);
     void setReportColumnValue(unsigned int col_idx, float value);
     void setReportColumnValue(std::string col_name, float value);
+    void setReportColumnValue(unsigned int col_idx, double value);
+    void setReportColumnValue(std::string col_name, double value);
     void setReportColumnValue(unsigned int col_idx, int value);
     void setReportColumnValue(std::string col_name, int value);
     void outputReport(bool flush_now = true);
@@ -38,6 +40,8 @@ public:
     bool isReportEnabled(void) const { return m_enabled; }
     void initReport(std::string name);
     void initReport(std::string dirname, std::string name);
+    void truncateReport(void);
+    std::string getReportFilename(void) const { return m_report_filename; }
 
 private:
     std::vector<std::string> m_column_names;
