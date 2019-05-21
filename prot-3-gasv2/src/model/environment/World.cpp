@@ -26,8 +26,24 @@ World::World(void)
     , m_hm_avg_utopia(std::string("heatmap_avg_utopia.csv"), Aggregate::MEAN_VALUE)
     , m_hm_count_actual(std::string("heatmap_count_actual.csv"), Aggregate::COUNT)
     , m_hm_count_utopia(std::string("heatmap_count_utopia.csv"), Aggregate::COUNT)
-    , m_count_hm(0)
+    , m_delay_hm(0)
 {
+    /* Prepare HeatMap control variables: */
+    unsigned int hm_dim_lng = HeatMap::getLongitudeDimension();
+    unsigned int hm_dim_lat = HeatMap::getLatitudeDimension();
+    m_hm_dim_ratio_lng = m_width  / hm_dim_lng;
+    m_hm_dim_ratio_lat = m_height / hm_dim_lat;
+    m_update_heatmaps = new bool**[hm_dim_lng];
+    for(unsigned int xx = 0; xx < hm_dim_lng; xx++) {
+        m_update_heatmaps[xx] = new bool*[hm_dim_lat];
+        for(unsigned int yy = 0; yy < hm_dim_lat; yy++) {
+            m_update_heatmaps[xx][yy] = new bool[n_layers];
+            for(unsigned int ll = 0; ll < n_layers; ll++) {
+                m_update_heatmaps[xx][yy][ll] = true;
+            }
+        }
+    }
+
     unsigned int wg = m_width / 4;
     unsigned int hg = m_height / 6;
     m_metrics_grids.push_back({ (0 * wg), (4 * wg), (0 * hg), (1 * hg) });  /* Q0 */
@@ -98,6 +114,19 @@ World::World(void)
         }
         Log::dbg << "Completed the pre-computation of coordinates in the ECEF frame for every world cell.\n";
     }
+}
+
+World::~World(void)
+{
+    unsigned int hm_dim_lng = HeatMap::getLongitudeDimension();
+    unsigned int hm_dim_lat = HeatMap::getLatitudeDimension();
+    for(unsigned int xx = 0; xx < hm_dim_lng; xx++) {
+        for(unsigned int yy = 0; yy < hm_dim_lat; yy++) {
+            delete[] m_update_heatmaps[xx][yy];
+        }
+        delete[] m_update_heatmaps[xx];
+    }
+    delete[] m_update_heatmaps;
 }
 
 void World::display(Layer l)
@@ -219,8 +248,8 @@ void World::computeMetrics(bool last)
             (float)m_cells[std::get<1>(s.second)][std::get<2>(s.second)][std::get<3>(s.second)].value
         );
     }
-    m_count_hm++;
-    if(m_count_hm % 100 == 0 && !last) {
+    m_delay_hm++;
+    if(m_delay_hm % 100 == 0 && !last) {
         Log::dbg << "Refreshing heatmaps...\n";
         m_hm_max_actual.saveHeatMap();
         m_hm_max_utopia.saveHeatMap();
@@ -261,62 +290,74 @@ void World::step(void)
     #pragma omp parallel for
     for(unsigned int xx = 0; xx < m_width; xx++) {
         for(unsigned int yy = 0; yy < m_height; yy++) {
-            updateAllLayers(xx, yy, false);
+            updateAllLayers(xx, yy, false, false);
         }
     }
     for(auto& a : m_agents) {
         auto cells = a->getWorldFootprint(m_world_positions);
         bool capturing = a->isCapturing();
         for(auto& c : cells) {
-            updateLayer(Layer::REVISIT_TIME_UTOPIA, c.x, c.y, true);
-            updateLayer(Layer::REVISIT_TIME_ACTUAL, c.x, c.y, capturing);
+            updateLayer(Layer::REVISIT_TIME_UTOPIA, c.x, c.y, true, true);
+            updateLayer(Layer::REVISIT_TIME_ACTUAL, c.x, c.y, capturing, true);
         }
     }
 }
 
-void World::updateAllLayers(int x, int y, bool active)
+void World::updateAllLayers(int x, int y, bool active, bool update_heatmaps)
 {
     for(unsigned int l = 0; l < n_layers; l++) {
-        updateLayer(static_cast<Layer>(l), x, y, active);
+        updateLayer(static_cast<Layer>(l), x, y, active, update_heatmaps);
     }
 }
 
-void World::updateLayer(Layer l, int x, int y, bool active)
+void World::updateLayer(Layer l, int x, int y, bool active, bool update_heatmaps)
 {
     auto& cell = m_cells[x][y][(int)l];
+    unsigned int hm_x = x / m_hm_dim_ratio_lng;
+    unsigned int hm_y = y / m_hm_dim_ratio_lat;
+    bool is_heatmap_pixel = (x % m_hm_dim_ratio_lng == 0) && (y % m_hm_dim_ratio_lat == 0);
     switch(l) {
         case Layer::REVISIT_TIME_UTOPIA:
             if(active) {
-                bool heatmap = (x % 2 == 0) && (y % 2 == 0);    /* TODO: this is hardcoded. FIX! */
                 /*  We don't save values that are currently being accessed:
                  **/
-                if(cell.value != 0.f && heatmap) {
+                if(hm_x == 44 && hm_y == 109 && is_heatmap_pixel) {
+                    Log::dbg << "[" << update_heatmaps << "] Updating heatmap: " << m_update_heatmaps[hm_x][hm_y][(int)l] << "\n";
+                }
+                if(cell.value != 0.f && is_heatmap_pixel && m_update_heatmaps[hm_x][hm_y][(int)l]) {
                     double rt = cell.value;
                     if(rt < 0.f) {
                         rt = VirtualTime::now() - Config::start_epoch;
                     }
-                    m_hm_max_utopia.setRevisitTime((x / 2), (y / 2), rt);
-                    m_hm_avg_utopia.setRevisitTime((x / 2), (y / 2), rt);
-                    m_hm_count_utopia.setRevisitTime((x / 2), (y / 2), rt);
+                    m_hm_max_utopia.setRevisitTime(hm_x, hm_y, rt);
+                    m_hm_avg_utopia.setRevisitTime(hm_x, hm_y, rt);
+                    m_hm_count_utopia.setRevisitTime(hm_x, hm_y, rt);
+                    m_update_heatmaps[hm_x][hm_y][(int)l] = false;
                 }
                 cell.value = 0.f;
             } else if(cell.value >= 0.f) {
+                if(cell.value > 0.f) {
+                    m_update_heatmaps[hm_x][hm_y][(int)l] = true;
+                }
                 cell.value += Config::time_step;
             }
         break;
         case Layer::REVISIT_TIME_ACTUAL:
             if(active) {
-                bool heatmap = (x % 2 == 0) && (y % 2 == 0);    /* TODO: this is hardcoded. FIX! */
                 /*  Similar to the utopia case. We don't save locations that are currently being
                  *  accessed.
                  **/
-                if(cell.value > 0.f && heatmap) {
-                    m_hm_max_actual.setRevisitTime((x / 2), (y / 2), cell.value);
-                    m_hm_avg_actual.setRevisitTime((x / 2), (y / 2), cell.value);
-                    m_hm_count_actual.setRevisitTime((x / 2), (y / 2), cell.value);
+                if(cell.value > 0.f && is_heatmap_pixel && m_update_heatmaps[hm_x][hm_y][(int)l]) {
+                    m_hm_max_actual.setRevisitTime(hm_x, hm_y, cell.value);
+                    m_hm_avg_actual.setRevisitTime(hm_x, hm_y, cell.value);
+                    m_hm_count_actual.setRevisitTime(hm_x, hm_y, cell.value);
+                    m_update_heatmaps[hm_x][hm_y][(int)l] = false;
                 }
                 cell.value = 0.f;
             } else if(cell.value >= 0.f) {
+                if(cell.value > 0.f) {
+                    m_update_heatmaps[hm_x][hm_y][(int)l] = true;
+                }
                 cell.value += Config::time_step;
             }
             break;

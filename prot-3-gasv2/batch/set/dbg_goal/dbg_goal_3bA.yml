@@ -12,7 +12,7 @@ system:
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
-    name: dbg_goal_3c       # Simulation name for the folder where files are stored.
+    name: dbg_goal_3bA      # Simulation name for the folder where files are stored.
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -29,8 +29,9 @@ environment:
     world_height: 900
     payoff:
         goal_target: 1          # Sigmoid and linear model: central revisit time (in time units).
-        type: quadratic         # Model [sigmoid, linear, constant_slope, quadratic]
-        goal_min: 0.25          # Linear and quadratic models: minimum revisit time to generate payoff.
+        type: constant_slope    # Model [sigmoid, linear, constant_slope, quadratic]
+        goal_min: 0             # Linear and quadratic models: minimum revisit time to generate payoff.
+        slope: 2                # Constant slope model.
 
 # -- Agent configuration: --------------------------------------------------------------------------
 agent:

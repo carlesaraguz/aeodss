@@ -376,7 +376,7 @@ void testModePayoff(void)
     Log::dbg << "-- Entering test mode: PAYOFF...\n";
     constexpr float min_payoff = 1e-6;
     constexpr float min_display_payoff = 1e-2;
-    const int max_iter = 10000000;
+    const int max_iter = 100000;
     Log::dbg << "-- Stopping when payoff delta < " << min_payoff << ", or iterations > " << max_iter << ".\n";
     Log::dbg << "-- Displaying points for delta min = " << min_display_payoff << ".\n";
     switch(Config::payoff_model) {

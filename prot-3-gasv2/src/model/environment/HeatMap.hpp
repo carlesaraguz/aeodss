@@ -25,13 +25,15 @@ public:
     void setType(Aggregate hmt) { m_hm_type = hmt; }
     void setRevisitTime(unsigned int x, unsigned int y, double rt);
     void saveHeatMap(void);
+    static unsigned int getLongitudeDimension(void);
+    static unsigned int getLatitudeDimension(void);
 
 private:
     Aggregate m_hm_type;        /* Max or average. */
     double** m_values;          /* Matrix of values. */
     unsigned int** m_count;     /* Matrix of counts. */
-    unsigned int m_lng_range;   /* Dimensions of matrix. */
-    unsigned int m_lat_range;   /* Dimensions of matrix. */
+    static const unsigned int m_lng_range = (1800);   /* Dimensions of matrix. */
+    static const unsigned int m_lat_range = (900);    /* Dimensions of matrix. */
 };
 
 #endif /* HEAT_MAP_HPP */

@@ -29,6 +29,7 @@ public:
     };
 
     World(void);
+    ~World(void);
 
     void addAgent(std::shared_ptr<Agent> aptr);
     void addAgent(std::vector<std::shared_ptr<Agent> > aptrs);
@@ -66,12 +67,15 @@ private:
     HeatMap m_hm_avg_utopia;
     HeatMap m_hm_count_actual;
     HeatMap m_hm_count_utopia;
-    unsigned int m_count_hm;
+    bool*** m_update_heatmaps;
+    unsigned int m_delay_hm;
+    unsigned int m_hm_dim_ratio_lng;
+    unsigned int m_hm_dim_ratio_lat;
 
     static std::vector<std::vector<sf::Vector3f> > m_world_positions;  /**< Look-up table of world 3D coordinates (ECEF). */
 
-    void updateLayer(Layer l, int x, int y, bool active);
-    void updateAllLayers(int x, int y, bool active);
+    void updateLayer(Layer l, int x, int y, bool active, bool update_heatmaps = true);
+    void updateAllLayers(int x, int y, bool active, bool update_heatmaps = true);
 };
 
 #endif /* WORLD_HPP */

@@ -15,9 +15,19 @@ CREATE_LOGGER(HeatMap)
 HeatMap::HeatMap(std::string name, Aggregate type)
     : ReportGenerator(name, false)
     , m_hm_type(type)
-    , m_lng_range(900)
-    , m_lat_range(450)
 {
+    if(Config::world_width % m_lng_range != 0 || Config::world_height % m_lat_range != 0) {
+        Log::err << "Error configuring heatmaps: dimensions need to be an integer fraction of world dimensions.\n";
+        Log::err << "World   = (" << Config::world_width << "," << Config::world_height << "); \n";
+        Log::err << "HeatMap = (" << m_lng_range << "," << m_lat_range << ").\n";
+        std::exit(1);
+    } else if(Config::world_width < m_lng_range || Config::world_height < m_lat_range) {
+        Log::err << "Error configuring heatmaps: dimensions need to be equal or smaller than world dimensions.\n";
+        Log::err << "World   = (" << Config::world_width << "," << Config::world_height << "); \n";
+        Log::err << "HeatMap = (" << m_lng_range << "," << m_lat_range << ").\n";
+        std::exit(1);
+    }
+
     m_values = new double*[m_lng_range];
     m_count  = new unsigned int*[m_lng_range];
     for(unsigned int xx = 0; xx < m_lng_range; xx++) {
@@ -117,4 +127,14 @@ void HeatMap::saveHeatMap(void)
         }
         outputReport(yy == m_lat_range - 1);
     }
+}
+
+unsigned int HeatMap::getLongitudeDimension(void)
+{
+    return m_lng_range;
+}
+
+unsigned int HeatMap::getLatitudeDimension(void)
+{
+    return m_lat_range;
 }
