@@ -130,24 +130,22 @@ function job {
     else
         # Succeeded:
         printf "$completed_data %20s -- [ OK-$count ] : $resdir\n" $simulation_name | tee -a batch.log
-
-        # Run the random version:
-        count=0
-        simulation_name+="_rand"
-        log_file="job_logs/$simulation_name.log"
-        randresdir="$data_path$dirdate"
-        randresdir+="_$simulation_name"
-        load_file="$resdir/system.yml"
-        OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1
-        exit_value=$?
-        cp $log_file $randresdir/ 2>/dev/null
-        completed_data=$(date +"%F %T")
-        if [ $exit_value != 0 ]; then
-            printf "$completed_data %20s -- [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simulation_name | tee -a batch.log
-        else
-            printf "$completed_data %20s -- [ OK-$count ] : $randresdir\n" $simulation_name | tee -a batch.log
-        fi
-        cp $conf_file jobs_completed/ 2> /dev/null
+    fi
+    # Run the random version:
+    count=0
+    simulation_name+="_rand"
+    log_file="job_logs/$simulation_name.log"
+    randresdir="$data_path$dirdate"
+    randresdir+="_$simulation_name"
+    load_file="$resdir/system.yml"
+    OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1
+    exit_value=$?
+    cp $log_file $randresdir/ 2>/dev/null
+    completed_data=$(date +"%F %T")
+    if [ $exit_value != 0 ]; then
+        printf "$completed_data %20s -- [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simulation_name | tee -a batch.log
+    else
+        printf "$completed_data %20s -- [ OK-$count ] : $randresdir\n" $simulation_name | tee -a batch.log
     fi
 }
 

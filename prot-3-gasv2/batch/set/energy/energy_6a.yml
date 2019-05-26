@@ -1,0 +1,94 @@
+version: 4
+system:
+    n_agents: 5
+    time:
+        type: julian_days   # julian_days, seconds or arbitrary
+        sec: 30             # Time step seconds in julian_days or seconds mode.
+        min: 0              # Time step minutes in julian_days mode.
+        hour: 0             # Time step hours in julian_days mode.
+        days: 0             # Time step days in julian_days mode.
+        start_epoch: 2451545.0  # Start epoch in julian_days mode.
+        duration: 7         # Duration (in days, seconds or units of time depending upon mode).
+    parallel:
+        nested: true        # Call OMP nested directive at the beginning of the program.
+        planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
+    name: energy_6a         # Simulation name for the folder where files are stored.
+
+# -- Graphics and user interface configuration: ----------------------------------------------------
+graphics:
+    win_width: 1800
+    win_height: 900
+    agent_size: 14
+    font_size: 24
+    enable: true
+
+# -- Environment model configuration: --------------------------------------------------------------
+environment:
+    model_unity_size: 10
+    world_width: 1800
+    world_height: 900
+    payoff:
+        goal_target: 1          # System goal: revisit time target (in time units).
+        type: constant_slope    # Model [sigmoid, linear, constant_slope, quadratic]
+        goal_min: 0             # Linear and quadratic models: minimum revisit time to generate payoff.
+        slope: 2                # Constant slope model.
+
+# -- Agent configuration: --------------------------------------------------------------------------
+agent:
+    energy_generation: -160     # Energy generation rate: 90 min to full.
+    # Instrument parameters:
+    instrument:
+        aperture: 80            # Degrees [min, max] or single value.
+        energy: 200             # Energy consumption rate: 45 min to depletion.
+        storage: 0.01           # Storage consumption rate [min, max] or single value.
+    # Agent communication parameters:
+    link:
+        range: 1e9              # Distance units (world pixels or meters), [min, max] or single value.
+        datarate: 1             # 1s transfer time.
+        energy_tx: 0.000003     # 1000 activities for 30 agents in 1 sched. cycle.
+        energy_rx: 0.0000003    # Energy consumption rate.
+        reserved_capacity: 0.1  # The reserved capacity (energy) for links.
+        allow_during_capture: true  # Whether to enable link while payload is enabled.
+    # Agent motion model:
+    motion:
+        type: orbital           # orbital, linear_bounce, linear_infinite or sinusoidal.
+        # ---- Orbital (3D) motion:
+        altitude: 500           # Orbital height in kilometers [min, max] or single value.
+        max_ecc: 0.00           # Max. eccentricity.
+        inc: [80, 110]          # Inclination in degrees, [min, max] or single value.
+        argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
+        raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
+    activity_size: 1                # 1s transfer time.
+    planning_window: 360            # 360 Time-steps = 180 min.
+    replanning_window: 90           # 90 Time-steps = 45 min.
+    confirm_window: 180             # 180 Time-steps = 90 min.
+    knowledge_base_size: 1000       # Max. total tasks that an angent can remember.
+    max_tasks: 50                   # Max. tasks to generate.
+    max_task_duration: 8            # 8 time-steps.
+    min_payoff: 0                   # Payoff threshold below which tasks will not be generated.
+    confidence:
+        exp: 2                      # Used when baseline is updated.
+    utility:
+        steepness: 15               # Should be k > 10.
+        unknown: 0.75               # Utility obtained when payoff is obtained blindly.
+    priority:                       # Model to compute rank in activity sorting.
+        utility_floor: 0            # Minimum utility.
+        utility_weight: 0.5         # Weight applied to utility (no need to normalise).
+        decay_weight: 0.5           # Weight applied to decay (no need to normalise).
+    ga_scheduler:                   # Genetic Algorithm Scheduler paramaters.
+        generations: 10000          # Max. number of iterations in the search.
+        timeout: 5000               # Timeout (in iterations) as # of iterations without improvement.
+        payoff_aggregation: avg     # Aggregation of payoff in tasks [min, max, avg, sum].
+        payoff_k: 25                # P.o. multiplier for previously scheduled activities.
+        confidence_th: 0.5          # Min. confidence to apply payoff multiplier.
+        min_improvement_rate: 0.01  # Minimum improvement rate.
+        population_size: 50         # Number of individuals in the population.
+        mutation_rate: 0.02         # Mutation probability for each chromosome's allele.
+        crossover:                  # Crossover operator options:
+            type: multiple          # multiple, single, or uniform.
+            n_points: 10            # Crossover points in multiple mode.
+        parent_sel:                 # Parent selection operator options:
+            type: tournament        # tournament, fitness_proportionate, elitist or stochastic_universal
+            k: 2                    # tournament K constant.
+        environ_sel:                # Environment selection operator options:
+            type: elitist           # elitist, truncation, or generational.
