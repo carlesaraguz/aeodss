@@ -112,7 +112,7 @@ void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_
 void EnvModel::addActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
         m_cells[c.x][c.y].addCellActivity(act);
@@ -122,7 +122,7 @@ void EnvModel::addActivity(std::shared_ptr<Activity> act)
 void EnvModel::removeActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
         m_cells[c.x][c.y].removeCellActivity(act);
@@ -132,7 +132,7 @@ void EnvModel::removeActivity(std::shared_ptr<Activity> act)
 void EnvModel::updateActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
         m_cells[c.x][c.y].updateCellActivity(act);

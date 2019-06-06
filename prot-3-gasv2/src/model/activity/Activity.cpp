@@ -33,9 +33,12 @@ Activity::Activity(std::string agent_id, int id)
 
 Activity::~Activity(void)
 {
-    for(auto& cell : m_active_cells) {
-        delete[] cell.t0s;
-        delete[] cell.t1s;
+    if(m_active_cells.use_count() <= 1 && m_active_cells != nullptr) {
+        /* Release resources: */
+        for(auto& cell : *m_active_cells) {
+            delete[] cell.t0s;
+            delete[] cell.t1s;
+        }
     }
 }
 
@@ -45,7 +48,7 @@ Activity::Activity(const Activity& other)
     , m_confirmed(other.m_confirmed)
     , m_discarded(other.m_discarded)
     , m_trajectory(other.m_trajectory)
-    /* m_active_cells is not copied. */
+    /* m_active_cells is not copied here. */
     , m_ready(false)
     , m_confidence(other.m_confidence)
     , m_confidence_baseline(other.m_confidence_baseline)
@@ -54,7 +57,14 @@ Activity::Activity(const Activity& other)
     , m_aperture(other.m_aperture)
     , m_has_been_sent(other.m_has_been_sent)
     , m_sending(false)
-{ }
+{
+    if(Config::shared_memory) {
+        /* Will copy the shared pointer from the source object: */
+        m_active_cells = other.m_active_cells;
+        m_cell_lut = other.m_cell_lut;
+        m_ready = other.m_ready;
+    }
+}
 
 Activity& Activity::operator=(const Activity& other)
 {
@@ -63,8 +73,14 @@ Activity& Activity::operator=(const Activity& other)
     m_confirmed = other.m_confirmed;
     m_discarded = other.m_discarded;
     m_trajectory = other.m_trajectory;
-    /* m_active_cells is not copied. */
-    m_ready = false;
+    if(Config::shared_memory) {
+        /* Will copy the shared pointer from the source object: */
+        m_active_cells = other.m_active_cells;
+        m_cell_lut = other.m_cell_lut;
+        m_ready = other.m_ready;
+    } else {
+        m_ready = false;
+    }
     m_confidence = other.m_confidence;
     m_confidence_baseline = other.m_confidence_baseline;
     m_last_update = other.m_last_update;
@@ -138,7 +154,10 @@ void Activity::setDiscarded(bool d)
 std::vector<sf::Vector2i> Activity::getActiveCells(void) const
 {
     std::vector<sf::Vector2i> retval;
-    for(auto& ac : m_active_cells) {
+    if(m_active_cells == nullptr) {
+        return retval;
+    }
+    for(auto& ac : *m_active_cells) {
         retval.push_back(sf::Vector2i(ac.x, ac.y));
     }
     return retval;
@@ -147,7 +166,10 @@ std::vector<sf::Vector2i> Activity::getActiveCells(void) const
 std::vector<sf::Vector2i> Activity::getActiveCells(double t) const
 {
     std::vector<sf::Vector2i> retval;
-    for(auto& ac : m_active_cells) {
+    if(m_active_cells == nullptr) {
+        return retval;
+    }
+    for(auto& ac : *m_active_cells) {
         for(unsigned int i = 0; i < ac.nts; i++) {
             if(ac.t0s[i] <= t && ac.t1s[i] > t) {
                 retval.push_back(sf::Vector2i(ac.x, ac.y));
@@ -162,13 +184,16 @@ int Activity::getCellTimes(unsigned int x, unsigned int y, double** t0s, double*
     if(t0s == nullptr || t1s == nullptr) {
         Log::err << "Error getting cell times for activity " << *this << ". Null pointer (" << (void*)t0s << ", " << (void*)t1s << ").\n";
         return 0;
+    } else if(m_active_cells == nullptr || m_cell_lut == nullptr) {
+        Log::err << "Error getting cell times for activity " << *this << ". Active cells have not been initialised.\n";
+        return 0;
     }
-    if(m_cell_lut.find(x) != m_cell_lut.end()) {
-        if(m_cell_lut.at(x).find(y) != m_cell_lut.at(x).end()) {
-            auto idx = m_cell_lut.at(x).at(y);
-            *t0s = m_active_cells[idx].t0s;
-            *t1s = m_active_cells[idx].t1s;
-            return m_active_cells[idx].nts;
+    if(m_cell_lut->find(x) != m_cell_lut->end()) {
+        if(m_cell_lut->at(x).find(y) != m_cell_lut->at(x).end()) {
+            auto idx = m_cell_lut->at(x).at(y);
+            *t0s = m_active_cells->at(idx).t0s;
+            *t1s = m_active_cells->at(idx).t1s;
+            return m_active_cells->at(idx).nts;
         }
     }
     /* Not found: */
@@ -179,22 +204,50 @@ int Activity::getCellTimes(unsigned int x, unsigned int y, double** t0s, double*
 
 void Activity::setTrajectory(const std::map<double, sf::Vector3f>& pts, const std::vector<ActivityCell>& acs)
 {
-    m_trajectory = std::make_shared<std::map<double, sf::Vector3f> >(pts.begin(), pts.end());  /* Copies trajectory.   */
-    m_active_cells = acs;   /* Copies active cells. */
+    if(m_cell_lut == nullptr) {
+        m_cell_lut = std::make_shared<std::map<unsigned int, std::map<unsigned int, int> > >();
+    } else {
+        m_cell_lut->clear();
+    }
+    m_trajectory = std::make_shared<std::map<double, sf::Vector3f> >(pts.begin(), pts.end());   /* Copies trajectory.   */
+    m_active_cells = std::make_shared<std::vector<ActivityCell> >(acs.begin(), acs.end());      /* Copies active cells. */
     unsigned int it = 0;
-    for(auto& ac : m_active_cells) {
-        m_cell_lut[ac.x][ac.y] = it++;
+    for(auto& ac : *m_active_cells) {
+        if(m_cell_lut->find(ac.x) != m_cell_lut->end()) {
+            /* Access existing element: */
+            m_cell_lut->at(ac.x).emplace(ac.y, it++);
+        } else {
+            /* Create new element: */
+            std::map<unsigned int, int> inner_map;
+            inner_map[ac.y] = it++;
+            m_cell_lut->emplace(ac.x, inner_map);
+        }
     }
     m_ready = true;
 }
 
 void Activity::setActiveCells(const std::vector<ActivityCell>& acs)
 {
-    m_active_cells = acs;   /* Copies active cells. */
-    m_cell_lut.clear();
+    if(Config::shared_memory) {
+        Log::warn << "Setting active cells for an individual activity is unexpected (though valid) in shared memory mode.\n";
+    }
+    m_active_cells = std::make_shared<std::vector<ActivityCell> >(acs.begin(), acs.end());      /* Copies active cells. */
+    if(m_cell_lut == nullptr) {
+        m_cell_lut = std::make_shared<std::map<unsigned int, std::map<unsigned int, int> > >();
+    } else {
+        m_cell_lut->clear();
+    }
     unsigned int it = 0;
-    for(auto& ac : m_active_cells) {
-        m_cell_lut[ac.x][ac.y] = it++;
+    for(auto& ac : *m_active_cells) {
+        if(m_cell_lut->find(ac.x) != m_cell_lut->end()) {
+            /* Access existing element: */
+            m_cell_lut->at(ac.x).emplace(ac.y, it++);
+        } else {
+            /* Create new element: */
+            std::map<unsigned int, int> inner_map;
+            inner_map[ac.y] = it++;
+            m_cell_lut->emplace(ac.x, inner_map);
+        }
     }
     m_ready = m_trajectory->size() > 0;
 }
@@ -418,7 +471,11 @@ std::ostream& operator<<(std::ostream& os, const Activity& act)
     } else {
         os << "traj: undefined, ";
     }
-    os << "actc:" << act.m_active_cells.size() << " cells, ";
+    if(act.m_active_cells == nullptr) {
+        os << "actc:0 cells, ";
+    } else {
+        os << "actc:" << act.m_active_cells->size() << " cells, ";
+    }
     if(act.m_ready) {
         os << std::fixed << std::setprecision(2);
         os << "S:" << VirtualTime::toString(act.getStartTime(), true, true) << " ";

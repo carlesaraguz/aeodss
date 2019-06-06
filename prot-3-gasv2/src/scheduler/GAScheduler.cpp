@@ -356,28 +356,43 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<double>
             m_population.push_back(solution);
         }
     } else {
-        /*  We always insert two types of baseline options:
-         *  - `l` solutions with a single activity enabled; and
-         *  - one solution where all activities are enabled.
-         *  Note that this happens without checking protected alleles because it is supposed to happen
-         *  before alleles are actually protected.
-         **/
-        for(unsigned int b = 0; b < l + 1; b++) {
-            GASChromosome cbaseline(l);
-            for(unsigned int a = 0; a < cbaseline.getChromosomeLength(); a++) {
-                if(a == b && b < l) {
-                    cbaseline.setAllele(a, true);
-                } else if(a != b && b < l) {
-                    cbaseline.setAllele(a, false);
-                } else {
-                    cbaseline.setAllele(a, true);
+        if(Config::mode != SandboxMode::RANDOM) {
+            /*  If we're not in random mode, we insert two types of baseline options:
+             *  - `l` solutions with a single activity enabled; and
+             *  - one solution where all activities are enabled.
+             *  Note that this happens without checking protected alleles because it is supposed to happen
+             *  before alleles are actually protected.
+             **/
+            for(unsigned int b = 0; b < l + 1; b++) {
+                GASChromosome cbaseline(l);
+                for(unsigned int a = 0; a < cbaseline.getChromosomeLength(); a++) {
+                    if(a == b && b < l) {
+                        cbaseline.setAllele(a, true);
+                    } else if(a != b && b < l) {
+                        cbaseline.setAllele(a, false);
+                    } else {
+                        cbaseline.setAllele(a, true);
+                    }
+                }
+                m_population.push_back(cbaseline);
+            }
+            while(m_population.size() < Config::ga_population_size) {
+                m_population.push_back(GASChromosome(l));   /* Randomly initializes the new chromosome. */
+            }
+        } else {
+            /*  If we're in random mode, we insert randomized solutions with different
+             *  allele-enabling probabilities.
+             **/
+            while(m_population.size() < Config::ga_population_size) {
+                for(int p = 1; p <= 20; p++) {
+                    float th = 0.05f * p;
+                    if(m_population.size() < Config::ga_population_size) {
+                        m_population.push_back(GASChromosome(l, true, th));
+                    } else {
+                        break;
+                    }
                 }
             }
-            m_population.push_back(cbaseline);
-        }
-
-        while(m_population.size() < Config::ga_population_size) {
-            m_population.push_back(GASChromosome(l));   /* Randomly initializes the new chromosome. */
         }
     }
 }

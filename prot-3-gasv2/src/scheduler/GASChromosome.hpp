@@ -17,7 +17,7 @@
 class GASChromosome
 {
 public:
-    GASChromosome(unsigned int sz);
+    GASChromosome(unsigned int sz, bool randomize = true, float threshold = 0.5f);
     GASChromosome(const GASChromosome& other, bool randomize = false);
 
     static void crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2);

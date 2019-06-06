@@ -158,6 +158,7 @@ std::string Config::root_path;
 std::string Config::data_path;
 std::string Config::conf_file;
 SandboxMode Config::mode = SandboxMode::SIMULATE;
+bool        Config::shared_memory = true;
 bool        Config::simple_log = false;
 
 
@@ -220,6 +221,17 @@ void Config::loadCmdArgs(int argc, char** argv)
             /* Will enter in 'test payoff' mode. */
             force_graphics = true;
             override_graphics_value = false;
+
+        } else if(opt == "-shm1") {
+            /* Will enter in 'test payoff' mode. */
+            shared_memory = true;
+
+        } else if(opt == "-shm0") {
+            /* Will enter in 'test payoff' mode. */
+            shared_memory = false;
+            Log::warn << "Shared memory regions have been disabled. Information will be replicated.\n";
+            Log::warn << "NOTE: This is a more representative case, but does not provide different "
+                "results (at behavioural and functional levels).\n";
 
         } else if(opt == "-g1") {
             /* Will enter in 'test payoff' mode. */

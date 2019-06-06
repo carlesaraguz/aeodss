@@ -368,15 +368,17 @@ void Agent::listen(void)
     auto rcv = m_link->readRxQueue();
     if(rcv.size() > 0) {
         for(auto& act : rcv) {
-            std::vector<sf::Vector3f> traj_vec;
-            auto traj = act->getTrajectory();
-            for(auto& p : *traj) {
-                traj_vec.push_back(p.second);
+            if(Config::shared_memory == false) {
+                std::vector<sf::Vector3f> traj_vec;
+                auto traj = act->getTrajectory();
+                for(auto& p : *traj) {
+                    traj_vec.push_back(p.second);
+                }
+                BasicInstrument tmp_imodel(act->getAperture(), -1.f);
+                tmp_imodel.setDimensions(m_environment->getEnvModelInfo());
+                auto active_cells = findActiveCells(traj->cbegin()->first, traj->crbegin()->first, traj_vec, &tmp_imodel);
+                act->setActiveCells(active_cells);
             }
-            BasicInstrument tmp_imodel(act->getAperture(), -1.f);
-            tmp_imodel.setDimensions(m_environment->getEnvModelInfo());
-            auto active_cells = findActiveCells(traj->cbegin()->first, traj->crbegin()->first, traj_vec, &tmp_imodel);
-            act->setActiveCells(active_cells);
             m_activities->add(act);
         }
     }

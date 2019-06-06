@@ -153,6 +153,7 @@ public:
     static std::string data_path;       /**< Path were simulation results will be saved to.*/
     static std::string conf_file;       /**< Path to the conf. file. */
     static SandboxMode mode;            /**< The mode of this sandbox. */
+    static bool shared_memory;          /**< Agents share memory regions for identical objects in the implementation. */
     static bool simple_log;             /**< Whether to print colors (false) or not (true). */
 
     /*******************************************************************************************//**

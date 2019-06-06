@@ -360,8 +360,8 @@ private:
     /* Spatio-temporal information: */
     std::shared_ptr<SegmentView> m_self_view;
     std::shared_ptr<std::map<double, sf::Vector3f> > m_trajectory;
-    std::vector<ActivityCell> m_active_cells;
-    std::map<unsigned int, std::map<unsigned int, int> > m_cell_lut;
+    std::shared_ptr<std::vector<ActivityCell> > m_active_cells;
+    std::shared_ptr<std::map<unsigned int, std::map<unsigned int, int> > > m_cell_lut;
 };
 
 
