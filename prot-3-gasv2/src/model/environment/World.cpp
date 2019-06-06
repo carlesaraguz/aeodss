@@ -321,9 +321,6 @@ void World::updateLayer(Layer l, int x, int y, bool active, bool update_heatmaps
             if(active) {
                 /*  We don't save values that are currently being accessed:
                  **/
-                if(hm_x == 44 && hm_y == 109 && is_heatmap_pixel) {
-                    Log::dbg << "[" << update_heatmaps << "] Updating heatmap: " << m_update_heatmaps[hm_x][hm_y][(int)l] << "\n";
-                }
                 if(cell.value != 0.f && is_heatmap_pixel && m_update_heatmaps[hm_x][hm_y][(int)l]) {
                     double rt = cell.value;
                     if(rt < 0.f) {

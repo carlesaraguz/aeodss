@@ -12,14 +12,16 @@
 
 CREATE_LOGGER(GASChromosome)
 
-GASChromosome::GASChromosome(unsigned int sz)
+GASChromosome::GASChromosome(unsigned int sz, bool randomize, float threshold)
     : m_alleles(sz)
     , m_protected_alleles(sz, false)
     , m_valid(true)
     , m_fitness(0.f)
 {
-    for(unsigned int i = 0; i < sz; i++) {
-        m_alleles[i] = (Random::getUf() > 0.5f);
+    if(randomize) {
+        for(unsigned int i = 0; i < sz; i++) {
+            m_alleles[i] = (Random::getUf() > threshold);
+        }
     }
 }
 
