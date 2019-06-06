@@ -8,11 +8,11 @@ system:
         hour: 0             # Time step hours in julian_days mode.
         days: 0             # Time step days in julian_days mode.
         start_epoch: 2451545.0  # Start epoch in julian_days mode.
-        duration: 7         # Duration (in days, seconds or units of time depending upon mode).
+        duration: 3.2       # Duration (in days, seconds or units of time depending upon mode).
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
-    name: dbg_goal_3cM      # Simulation name for the folder where files are stored.
+    name: dbg_goal_3cA      # Simulation name for the folder where files are stored.
 
 # -- Graphics and user interface configuration: ----------------------------------------------------
 graphics:
@@ -77,7 +77,7 @@ agent:
     ga_scheduler:                   # Genetic Algorithm Scheduler paramaters.
         generations: 10000          # Max. number of iterations in the search.
         timeout: 5000               # Timeout (in iterations) as # of iterations without improvement.
-        payoff_aggregation: max     # Aggregation of payoff in tasks [min, max, avg, sum].
+        payoff_aggregation: avg     # Aggregation of payoff in tasks [min, max, avg, sum].
         payoff_k: 25                # P.o. multiplier for previously scheduled activities.
         confidence_th: 0.5          # Min. confidence to apply payoff multiplier.
         min_improvement_rate: 0.01  # Minimum improvement rate.
