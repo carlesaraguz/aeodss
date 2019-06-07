@@ -71,7 +71,20 @@ if [ ! -f "$BATCH_CONF" ]; then
 fi
 
 mkdir -p job_logs
-mkdir -p jobs_completed
+mkdir -p job_procinfo
+rm job_procinfo/* 2> /dev/null
+
+function job_meminfo {
+    while [ 1 ]; do
+        if [ -e /proc/$1/status ]; then
+            mem_use=$(cat /proc/$1/status | grep VmPeak | awk '{print $2}')
+            echo $mem_use > job_procinfo/$1.mem
+            sleep 1
+        else
+            break
+        fi
+    done
+}
 
 function job {
     # $1 -> file name (config YAML)
@@ -101,35 +114,47 @@ function job {
             resdir+="_$simulation_name"
             resdir+="_$dircount"
         done
+        tstart=$(date +%s)
+
         if [ -f "$load_file" ]; then
-            # echo "-f ../batch/$conf_file -l $load_file -d $resdir/"
-            # sleep 1
             OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
+            pid_sim=$!
+            job_meminfo $pid_sim &
+            wait $pid_sim
             exit_value=$?
-            cp $log_file $resdir/ 2>/dev/null
+            memkb=$(cat job_procinfo/$pid_sim.mem)
+            memgb=$(echo "scale=1; $memkb/1024/1024" | bc -l)
+            cp $log_file $resdir/ 2> /dev/null
         else
-            # echo "-f ../batch/$conf_file -d $resdir/"
-            # sleep 1
             OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
+            pid_sim=$!
+            job_meminfo $pid_sim &
+            wait $pid_sim
             exit_value=$?
-            cp $log_file $resdir/ 2>/dev/null
+            memkb=$(cat job_procinfo/$pid_sim.mem)
+            memgb=$(echo "scale=1; $memkb/1024/1024" | bc -l)
+            cp $log_file $resdir/ 2> /dev/null
         fi
+        tend=$(date +%s)
+        tspan=$(($tend - $tstart))
+        tspan_days=$(($tspan / 86400))
+        tspan=$(($tspan - ($tspan_days * 86400) ))
+        tspan_str=$(date -u -d @${tspan} +"%T")
         if [[ $exit_value != 0 ]]; then
-            completed_data=$(date +"%F %T")
-            printf "$completed_data $simulation_name -- Failed ($count): exit value = $exit_value\n"
-            printf "$completed_data %20s -- [ FAIL ] : $resdir [C:$count, E:$exit_value]\n" $simulation_name | tee -a batch.log
+            completed_date=$(date +"%F %T")
+            printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [C:$count, E:$exit_value]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
             count=$(($count + 1))
         else
             break
         fi
     done
-    completed_data=$(date +"%F %T")
+    completed_date=$(date +"%F %T")
     if [ ${count} -ge 2 ]; then
         # Failed!
-        printf "$completed_data %20s -- [ FAIL ] : $resdir [aborted]\n" $simulation_name | tee -a batch.log
+        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [aborted]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
     else
         # Succeeded:
-        printf "$completed_data %20s -- [ OK-$count ] : $resdir\n" $simulation_name | tee -a batch.log
+        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $resdir\n" $simulation_name $tspan_days $memgb | tee -a batch.log
     fi
     # Run the random version:
     count=0
@@ -139,17 +164,23 @@ function job {
     randresdir+="_$simulation_name"
     load_file="$resdir/system.yml"
     OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1
+    pid_sim=$!
+    job_meminfo $pid_sim &
+    wait $pid_sim
     exit_value=$?
+    memkb=$(cat job_procinfo/$pid_sim.mem)
+    memgb=$(echo "scale=1; $memkb/1024/1024" | bc -l)
     cp $log_file $randresdir/ 2>/dev/null
-    completed_data=$(date +"%F %T")
+    completed_date=$(date +"%F %T")
     if [ $exit_value != 0 ]; then
-        printf "$completed_data %20s -- [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simulation_name | tee -a batch.log
+        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
     else
-        printf "$completed_data %20s -- [ OK-$count ] : $randresdir\n" $simulation_name | tee -a batch.log
+        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $randresdir\n" $simulation_name $tspan_days $memgb | tee -a batch.log
     fi
 }
 
-export -f job   # Exports the function so that it can be used in xargs.
+export -f job           # Exports the function so that it can be used in xargs.
+export -f job_meminfo   # Exports the function so that it can be used within job.
 
 # NOTE: `xargs` has been used here to parallelize calls to the function job. This is the meaning of
 # its arguments:

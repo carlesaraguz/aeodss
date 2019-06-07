@@ -290,27 +290,27 @@ void World::step(void)
     #pragma omp parallel for
     for(unsigned int xx = 0; xx < m_width; xx++) {
         for(unsigned int yy = 0; yy < m_height; yy++) {
-            updateAllLayers(xx, yy, false, false);
+            updateAllLayers(xx, yy, false);
         }
     }
     for(auto& a : m_agents) {
         auto cells = a->getWorldFootprint(m_world_positions);
         bool capturing = a->isCapturing();
         for(auto& c : cells) {
-            updateLayer(Layer::REVISIT_TIME_UTOPIA, c.x, c.y, true, true);
-            updateLayer(Layer::REVISIT_TIME_ACTUAL, c.x, c.y, capturing, true);
+            updateLayer(Layer::REVISIT_TIME_UTOPIA, c.x, c.y, true);
+            updateLayer(Layer::REVISIT_TIME_ACTUAL, c.x, c.y, capturing);
         }
     }
 }
 
-void World::updateAllLayers(int x, int y, bool active, bool update_heatmaps)
+void World::updateAllLayers(int x, int y, bool active)
 {
     for(unsigned int l = 0; l < n_layers; l++) {
-        updateLayer(static_cast<Layer>(l), x, y, active, update_heatmaps);
+        updateLayer(static_cast<Layer>(l), x, y, active);
     }
 }
 
-void World::updateLayer(Layer l, int x, int y, bool active, bool update_heatmaps)
+void World::updateLayer(Layer l, int x, int y, bool active)
 {
     auto& cell = m_cells[x][y][(int)l];
     unsigned int hm_x = x / m_hm_dim_ratio_lng;

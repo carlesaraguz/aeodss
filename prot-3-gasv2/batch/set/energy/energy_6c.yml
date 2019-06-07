@@ -8,7 +8,7 @@ system:
         hour: 0             # Time step hours in julian_days mode.
         days: 0             # Time step days in julian_days mode.
         start_epoch: 2451545.0  # Start epoch in julian_days mode.
-        duration: 3.5       # Duration (in days, seconds or units of time depending upon mode).
+        duration: 7         # Duration (in days, seconds or units of time depending upon mode).
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).

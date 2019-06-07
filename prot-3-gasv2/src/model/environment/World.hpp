@@ -74,8 +74,8 @@ private:
 
     static std::vector<std::vector<sf::Vector3f> > m_world_positions;  /**< Look-up table of world 3D coordinates (ECEF). */
 
-    void updateLayer(Layer l, int x, int y, bool active, bool update_heatmaps = true);
-    void updateAllLayers(int x, int y, bool active, bool update_heatmaps = true);
+    void updateLayer(Layer l, int x, int y, bool active);
+    void updateAllLayers(int x, int y, bool active);
 };
 
 #endif /* WORLD_HPP */
