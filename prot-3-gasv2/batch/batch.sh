@@ -79,7 +79,7 @@ function job_meminfo {
         if [ -e /proc/$1/status ]; then
             mem_use=$(cat /proc/$1/status | grep VmPeak | awk '{print $2}')
             echo $mem_use > job_procinfo/$1.mem
-            sleep 1
+            sleep 100
         else
             break
         fi
@@ -117,7 +117,7 @@ function job {
         tstart=$(date +%s)
 
         if [ -f "$load_file" ]; then
-            OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1
+            OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1 &
             pid_sim=$!
             job_meminfo $pid_sim &
             wait $pid_sim
@@ -126,7 +126,7 @@ function job {
             memgb=$(echo "scale=1; $memkb/1024/1024" | bc -l)
             cp $log_file $resdir/ 2> /dev/null
         else
-            OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1
+            OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1 &
             pid_sim=$!
             job_meminfo $pid_sim &
             wait $pid_sim
@@ -163,7 +163,8 @@ function job {
     randresdir="$data_path$dirdate"
     randresdir+="_$simulation_name"
     load_file="$resdir/system.yml"
-    OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1
+    tstart=$(date +%s)
+    OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1 &
     pid_sim=$!
     job_meminfo $pid_sim &
     wait $pid_sim
@@ -171,6 +172,11 @@ function job {
     memkb=$(cat job_procinfo/$pid_sim.mem)
     memgb=$(echo "scale=1; $memkb/1024/1024" | bc -l)
     cp $log_file $randresdir/ 2>/dev/null
+    tend=$(date +%s)
+    tspan=$(($tend - $tstart))
+    tspan_days=$(($tspan / 86400))
+    tspan=$(($tspan - ($tspan_days * 86400) ))
+    tspan_str=$(date -u -d @${tspan} +"%T")
     completed_date=$(date +"%F %T")
     if [ $exit_value != 0 ]; then
         printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
