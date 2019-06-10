@@ -86,6 +86,25 @@ function job_meminfo {
     done
 }
 
+function job_message {
+    # $1 -> Title and fallback message.
+    # $2 -> Text.
+    # $3 -> Color.
+    if [ -f slack_webhook.url ]; then
+        webhook_url=$(cat slack_webhook.url)
+        timestamp=$(date +%s)
+        curl -X POST -H 'Content-type: application/json' --data '{"attachments": [
+            {
+                "fallback": "'"$1"'",
+                "text": "'"$2"'",
+                "color": "'"$3"'",
+                "ts": '"$timestamp"',
+                "mrkdwn_in": ["text"]
+            }
+        ]}' ${webhook_url}
+    fi
+}
+
 function job {
     # $1 -> file name (config YAML)
     conf_file=$(echo $1 | awk '{print $1}')
@@ -118,6 +137,7 @@ function job {
 
         if [ -f "$load_file" ]; then
             OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1 &
+            # sleep 3 &
             pid_sim=$!
             job_meminfo $pid_sim &
             wait $pid_sim
@@ -127,6 +147,7 @@ function job {
             cp $log_file $resdir/ 2> /dev/null
         else
             OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -d $resdir/ > $log_file 2>&1 &
+            # sleep 3 &
             pid_sim=$!
             job_meminfo $pid_sim &
             wait $pid_sim
@@ -143,6 +164,9 @@ function job {
         if [[ $exit_value != 0 ]]; then
             completed_date=$(date +"%F %T")
             printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [C:$count, E:$exit_value]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
+            jbmsg="*$simulation_name* has *\`failed\`* after ${tspan_days}d $tspan_str. (attempt $count)\n"
+            jbmsg+="Memory used: $memgb GB. Exit value: $exit_value."
+            job_message "Simulation failed" ":x: ${jbmsg}" "danger"
             count=$(($count + 1))
         else
             break
@@ -152,9 +176,12 @@ function job {
     if [ ${count} -ge 2 ]; then
         # Failed!
         printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [aborted]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
+        job_message "Simulation aborted" ":no_entry_sign: *$simulation_name* has been aborted." "warning"
     else
         # Succeeded:
         printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $resdir\n" $simulation_name $tspan_days $memgb | tee -a batch.log
+        job_message "Simulation finished" \
+            ":heavy_check_mark: *$simulation_name* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
     fi
     # Run the random version:
     count=0
@@ -165,6 +192,7 @@ function job {
     load_file="$resdir/system.yml"
     tstart=$(date +%s)
     OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1 &
+    # sleep 3 &
     pid_sim=$!
     job_meminfo $pid_sim &
     wait $pid_sim
@@ -180,13 +208,18 @@ function job {
     completed_date=$(date +"%F %T")
     if [ $exit_value != 0 ]; then
         printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
+        jbmsg="*$simulation_name* has *\`failed\`* after ${tspan_days}d $tspan_str.\n"
+        jbmsg+="Memory used: $memgb GB. Exit value: $exit_value."
+        job_message "Simulation failed" ":x: ${jbmsg}" "danger"
     else
         printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $randresdir\n" $simulation_name $tspan_days $memgb | tee -a batch.log
+        job_message "Simulation finished" ":heavy_check_mark: *$simulation_name* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
     fi
 }
 
 export -f job           # Exports the function so that it can be used in xargs.
 export -f job_meminfo   # Exports the function so that it can be used within job.
+export -f job_message   # Exports the function so that it can be used within job.
 
 # NOTE: `xargs` has been used here to parallelize calls to the function job. This is the meaning of
 # its arguments:
