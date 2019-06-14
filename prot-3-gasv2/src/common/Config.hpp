@@ -23,7 +23,7 @@ class Config
 {
 public:
     /* General constants: */
-    static const double pi;                     /**< The number pi. */
+    static const long double pi;                     /**< The number pi. */
 
     /* Configuration constants: */
     static unsigned int win_width;              /**< Default window width. */
@@ -52,11 +52,11 @@ public:
     static float payoff_slope;                  /**< Slope of linear payoff. */
 
     /* Earth WGS84 parameters: */
-    static const double earth_radius;           /**< Standard radius of the Earth (in meters). */
-    static const double earth_wgs84_a;          /**< Semi-major axis of WGS84 ellipsoid (in meters). */
-    static const double earth_wgs84_b;          /**< Semi-minor axis of WGS84 ellipsoid (in meters). */
-    static const double earth_wgs84_e;          /**< Eccentricity of WGS84 ellipsoid. */
-    static const double earth_mu;               /**< Earth's gravitational constant. */
+    static const long double earth_radius;      /**< Standard radius of the Earth (in meters). */
+    static const long double earth_wgs84_a;     /**< Semi-major axis of WGS84 ellipsoid (in meters). */
+    static const long double earth_wgs84_b;     /**< Semi-minor axis of WGS84 ellipsoid (in meters). */
+    static const long double earth_wgs84_e;     /**< Eccentricity of WGS84 ellipsoid. */
+    static const long double earth_mu;          /**< Earth's gravitational constant. */
 
     /* Agent parametrization: */
     static float agent_aperture_min;            /**< Min. aperture for instruments. */
@@ -151,10 +151,13 @@ public:
     static std::string simulation_name; /**< Simulation name. */
     static std::string root_path;       /**< Root path of the project. */
     static std::string data_path;       /**< Path were simulation results will be saved to.*/
-    static std::string conf_file;       /**< Path to the conf. file. */
+    static std::string conf_file;       /**< Path to the configuration file, relative to conf/ directory. */
+    static std::string tle_file;        /**< Path to a TLE collection file. */
     static SandboxMode mode;            /**< The mode of this sandbox. */
     static bool shared_memory;          /**< Agents share memory regions for identical objects in the implementation. */
     static bool simple_log;             /**< Whether to print colors (false) or not (true). */
+    static bool verbosity;              /**< Whether to display messages that are slightly verbose or not. */
+    static unsigned int interpos;       /**< Number of interpolated points in trajectories. 2 or less disables this feature. */
 
     /*******************************************************************************************//**
      *  Loads command arguments from console and parses them.

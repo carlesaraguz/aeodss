@@ -137,7 +137,7 @@ void BasicInstrument::applyToDistance3D(
     unsigned int oy,
     sf::Vector3f p,
     double t,
-    float r,
+    double r,
     bool world_cells,
     std::function<void(unsigned int, unsigned int)> f,
     const std::vector<std::vector<sf::Vector3f> >& lut) const
@@ -149,6 +149,7 @@ void BasicInstrument::applyToDistance3D(
      *  roughly 190 KiB (per Agent), whereas a 1800x900 model takes roughly 18.5 MiB.
      **/
     auto p_ecef = CoordinateSystemUtils::fromECIToECEF(p, t);
+    auto o_ecef = lut.at(ox).at(oy);
     int span_hor, span_ver, xx, yy, its = 0;
     if(world_cells) {
         span_hor = World::getWidth();
@@ -160,32 +161,53 @@ void BasicInstrument::applyToDistance3D(
     bool at_r = false;
     auto check_cell = [&](int xit, int yit, bool verbose = false) {
         auto s_ecef = lut.at(xit).at(yit);
+        /*  ===== Original method: =================================================================
+         *  Computes distance from p to s and compares with slant range. This methods yielded errors
+         *  for cases with small swath/apertures (or the errors were not detected in the other
+         *  cases). Distance from o to p resulted in longer distance than the slant range, which is
+         *  impossible. This method has been disabled and left below for reference.
+         **/
+        #if 0
         float dist = MathUtils::norm(p_ecef - s_ecef);
         if(dist <= r) {
             f(xit, yit);
             at_r = true;
         }
+        #endif
+
+        /*  ===== New method: ======================================================================
+         *  Computes the arc between points s and o and compares it with the current instrument
+         *  swath. This method relies upon the great-circle distance method, and uses constant Earth
+         *  radius 6371 km (i.e. approximates Earth to a sphere).
+         **/
+        float dist = MathUtils::arc(MathUtils::makeUnitary(o_ecef), MathUtils::makeUnitary(s_ecef)) * Config::earth_radius;
+        if(dist <= getSwath(p, m_aperture) / 2.f) {
+            f(xit, yit);
+            at_r = true;
+        }
         if(verbose) {
-            Log::dbg << "Point (" << xit << ", " << yit << ") is at distance " << dist << " (> " << r << ").\n";
-            Log::dbg << "  p = (" << p_ecef.x << ", " << p_ecef.y << ", " << p_ecef.z << ").\n";
-            Log::dbg << "  s = (" << s_ecef.x << ", " << s_ecef.y << ", " << s_ecef.z << ").\n";
+            Log::dbg << "Point (" << xit << ", " << yit << ", " << (world_cells ? "[W]" : "[M]") << ") is at distance " << dist << " (> " << r << ").\n";
+            Log::dbg << "  p = [" << p_ecef.x << ", " << p_ecef.y << ", " << p_ecef.z << "].\n";
+            Log::dbg << "  s = [" << s_ecef.x << ", " << s_ecef.y << ", " << s_ecef.z << "].\n";
         }
     };
     ox %= lut.size();
     oy %= lut.at(0).size();
-    /*
+    // /*
     check_cell(ox, oy);
     if(!at_r) {
         check_cell(ox, oy, true);
         auto o_ecef = lut.at(ox).at(oy);
         auto o_eci = CoordinateSystemUtils::fromECEFToECI(o_ecef, t);
-        Log::warn << "Position in ECI  = (" << p.x << ", " << p.y << ", " << p.z << ").\n";
-        Log::warn << "Origin   in ECI  = (" << o_eci.x << ", " << o_eci.y << ", " << o_eci.z << ").\n";
-        Log::warn << "Position in ECEF = (" << p_ecef.x << ", " << p_ecef.y << ", " << p_ecef.z << ").\n";
-        Log::warn << "Origin   in ECEF = (" << o_ecef.x << ", " << o_ecef.y << ", " << o_ecef.z << ").\n";
-        Log::warn << "Error: " << MathUtils::norm(p - o_eci) << ".\n";
+        // Log::warn << "Position in ECI  = (" << p.x << ", " << p.y << ", " << p.z << ").\n";
+        // Log::warn << "Origin   in ECI  = (" << o_eci.x << ", " << o_eci.y << ", " << o_eci.z << ").\n";
+        // Log::warn << "Position in ECEF = [" << p_ecef.x << ", " << p_ecef.y << ", " << p_ecef.z << "].\n";
+        // Log::warn << "Origin   in ECEF = [" << o_ecef.x << ", " << o_ecef.y << ", " << o_ecef.z << "].\n";
+        Log::warn << "Distance in ECEF: " << MathUtils::norm(p - o_eci) << ".\n";
+        Log::warn << "Distance in ECI:  "  << MathUtils::norm(p_ecef - o_ecef) << ".\n";
     }
-    */
+    // if(ox == 1714 && oy == 256) std::exit(1);
+    // */
 
     /* Iterate for every quadrant until no more cells are found horizontally. */
     for(int quadrant = 0; quadrant < 4; quadrant++) {
@@ -242,7 +264,7 @@ void BasicInstrument::applyToDistance3D(
 
 std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
     const std::vector<std::vector<sf::Vector3f> >& lut,
-    float dist, sf::Vector3f position,
+    double dist, sf::Vector3f position,
     bool world_cells,
     double t
 ) const
@@ -322,7 +344,7 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
     return cells;
 }
 
-std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(float dist, sf::Vector2f position, bool world_cells) const
+std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(double dist, sf::Vector2f position, bool world_cells) const
 {
     if(Config::motion_model == AgentMotionType::ORBITAL) {
         Log::err << "Computing visible cells with a 2-d function. Will result in unexpected behaviour.\n";
@@ -339,13 +361,13 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
         Log::err << "Computing visible cells without a valid swath (and position).\n";
     }
     if(Config::motion_model == AgentMotionType::ORBITAL) {
-        return getVisibleCells(lut, getSlantRangeAt(m_aperture / 2.f, m_position), m_position, world_cells);
+        return getVisibleCells(lut, getSlantRangeAt((long double)m_aperture / 2.0, m_position), m_position, world_cells);
     } else {
         return getVisibleCells(lut, m_swath, m_position, world_cells);
     }
 }
 
-float BasicInstrument::getSlantRangeAt(float deg, sf::Vector3f p) const
+float BasicInstrument::getSlantRangeAt(long double deg, sf::Vector3f p) const
 {
     /*  NOTE:
      *  Precise computation of slant angles should consider the actual radius of the Earth at the
@@ -353,12 +375,12 @@ float BasicInstrument::getSlantRangeAt(float deg, sf::Vector3f p) const
      *  perform geographic corrections at this point, we'll assume that the radius of the Earth is
      *  constant and equal to its equatorial value (i.e. semi-major axis of WGS-86 ellipsoid).
      **/
-    float ang_rad = MathUtils::degToRad(std::fmod(deg, 180.f));
-    float h = MathUtils::norm(p);
-    float lambda = Config::pi - std::asin((h / Config::earth_wgs84_a) * std::sin(ang_rad));
-    float alpha  = Config::pi - lambda - ang_rad;
-    float sr = Config::earth_wgs84_a * std::sin(alpha) / std::sin(ang_rad);
-    if(std::isnan(sr) || sr <= 1.f) {
+    long double ang_rad = MathUtils::degToRad(std::fmod((long double)deg, 180.0L));
+    long double h = MathUtils::norm(sf::Vector3<long double>(p.x, p.y, p.z));
+    long double lambda = Config::pi - std::asin((h / Config::earth_wgs84_a) * std::sin(ang_rad));
+    long double alpha  = Config::pi - lambda - ang_rad;
+    long double sr = Config::earth_wgs84_a * std::sin(alpha) / std::sin(ang_rad);
+    if(std::isnan(sr) || sr <= 1.0) {
         Log::err << "Computing slant range gave \'" << sr << "\' for instrument at " << deg << "º\n";
         Log::err << "  h = " << h << " meters.\n";
         Log::err << "  (h/R)·sin(ẟ) = " << (h / Config::earth_wgs84_a) * std::sin(ang_rad) << ".\n";

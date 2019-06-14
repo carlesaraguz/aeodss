@@ -101,7 +101,7 @@ public:
 
     /*******************************************************************************************//**
      *  Transformation from Orbital to ECI. This conversion is based upon the kepler orbital
-     *  elements. It does not consider effects of the [flattering effect (J2-term)](
+     *  elements. It does not consider [flattening effects (J2-term)](
      *  https://en.wikipedia.org/wiki/Orbital_perturbation_analysis#The_effect_of_the_Earth_flattening)
      *  the argument of periapsis either right ascension of the ascending node.
      *  @param radius        Orbital coordinate to be transformed: radius.

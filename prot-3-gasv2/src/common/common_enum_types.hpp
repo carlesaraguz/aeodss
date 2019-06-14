@@ -43,7 +43,8 @@ enum class PayoffModel {
 enum class SandboxMode {
     SIMULATE,           /* Runs a simulation with the configured parameters. */
     RANDOM,             /* Simulates with most of the configured parameters but disables all reasoning and communications. */
-    TEST_PAYOFF         /* Enters a test mode and shows payoff values. */
+    TEST_PAYOFF,        /* Enters a test mode and shows payoff values. */
+    PARSE_TLE_FILE      /* Parses a TLE file and generates a system.yml file. Does not simulate. */
 };
 
 #endif /* COMMON_ENUM_TYPES_HPP */

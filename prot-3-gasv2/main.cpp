@@ -35,6 +35,7 @@ bool exit_control_loop;
 /* Function headers: */
 void handleEvents(sf::RenderWindow& w);
 void testModePayoff(void);
+void parseTLEFile(void);
 void draw_loop(void);
 void control_loop(void);
 
@@ -196,17 +197,32 @@ void control_loop(void)
     Log::dbg << "Control loop started...\n";
 
     /* Create agents: --------------------------------------------------------------------------- */
-    for(unsigned int i = 0; i < Config::n_agents; i++) {
-        AgentBuilder ab;
-        if(Config::load_agents_from_yaml) {
-            Log::warn << "Loading agent from YAML file...\n";
-            ab.load(i, Config::system_yml);
-        } else {
-            ab.generateAndStore(i);
+    if(Config::load_agents_from_yaml) {
+        AgentBuilder agent_builder;
+        Log::dbg << "Loading agents from YAML file (\'" << Config::system_yml << "\')...\n";
+        auto abset = agent_builder.load(Config::system_yml);
+        for(auto ab : abset) {
+            if(agents.size() < Config::n_agents) {
+                auto aptr = std::make_shared<Agent>(&ab);
+                agents.push_back(aptr);
+                control_info.push_back({false, aptr->getId()});
+            } else {
+                break;
+            }
         }
-        auto aptr = std::make_shared<Agent>(&ab);
-        agents.push_back(aptr);
-        control_info.push_back({false, ("A" + std::to_string(i))});
+        if(agents.size() != Config::n_agents) {
+            Log::err << "Error loading agents from YAML file. Wrong number of agents. " << Config::n_agents << " agents were expected.\n";
+            Log::err << "Agents found in file: " << abset.size() << ". Agents successfully loaded: " << agents.size() << ".\n";
+            std::exit(3);
+        }
+    } else {
+        for(unsigned int i = 0; i < Config::n_agents; i++) {
+            AgentBuilder ab;
+            ab.generateAndStore("A" + std::to_string(i));
+            auto aptr = std::make_shared<Agent>(&ab);
+            agents.push_back(aptr);
+            control_info.push_back({false, aptr->getId()});
+        }
     }
 
     /* Configure agent links: ------------------------------------------------------------------- */
@@ -321,6 +337,9 @@ int main(int argc, char** argv)
                 testModePayoff();
                 std::exit(0);
                 break;
+            case SandboxMode::PARSE_TLE_FILE:
+                parseTLEFile();
+                std::exit(0);
             case SandboxMode::SIMULATE:
             case SandboxMode::RANDOM:
             default:
@@ -368,6 +387,62 @@ void handleEvents(sf::RenderWindow& w)
             }
         }
     }
+}
+
+void parseTLEFile(void)
+{
+    Log::dbg << "**************************************************\n";
+    Log::dbg << "-- Entering TLE file parse mode for: \'" << Config::tle_file << "\'...\n";
+    std::ifstream tle_file(Config::tle_file, std::ios::in);
+    if(tle_file.is_open()) {
+        bool valid = true;
+        int line_count = 0;
+        std::vector<TLE> tle_collection;
+        std::string tle0, tle1, tle2;
+        char line[100];
+        while(tle_file.getline(line, 100)) {
+            if(line_count == 0) {
+                tle0 = Utils::trim(std::string(line));
+            } else if(line_count == 1) {
+                tle1 = Utils::trim(std::string(line));
+            } else if(line_count == 2) {
+                tle2 = Utils::trim(std::string(line));
+                TLE tle_obj;
+                try {
+                    tle_obj.setTLE(tle0, tle1, tle2);
+                    Utils::removeWhitespace(tle_obj.sat_name);
+                    tle_collection.push_back(tle_obj);
+                    Log::dbg << "-- Parsing " << tle_collection.back().sat_name << " done.\n";
+                } catch(const std::exception& e) {
+                    Log::err << "-- Unable to parse TLE. Aborting...\n";
+                    Log::err << "-- LINE0: \'" << tle0 << "\'\n";
+                    Log::err << "-- LINE1: \'" << tle1 << "\'\n";
+                    Log::err << "-- LINE2: \'" << tle2 << "\'\n";
+                    valid = false;
+                    break;
+                }
+            }
+            line_count++;
+            line_count %= 3;
+        }
+        if(tle_collection.size() == 0) {
+            Log::warn << "-- Parsing the file returned 0 TLE objects.\n";
+        } else {
+            Log::dbg << "-- Parsing the file returned " << tle_collection.size() << " TLE objects.\n";
+            for(auto& tle_obj : tle_collection) {
+                AgentBuilder ab(tle_obj);
+            }
+        }
+        if(valid) {
+            Log::dbg << "-- Parsing completed. Results are stored in \'" << Config::data_path << "system.yml\'\n";
+        } else {
+            Log::warn << "-- Some TLE lines could not be parsed.\n";
+            Log::warn << "-- Results in \'" << Config::data_path << "system.yml\' may be incomplete.\n";
+        }
+    } else {
+        Log::err << "-- Unable to open TLE collection file: \'" << Config::tle_file << "\'. Check permissions and path.\n";
+    }
+    Log::dbg << "**************************************************\n";
 }
 
 void testModePayoff(void)

@@ -22,6 +22,7 @@ public:
     static std::string trimLeft(std::string s);
     static std::string trimRight(std::string s);
     static std::string trim(std::string s);
+    static void removeWhitespace(std::string& s);
     static std::vector<std::string> split(const std::string &s, char delim);
 
     template<typename T>

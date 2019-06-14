@@ -50,3 +50,8 @@ prot-*/bin/*
 # Prototypes
 */dev/*
 dev/*
+
+# Batch simulation folder and files:
+prot-*/batch/job_logs/*
+prot-*/batch/job_procinfo/*
+prot-*/batch/*.log

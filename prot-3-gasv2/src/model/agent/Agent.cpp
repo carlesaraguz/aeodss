@@ -459,15 +459,15 @@ void Agent::consume(void)
 
     /* Update resources: */
     for(auto& r : m_resources) {
-        if(m_print_resources) {
-            Log::warn << "[" << m_id << "] Is consuming t = " << VirtualTime::toString(VirtualTime::now())
-                << ". R{\'" << r.first << "\'} " << r.second->getCapacity() << " ... ";
-        }
+        // if(m_print_resources) {
+        //     Log::warn << "[" << m_id << "] Is consuming t = " << VirtualTime::toString(VirtualTime::now())
+        //         << ". R{\'" << r.first << "\'} " << r.second->getCapacity() << " ... ";
+        // }
         try {
             r.second->step();
-            if(m_print_resources) {
-                Log::warn << r.second->getCapacity() << "\n";
-            }
+            // if(m_print_resources) {
+            //     Log::warn << r.second->getCapacity() << "\n";
+            // }
 
         } catch(const std::runtime_error& e) {
             Log::err << "Resource violation exception catched. Will continue for debugging purposes.\n";

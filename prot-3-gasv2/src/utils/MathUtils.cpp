@@ -12,67 +12,67 @@
 
 #include "MathUtils.hpp"
 
-double MathUtils::degToRad(double a)
+long double MathUtils::degToRad(long double a)
 {
     return a * Config::pi / 180.0;
 }
 
-double MathUtils::radToDeg(double a)
+long double MathUtils::radToDeg(long double a)
 {
     return a * 180.0 / Config::pi;
 }
 
-double MathUtils::arcminToDeg(double a)
+long double MathUtils::arcminToDeg(long double a)
 {
     return a / 60.0;
 }
 
-double MathUtils::arcsecToDeg(double a)
+long double MathUtils::arcsecToDeg(long double a)
 {
     return a / 3600.0;
 }
 
-double MathUtils::degToArcmin(double a)
+long double MathUtils::degToArcmin(long double a)
 {
     return a * 60.0;
 }
 
-double MathUtils::degToArcsec(double a)
+long double MathUtils::degToArcsec(long double a)
 {
     return a * 3600.0;
 }
 
-double MathUtils::arcminToRad(double a)
+long double MathUtils::arcminToRad(long double a)
 {
     return degToRad(arcminToDeg(a));
 }
 
-double MathUtils::arcsecToRad(double a)
+long double MathUtils::arcsecToRad(long double a)
 {
     return degToRad(arcsecToDeg(a));
 }
 
-double MathUtils::radToArcsec(double a)
+long double MathUtils::radToArcsec(long double a)
 {
     return degToArcsec(radToDeg(a));
 }
 
-double MathUtils::revToArcsec(double r)
+long double MathUtils::revToArcsec(long double r)
 {
     return 1296000 * r;
 }
 
-double MathUtils::secTimeToRad(double s)
+long double MathUtils::secTimeToRad(long double s)
 {
     return s * Config::pi / 43200;
 }
 
-double MathUtils::radToSecTime(double r)
+long double MathUtils::radToSecTime(long double r)
 {
     return r * 43200 / Config::pi;
 }
 
-double MathUtils::degToSecTime(double d)
+long double MathUtils::degToSecTime(long double d)
 {
     return degToRad(radToSecTime(d));
 }

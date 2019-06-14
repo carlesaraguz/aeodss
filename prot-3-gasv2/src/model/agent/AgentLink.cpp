@@ -146,7 +146,10 @@ void AgentLink::doDisconnect(std::string aid)
     }
     m_connected[aid] = false;
     m_self_view.setLink(aid, AgentLinkView::State::DISCONNECTED);
-    Log::dbg << "Agent " << getAgentId() << " has disconnected from " << aid << ".\n";
+
+    if(Config::verbosity) {
+        Log::dbg << "Agent " << getAgentId() << " has disconnected from " << aid << ".\n";
+    }
 }
 
 void AgentLink::update(void)
@@ -161,7 +164,9 @@ void AgentLink::update(void)
         }
     }
     for(auto& aid : disconnect_list) {
-        Log::dbg << "Agent " << getAgentId() << " is going to disconnect from " << aid << ".\n";
+        if(Config::verbosity) {
+            Log::dbg << "Agent " << getAgentId() << " is going to disconnect from " << aid << ".\n";
+        }
         doDisconnect(aid);
         /* Notify of disconnection: */
         m_other_agents[aid]->getLink()->notifyDisconnect(getAgentId());
@@ -182,7 +187,9 @@ void AgentLink::update(void)
                 if(m_encounter_callback(id)) {
                     if(a.second->getLink()->tryConnect(shared_from_this())) {
                         doConnect(id);
-                        Log::dbg << "Agents connected " << getAgentId() << " <--> " << id << ".\n";
+                        if(Config::verbosity) {
+                            Log::dbg << "Agents connected " << getAgentId() << " <--> " << id << ".\n";
+                        }
                     }
                 }
             }

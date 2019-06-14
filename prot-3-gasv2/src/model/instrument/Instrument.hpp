@@ -26,13 +26,13 @@ public:
     virtual void disable(void) = 0;
     virtual bool isEnabled(void) const = 0;
 
-    virtual float getSlantRangeAt(float deg, sf::Vector3f p) const = 0;
+    virtual float getSlantRangeAt(long double deg, sf::Vector3f p) const = 0;
     virtual float getSwath(sf::Vector3f p, float aperture) const = 0;
 
     virtual std::vector<sf::Vector2i> getVisibleCells(const std::vector<std::vector<sf::Vector3f> >& lut,
-        float dist, sf::Vector3f position, bool world_cells, double t = -1.0) const = 0;
+        double dist, sf::Vector3f position, bool world_cells, double t = -1.0) const = 0;
 
-    virtual std::vector<sf::Vector2i> getVisibleCells(float dist, sf::Vector2f position, bool world_cells) const = 0;
+    virtual std::vector<sf::Vector2i> getVisibleCells(double dist, sf::Vector2f position, bool world_cells) const = 0;
 
     virtual std::vector<sf::Vector2i> getVisibleCells(const std::vector<std::vector<sf::Vector3f> >& lut,
         bool world_cells = false) const = 0;

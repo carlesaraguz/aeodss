@@ -31,7 +31,6 @@ sf::Vector3f CoordinateSystemUtils::fromECIToECEF(sf::Vector3f coord, double jd)
     /* ECI to ECEF transformation:
      *  ECEF <-- A·B·C·D·ECI
      **/
-
     gsl_vector* ecef_vec = gsl_vector_alloc(3);
     gsl_vector* eci_vec  = gsl_vector_alloc(3);
     gsl_matrix* ab_mat   = gsl_matrix_alloc(3, 3);
@@ -58,6 +57,7 @@ sf::Vector3f CoordinateSystemUtils::fromECIToECEF(sf::Vector3f coord, double jd)
     gsl_matrix_free(precession_mat);
     gsl_matrix_free(nutation_mat);
     gsl_matrix_free(sideral_mat);
+    gsl_matrix_free(polar_mat);
     gsl_matrix_free(ab_mat);
     gsl_matrix_free(abc_mat);
     gsl_matrix_free(abcd_mat);
@@ -101,7 +101,7 @@ sf::Vector3f CoordinateSystemUtils::fromECEFToECI(sf::Vector3f coord, double jd)
     gsl_vector_set(ecef_vec, 0, coord.x);    /* Initialize ECEF vector.  */
     gsl_vector_set(ecef_vec, 1, coord.y);    /* ...                      */
     gsl_vector_set(ecef_vec, 2, coord.z);    /* ...                      */
-    gsl_vector_set_zero(eci_vec);           /* Initialize ECI vector.   */
+    gsl_vector_set_zero(eci_vec);            /* Initialize ECI vector.   */
     gsl_linalg_LU_decomp(abcd_mat, perm, &signum);
     gsl_linalg_LU_solve(abcd_mat, perm, ecef_vec, eci_vec);
     /*  The previous solver actually inverts the matrix. Although the same result could be obtained
@@ -124,6 +124,7 @@ sf::Vector3f CoordinateSystemUtils::fromECEFToECI(sf::Vector3f coord, double jd)
     gsl_matrix_free(precession_mat);
     gsl_matrix_free(nutation_mat);
     gsl_matrix_free(sideral_mat);
+    gsl_matrix_free(polar_mat);
     gsl_matrix_free(ab_mat);
     gsl_matrix_free(abc_mat);
     gsl_matrix_free(abcd_mat);

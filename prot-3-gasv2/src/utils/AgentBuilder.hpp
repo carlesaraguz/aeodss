@@ -15,17 +15,22 @@
 #include <yaml-cpp/yaml.h>
 
 #include "AgentMotion.hpp"
+#include "TLE.hpp"
 
 class AgentBuilder
 {
 public:
     AgentBuilder(void) = default;
     AgentBuilder(unsigned int id);                          /* Generates agent config. and the YAML file. */
-    AgentBuilder(unsigned int id, std::string src_path);    /* Loads agent config. from an existing YAML file. */
+    AgentBuilder(std::string aid);                          /* Generates agent config. and the YAML file. */
+    AgentBuilder(std::string aid, std::string src_path);    /* Loads agent config. from an existing YAML file. */
+    AgentBuilder(TLE tle_specs);
 
-    void generateAndStore(unsigned int id);
+    void generateAndStore(TLE tle_specs);
+    void generateAndStore(std::string aid);
     void save(void);
-    void load(unsigned int id, std::string src_path);
+    void load(std::string aid, std::string src_path);
+    std::vector<AgentBuilder> load(std::string src_path);
 
     std::string getAgentId(void) const { return m_agent_id; }
     OrbitalParams getOrbitalParams(void) const { return m_orbital_params; }
@@ -46,6 +51,7 @@ private:
     float m_instrument_storage_rate;
     float m_instrument_aperture;
 
+    void load(std::string aid, const YAML::Node& an);
     void randomize(void);
 };
 

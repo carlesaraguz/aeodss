@@ -110,7 +110,7 @@ public:
      *  @note For a 2D version of this function, see the other overloads of getVisibleCells.
      **********************************************************************************************/
     std::vector<sf::Vector2i> getVisibleCells(const std::vector<std::vector<sf::Vector3f> >& lut,
-        float dist, sf::Vector3f position, bool world_cells, double t = -1.0) const override;
+        double dist, sf::Vector3f position, bool world_cells, double t = -1.0) const override;
 
     /*******************************************************************************************//**
      *  Computes visible cells for an instrument located at the given 2D position. Visibility is
@@ -124,7 +124,7 @@ public:
      *                      false) or world cordinates in pixels (if true).
      *  @note This function should only be used in 2D motion models.
      **********************************************************************************************/
-    std::vector<sf::Vector2i> getVisibleCells(float dist, sf::Vector2f position, bool world_cells) const override;
+    std::vector<sf::Vector2i> getVisibleCells(double dist, sf::Vector2f position, bool world_cells) const override;
 
     /*******************************************************************************************//**
      *  Computes visible cells for the actual instrument (i.e. taking its current position and
@@ -185,7 +185,7 @@ public:
      *  @param  p           The position of the instrument.
      *  @return The distance from the instrument to the surface for the given angle.
      **********************************************************************************************/
-    float getSlantRangeAt(float deg, sf::Vector3f p) const override;
+    float getSlantRangeAt(long double deg, sf::Vector3f p) const override;
 
     /*******************************************************************************************//**
      *  Getter for the instrument position in ECI coordinates.
@@ -258,7 +258,7 @@ private:
      *  @param  lut         A pre-computed look-up table of positions in ECEF for every cell
      *                      (world or model) that will be used to compute distances.
      **********************************************************************************************/
-    void applyToDistance3D(unsigned int ox, unsigned int oy, sf::Vector3f p, double t, float r, bool world_cells = false,
+    void applyToDistance3D(unsigned int ox, unsigned int oy, sf::Vector3f p, double t, double r, bool world_cells = false,
         std::function<void(unsigned int, unsigned int)> f = [](unsigned int, unsigned int) { },
         const std::vector<std::vector<sf::Vector3f> >& lut = { }) const;
 };

@@ -34,91 +34,91 @@ public:
      *  @param a     degrees to be converted [º]
      *  @return      radians resulting
      **********************************************************************************************/
-    static double degToRad(double a);
+    static long double degToRad(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from radians to degrees.
      *  @param a     radians to be converted [radians]
      *  @return      degrees resulting [º]
      **********************************************************************************************/
-    static double radToDeg(double a);
+    static long double radToDeg(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from arc-minutes to degrees.
      *  @param a     arc-minutes to be converted [minutes of arc]
      *  @return      degrees resulting [º]
      **********************************************************************************************/
-    static double arcminToDeg(double a);
+    static long double arcminToDeg(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from arc-seconds to degrees.
      *  @param a     arc-seconds to be converted [seconds of arc]
      *  @return      degrees resulting [º]
      **********************************************************************************************/
-    static double arcsecToDeg(double a);
+    static long double arcsecToDeg(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from degrees to arc-minutes.
      *  @param a     degrees to be converted [º]
      *  @return      arc-minutes resulting [minutes of arc]
      **********************************************************************************************/
-    static double degToArcmin(double a);
+    static long double degToArcmin(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from degrees to arc-seconds.
      *  @param a     degrees to be converted [º]
      *  @return      arc-seconds resulting [seconds of arc]
      **********************************************************************************************/
-    static double degToArcsec(double a);
+    static long double degToArcsec(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from arc-minutes to radians.
      *  @param a     arc-minutes to be converted [minutes of arc]
      *  @return      radians resulting
      **********************************************************************************************/
-    static double arcminToRad(double a);
+    static long double arcminToRad(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from arc-seconds to radians.
      *  @param a     arc-second to be converted [seconds of arc]
      *  @return      radians resulting
      **********************************************************************************************/
-    static double arcsecToRad(double a);
+    static long double arcsecToRad(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from radians to arc-seconds.
      *  @param a     radians to be converted [radians]
      *  @return      arc-seconds resulting [seconds of arc]
      **********************************************************************************************/
-    static double radToArcsec(double a);
+    static long double radToArcsec(long double a);
 
     /*******************************************************************************************//**
      *  Transformation from revolution to arc-seconds.
      *  @param r     revolution to be converted
      *  @return      arc-seconds resulting [seconds of arc]
      **********************************************************************************************/
-    static double revToArcsec(double r);
+    static long double revToArcsec(long double r);
 
     /*******************************************************************************************//**
      *  Transformation from seconds of time to radians.
      *  @param a     seconds of time to be converted [seconds]
      *  @return      radians resulting
      **********************************************************************************************/
-    static double secTimeToRad(double s);
+    static long double secTimeToRad(long double s);
 
     /*******************************************************************************************//**
      *  Transformation from radians to seconds of time.
      *  @param r     radians to be converted [radians]
      *  @return      seconds of time resulting [seconds]
      **********************************************************************************************/
-    static double radToSecTime(double r);
+    static long double radToSecTime(long double r);
 
     /*******************************************************************************************//**
      *  Transformation from degree to seconds of time.
      *  @param r     degrees to be converted [º]
      *  @return      seconds of time resulting [seconds]
      **********************************************************************************************/
-    static double degToSecTime(double d);
+    static long double degToSecTime(long double d);
 
     /*******************************************************************************************//**
      *  Computes the magnitude of a 2D vector (SFML).
@@ -159,6 +159,16 @@ public:
      **********************************************************************************************/
     template <class T>
     static T dot(const sf::Vector3<T>& a, const sf::Vector3<T>& b);
+
+    /*******************************************************************************************//**
+     *  Computes the great-circle arc between two unitary vectors a and b.
+     *  @tparam     T       The underlying type with which the vector components are expressed.
+     *  @param      a       Unitary vector A
+     *  @param      b       Unitary vector B
+     *  @return     The smaller great-circle arc between A and B, in radians.
+     **********************************************************************************************/
+    template <class T>
+    static T arc(const sf::Vector3<T>& a, const sf::Vector3<T>& b);
 };
 
 template <typename T>
@@ -193,6 +203,13 @@ template <class T>
 T MathUtils::dot(const sf::Vector3<T>& a, const sf::Vector3<T>& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+template <class T>
+T MathUtils::arc(const sf::Vector3<T>& a, const sf::Vector3<T>& b)
+{
+    /* See: https://en.wikipedia.org/wiki/Great-circle_distance#Vector_version. */
+    return std::atan2(norm(cross(a, b)), dot(a, b));
 }
 
 #endif  /* MATH_UTILS_HPP */

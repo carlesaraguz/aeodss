@@ -1,14 +1,16 @@
 version: 4
 system:
-    n_agents: 5
+    n_agents: 1
     time:
         type: julian_days   # julian_days, seconds or arbitrary
-        sec: 0              # Time step seconds in julian_days or seconds mode.
-        min: 1              # Time step minutes in julian_days mode.
+        sec: 30             # Time step seconds in julian_days or seconds mode.
+        min: 0              # Time step minutes in julian_days mode.
         hour: 0             # Time step hours in julian_days mode.
         days: 0             # Time step days in julian_days mode.
-        start_epoch: 2451545.0  # Start epoch in julian_days mode.
-        duration: 1         # Duration (in days, seconds or units of time depending upon mode).
+        start_epoch: 2458269.5  # Start epoch in julian_days mode (31 May 2018)
+        duration: 3         # Duration (in days, seconds or units of time depending upon mode).
+    interpos: 10            # Interpolation in positions. Lower or equal to 2 disables this feature.
+    verbosity: true         # Enable/disable some messages.
     parallel:
         nested: true        # Call OMP nested directive at the beginning of the program.
         planners: 1         # Max number of concurrent threads for GAScheduler instances (0 = 1 = none).
@@ -28,8 +30,8 @@ environment:
     world_width: 1800
     world_height: 900
     payoff:
-        goal_target: 1          # Sigmoid and linear model: central revisit time (in time units).
-        type: quadratic            # Model [sigmoid, linear, constant_slope, quadratic]
+        goal_target: 0.5        # Sigmoid and linear model: central revisit time (in time units).
+        type: linear            # Model [sigmoid, linear, constant_slope, quadratic]
         payoff_mid: 0.5         # Linear model: center payoff value (revisit time = target).
         goal_min: 0.25          # Linear and quadratic models: minimum revisit time to generate payoff.
         goal_max: 1.75          # Linear model: maximum revisit time to generate payoff.
@@ -41,7 +43,7 @@ agent:
     energy_generation: -160     # Energy generation rate: 90 min to full.
     # Instrument parameters:
     instrument:
-        aperture: 90            # Degrees [min, max] or single value.
+        aperture: 10            # Degrees [min, max] or single value.
         energy: 320             # Energy consumption rate: 45 min to depletion.
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
@@ -62,12 +64,12 @@ agent:
         argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1                # 1s transfer time.
-    planning_window: 360            # 360 Time-steps = 180 min.
-    replanning_window: 90           # 90 Time-steps = 45 min.
-    confirm_window: 180             # 180 Time-steps = 90 min.
+    planning_window: 360            # Time-steps = 180 min.
+    replanning_window: 90           # Time-steps = 45 min.
+    confirm_window: 180             # Time-steps = 90 min.
     knowledge_base_size: 100        # Max. total tasks that an angent can remember.
     max_tasks: 50                   # Max. tasks to generate.
-    max_task_duration: 8            # 8 time-steps.
+    max_task_duration: 20           # Time-steps = 10 min.
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.
     confidence:
         exp: 2                      # Used when baseline is updated.

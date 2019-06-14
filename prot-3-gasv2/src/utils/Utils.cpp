@@ -41,6 +41,17 @@ std::string Utils::trim(std::string s)
     return trimLeft(trimRight(s));
 }
 
+void Utils::removeWhitespace(std::string& s)
+{
+    std::string newstr;
+    for(auto& c : s) {
+        if(c != ' ' && c != '\n' && c != '\t') {
+            newstr.push_back(c);
+        }
+    }
+    s = newstr;
+}
+
 std::vector<std::string> Utils::split(const std::string &s, char delim)
 {
     std::vector<std::string> elems;

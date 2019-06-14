@@ -86,8 +86,9 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
                 m_orb_params.argp = (double)Random::getUf(Config::orbp_argp_max, Config::orbp_argp_min);
                 m_orb_params.raan = (double)Random::getUf(Config::orbp_raan_max, Config::orbp_raan_min);
             }
-
-            m_orb_params.mean_motion = std::sqrt(Config::earth_mu / std::pow(m_orb_params.sma, 3)); /* In radians/sec. */
+            if(m_orb_params.mean_motion == 0.0) {
+                m_orb_params.mean_motion = std::sqrt(Config::earth_mu / std::pow(m_orb_params.sma, 3)); /* In radians/sec. */
+            }
 
             OrbitalState os;
             if(init_mean_an == -1.0) {
@@ -116,9 +117,14 @@ void AgentMotion::step(void)
     if(m_position.size() > 1) {
         m_position.erase(m_position.begin());
         m_velocity.erase(m_velocity.begin());
+        m_orbital_state.erase(m_orbital_state.begin());
     } else {
         Log::warn << "[" << m_agent->getId() << "] Agent motion failure (" << m_position.size() << ").\n";
     }
+    // Log::warn << std::fixed << std::setprecision(5);
+    // Log::warn << "M = " << std::setw(10) << m_orbital_state.front().mean_anomaly
+    //     << " rad (" << std::setw(10) << MathUtils::radToDeg(m_orbital_state.front().mean_anomaly) << " º) = "
+    //     << std::setprecision(2) << (100.0 * m_orbital_state.front().mean_anomaly / (2.0 * Config::pi)) << "%\n";
 }
 
 void AgentMotion::clearPropagation(void)
