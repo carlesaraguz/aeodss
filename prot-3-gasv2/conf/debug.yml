@@ -1,6 +1,6 @@
 version: 4
 system:
-    n_agents: 1
+    n_agents: 4
     time:
         type: julian_days   # julian_days, seconds or arbitrary
         sec: 30             # Time step seconds in julian_days or seconds mode.
@@ -43,7 +43,7 @@ agent:
     energy_generation: -160     # Energy generation rate: 90 min to full.
     # Instrument parameters:
     instrument:
-        aperture: 10            # Degrees [min, max] or single value.
+        aperture: 80            # Degrees [min, max] or single value.
         energy: 320             # Energy consumption rate: 45 min to depletion.
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
@@ -64,12 +64,12 @@ agent:
         argp: [0, 360]          # Argument of the perigee in degrees, [min, max] or single value.
         raan: [0, 360]          # Right ascension of the ascending node in deg., [min, max] or single val.
     activity_size: 1                # 1s transfer time.
-    planning_window: 360            # Time-steps = 180 min.
-    replanning_window: 90           # Time-steps = 45 min.
-    confirm_window: 180             # Time-steps = 90 min.
+    planning_window: 180            # Time-steps = 180 min.
+    replanning_window: 45           # Time-steps = 45 min.
+    confirm_window: 90              # Time-steps = 90 min.
     knowledge_base_size: 100        # Max. total tasks that an angent can remember.
     max_tasks: 50                   # Max. tasks to generate.
-    max_task_duration: 20           # Time-steps = 10 min.
+    max_task_duration: 10           # Time-steps = 10 min.
     min_payoff: 0                   # Payoff threshold below which tasks will not be generated.
     confidence:
         exp: 2                      # Used when baseline is updated.

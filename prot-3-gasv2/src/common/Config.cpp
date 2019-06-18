@@ -150,19 +150,19 @@ float           Config::ga_payoff_k = 5.f;
 float           Config::ga_confidence_th = 0.5f;
 
 /* Global values: */
-bool            Config::create_data_dirname = true;
-bool            Config::load_agents_from_yaml = false;
-std::string     Config::system_yml;
-std::string     Config::simulation_name;
-std::string     Config::root_path;
-std::string     Config::data_path;
-std::string     Config::conf_file;
-std::string     Config::tle_file;
-SandboxMode     Config::mode = SandboxMode::SIMULATE;
-bool            Config::shared_memory = true;
-bool            Config::simple_log = false;
-bool            Config::verbosity = true;
-unsigned int    Config::interpos = 0;
+bool        Config::create_data_dirname = true;
+bool        Config::load_agents_from_yaml = false;
+std::string Config::system_yml;
+std::string Config::simulation_name;
+std::string Config::root_path;
+std::string Config::data_path;
+std::string Config::conf_file;
+std::string Config::tle_file;
+SandboxMode Config::mode = SandboxMode::SIMULATE;
+bool        Config::shared_memory = true;
+bool        Config::simple_log = false;
+bool        Config::verbosity = true;
+int         Config::interpos = 2;
 
 
 void Config::loadCmdArgs(int argc, char** argv)

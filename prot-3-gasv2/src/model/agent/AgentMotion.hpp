@@ -92,6 +92,13 @@ public:
     sf::Vector3f getPosition(void) const { return m_position.front(); }
 
     /*******************************************************************************************//**
+     *  Gets the current position and the previous (i.e. for the previous time step) so that it can
+     *  be interpolated for display and metrics purposes. Previous position is updated on every
+     *  step().
+     **********************************************************************************************/
+    void getPositionWithPrev(sf::Vector3f& curr, sf::Vector3f& prev) const;
+
+    /*******************************************************************************************//**
      *  Getter of the current velocity. Acceses to the last position of the velocity vector and returns
      *  the 3D vector of velocity in that position.
      **********************************************************************************************/
@@ -143,6 +150,7 @@ private:
     /* Motion arguments: */
     std::vector<sf::Vector3f> m_position;
     std::vector<sf::Vector3f> m_velocity;
+    sf::Vector3f m_prev_position;
     float m_world_h;
     float m_world_w;
     Agent* m_agent;

@@ -240,7 +240,7 @@ void Agent::plan(void)
         if(act_gens.size() == 0 || acts.size() == 0) {
             m_activities->update();
             m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
-            Log::warn << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
+            Log::dbg << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
             return;
         }
 
@@ -471,7 +471,6 @@ void Agent::consume(void)
 
         } catch(const std::runtime_error& e) {
             Log::err << "Resource violation exception catched. Will continue for debugging purposes.\n";
-            Log::err << "\n" << m_dbg_str << "\n";
         }
     }
     m_print_resources = false;
@@ -484,8 +483,17 @@ void Agent::showResources(bool d)
 
 std::vector<sf::Vector2i> Agent::getWorldFootprint(const std::vector<std::vector<sf::Vector3f> >& lut) const
 {
-    return m_payload.getVisibleCells(lut, true);
+    if(Config::interpos < 2) {
+        return m_payload.getVisibleCells(lut, true);
+    } else {
+        sf::Vector3f p0, p1;
+        m_motion.getPositionWithPrev(p1, p0);
+        double t1 = VirtualTime::now();
+        double t0 = t1 - Config::time_step;
+        return m_payload.getVisibleCellsFromTo(lut, m_payload.getAperture(), p0, p1, t0, t1, true);
+    }
 }
+
 
 bool Agent::operator==(const Agent& ra)
 {
@@ -522,7 +530,9 @@ std::vector<ActivityCell> Agent::findActiveCells(
     /* Find active cells and their times: */
     double t = t0;
     double t_next = t0 + Config::time_step;
+    double t_prev = t0;
     int curr_it = 0;
+    auto p_prev = ps0;
     for(auto p = ps0; p != ps1; p++) {
         sf::Vector2f p2d = AgentMotion::getProjection2D(*p, t);
         if(a_pos != nullptr) {
@@ -534,13 +544,12 @@ std::vector<ActivityCell> Agent::findActiveCells(
         }
         std::vector<sf::Vector2i> cell_coords;
         if(Config::motion_model == AgentMotionType::ORBITAL) {
-            float insap = instrument->getAperture() / 2.f;
-            cell_coords = instrument->getVisibleCells(
-                m_environment->getPositionLUT(),            /* Look-up table. */
-                instrument->getSlantRangeAt(insap, *p),     /* Distance is the slant range. */
-                *p,                                         /* 3-d position in ECI frame. */
-                false,                                      /* `false` = model cells. */
-                t                                           /* Current time in JD. */
+            cell_coords = instrument->getVisibleCellsFromTo(
+                m_environment->getPositionLUT(),    /* Look-up table. */
+                instrument->getAperture(),          /* Distance will be computed for each point as half-swath. */
+                *p_prev, *p,                        /* 3-d positions in ECI frame. */
+                t_prev, t,                          /* Times for p_prev and p. */
+                false                               /* `false` = model cells. */
             );
         } else {
             /* For 2-d motion models swath actually equals to the aperture. */
@@ -590,6 +599,8 @@ std::vector<ActivityCell> Agent::findActiveCells(
                 a_cells_lut[cit.x][cit.y].v = a_cells.size() - 1; /* Update look-up table. */
             }
         }
+        t_prev = t;
+        p_prev = p;
         t += Config::time_step;
         t_next = std::min(t + Config::time_step, t1);
         curr_it++;

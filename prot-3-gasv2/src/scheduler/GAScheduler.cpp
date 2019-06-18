@@ -142,7 +142,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     }
 
     if(Config::mode == SandboxMode::RANDOM) {
-        Log::warn << "GA Scheduler will pick one solution at random, from the population of " << m_population.size() << ".\n";
+        Log::dbg << "GA Scheduler will pick one solution at random, from the population of " << m_population.size() << ".\n";
         std::shuffle(std::begin(m_population), std::end(m_population), Random::getUniformEngine());
 
         for(auto solution = m_population.begin(); solution != m_population.end(); solution++) {
@@ -253,14 +253,14 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vecto
             for(unsigned int psa = ps.a_start; psa < ps.a_end + 1; psa++) {
                 c.setAllele(psa, false);
             }
-            Log::warn << c << " -- " << ps.activity->getId() << " : Is kept [" << ps.a_start << "," << ps.a_end << "]\n";
+            Log::dbg << c << " -- " << ps.activity->getId() << " : Is kept [" << ps.a_start << "," << ps.a_end << "]\n";
         } else {
             /* Does not modify the alleles and adds this activity to the discarded list. */
             adis.push_back(ps.activity);
-            Log::warn << c << " -- " << ps.activity->getId() << " : Is discarded [" << ps.a_start << "," << ps.a_end << "]\n";
+            Log::dbg << c << " -- " << ps.activity->getId() << " : Is discarded [" << ps.a_start << "," << ps.a_end << "]\n";
         }
     }
-    Log::warn << c << "\n";
+    Log::dbg << c << "\n";
 
     /* Now the chromosome only has alleles set for strictly NEW tasks: */
     double t0 = -1.0, t1 = -1.0;
@@ -285,7 +285,7 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vecto
             /* Record the activity: */
             bc /= (float)bc_count;
             retvec.push_back(std::make_tuple(t0, t1, bc));
-            Log::warn << " # Activity " << (retvec.size() - 1) << ": ["
+            Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
                 << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
                 << "). B.conf: " << bc << "\n";
             bflag = false;

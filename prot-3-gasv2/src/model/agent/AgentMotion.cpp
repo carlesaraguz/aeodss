@@ -104,8 +104,15 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
             /* Compute and store new positions and velocities: */
             m_position.push_back(getPositionFromOrbital(os));
             m_velocity.push_back(getVelocityFromOrbital(os));
+            m_prev_position = m_position.front();
             break;
     }
+}
+
+void AgentMotion::getPositionWithPrev(sf::Vector3f& curr, sf::Vector3f& prev) const
+{
+    curr = m_position.front();
+    prev = m_prev_position;
 }
 
 void AgentMotion::step(void)
@@ -115,6 +122,7 @@ void AgentMotion::step(void)
     }
 
     if(m_position.size() > 1) {
+        m_prev_position = m_position.front();
         m_position.erase(m_position.begin());
         m_velocity.erase(m_velocity.begin());
         m_orbital_state.erase(m_orbital_state.begin());

@@ -540,15 +540,16 @@ void ActivityHandler::displayInView(ActivityDisplayType adt, std::vector<std::pa
 std::vector<std::shared_ptr<Activity> > ActivityHandler::getActivitiesToExchange(std::string aid)
 {
     std::vector<std::shared_ptr<Activity> > retvec;
-    double time_th = VirtualTime::now() - Config::goal_target;     /* Time threshold. */
+    if(aid == m_agent_id) {
+        return retvec;
+    }
 
+    double time_th = VirtualTime::now() - Config::goal_target;     /* Time threshold. */
     /* Start by including all owned activities that are relevant: */
-    if(aid != m_agent_id) {
-        for(auto aptr : m_activities_own) {
-            if(aptr->getEndTime() >= time_th) {
-                aptr->setConfidence();  /* Updates the confidence that will be reported if undecided. */
-                retvec.push_back(aptr);
-            }
+    for(auto aptr : m_activities_own) {
+        if(aptr->getEndTime() >= time_th) {
+            aptr->setConfidence();  /* Updates the confidence that will be reported if undecided. */
+            retvec.push_back(aptr);
         }
     }
     /* Add all activities from others (except those from aid itself): */

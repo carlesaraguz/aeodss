@@ -181,7 +181,7 @@ void BasicInstrument::applyToDistance3D(
          *  radius 6371 km (i.e. approximates Earth to a sphere).
          **/
         float dist = MathUtils::arc(MathUtils::makeUnitary(o_ecef), MathUtils::makeUnitary(s_ecef)) * Config::earth_radius;
-        if(dist <= getSwath(p, m_aperture) / 2.f) {
+        if(dist <= r) {
             f(xit, yit);
             at_r = true;
         }
@@ -275,28 +275,8 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
         cells.push_back(sf::Vector2i(x, y));
     };
     if(Config::motion_model != AgentMotionType::ORBITAL) {
-        if(world_cells) {
-            ox = std::floor(position.x);
-            oy = std::floor(position.y);
-            if(ox >= (int)Config::world_width || oy >= (int)Config::world_height || ox < 0 || oy < 0) {
-                Log::err << "Can't get visible cells for a point that is outside the world space O(" << ox << ", " << oy << ")\n";
-                throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
-            }
-        } else {
-            ox = std::floor(position.x / m_env_info.rw);
-            oy = std::floor(position.y / m_env_info.rh);
-            if(ox >= (int)m_env_info.mw || oy >= (int)m_env_info.mh || ox < 0 || oy < 0) {
-                Log::err << "Can't get visible cells for a point that is outside the model space O(" << ox << ", " << oy << ")\n";
-                throw std::runtime_error("Can't compute visible cells if position is outside the environment space.");
-            }
-        }
-        if(!applyToDistance2D(ox, oy, dist, world_cells, f)) {
-            Log::err << "Failed to get visible (" << (world_cells ? "world" : "model") << ") cells "
-                << "from P = (" << position.x << ", " << position.y << ").\n";
-            Log::err << "Origin of spiral iterator set to (" << ox << ", "<< oy << "). Looking for cells at a distances of " << dist << ".\n";
-            Log::err << "Maximum number of operations reached. Abosrting program.\n";
-            throw std::runtime_error("Failed to get visible (model) cells from the given position. Maximum number of operations reached.");
-        }
+        Log::err << "Computing visible cells in motion type different than ORBITAL is deprecated.\n";
+        throw std::runtime_error("Computing visible cells in motion type different than ORBITAL is deprecated.");
     } else {
         if(t <= -1.0) {
             t = VirtualTime::now();
@@ -361,9 +341,47 @@ std::vector<sf::Vector2i> BasicInstrument::getVisibleCells(
         Log::err << "Computing visible cells without a valid swath (and position).\n";
     }
     if(Config::motion_model == AgentMotionType::ORBITAL) {
-        return getVisibleCells(lut, getSlantRangeAt((long double)m_aperture / 2.0, m_position), m_position, world_cells);
+        return getVisibleCells(lut, getSwath(m_position, m_aperture) / 2.f, m_position, world_cells);
     } else {
         return getVisibleCells(lut, m_swath, m_position, world_cells);
+    }
+}
+
+std::vector<sf::Vector2i> BasicInstrument::getVisibleCellsFromTo(const std::vector<std::vector<sf::Vector3f> >& lut,
+    double ap, sf::Vector3f p0, sf::Vector3f p1, double t0, double t1, bool world_cells
+) const
+{
+    if(Config::interpos < 2) {
+        return getVisibleCells(lut, getSwath(p1, ap) / 2.f, p1, world_cells, t1);
+    } else {
+        sf::Vector3f pi;
+        auto dvec = (p1 - p0) / ((float)Config::interpos - 1.f);
+        std::vector<sf::Vector3f> posit_interp;
+        std::vector<float> swath_interp;
+        posit_interp.push_back(p0);
+        swath_interp.push_back(getSwath(p0, ap));
+        pi = p0;
+        int pcount = 1;
+        while(pcount < (Config::interpos - 1)) {
+            pi += dvec;
+            pcount++;
+            posit_interp.push_back(pi);
+            swath_interp.push_back(getSwath(pi, ap));
+        }
+        posit_interp.push_back(p1);
+        swath_interp.push_back(getSwath(p1, ap));
+
+        std::unordered_set<sf::Vector2i, Vector2iHash> retset;
+        double ti = t0;
+        double dt = (t1 - t0) / (double)(posit_interp.size() - 1);
+        for(unsigned int j = 0; j < posit_interp.size(); j++) {
+            auto fpj = getVisibleCells(lut, swath_interp[j] / 2.f, posit_interp[j], world_cells, ti);
+            for(auto& fp_cell : fpj) {
+                retset.insert(fp_cell);
+            }
+            ti += dt;
+        }
+        return std::vector<sf::Vector2i>(retset.begin(), retset.end());
     }
 }
 

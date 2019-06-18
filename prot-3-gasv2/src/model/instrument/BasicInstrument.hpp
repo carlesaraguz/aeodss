@@ -138,6 +138,23 @@ public:
         bool world_cells = false) const override;
 
     /*******************************************************************************************//**
+     *  Computes visible cells for an instrument that is traveling from point p0 to point p0 and has
+     *  aperture ap. Position points are interpolated according to configuration parameters of the
+     *  simulation. Footprint is computed as visible cells of that instrument at every position step
+     *  (cells with r <= swath/2).
+     *  @param  lut         A look-up table of the ECEF position of every world or model cell.
+     *  @param  ap          Instrument aperture.
+     *  @param  p0          Initial position.
+     *  @param  p1          Final position.
+     *  @param  t0          Initial time.
+     *  @param  t1          Final time.
+     *  @param  world_cells Whether the return value should encompass model cell coordinates (if
+     *                      false) or world cordinates in pixels (if true).
+     **********************************************************************************************/
+    std::vector<sf::Vector2i> getVisibleCellsFromTo(const std::vector<std::vector<sf::Vector3f> >& lut,
+        double ap, sf::Vector3f p0, sf::Vector3f p1, double t0, double t1, bool world_cells = false) const;
+
+    /*******************************************************************************************//**
      *  Computes the current instrument footprint projected on an equirectangular map according
      *  to the instrument aperture and position in a particular instant. It returns a vector of
      *  2D (X, Y) positions of each point of the foorprint perimeter. This function is sensitive

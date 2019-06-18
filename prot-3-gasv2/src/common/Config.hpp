@@ -157,7 +157,7 @@ public:
     static bool shared_memory;          /**< Agents share memory regions for identical objects in the implementation. */
     static bool simple_log;             /**< Whether to print colors (false) or not (true). */
     static bool verbosity;              /**< Whether to display messages that are slightly verbose or not. */
-    static unsigned int interpos;       /**< Number of interpolated points in trajectories. 2 or less disables this feature. */
+    static int interpos;                /**< Number of interpolated points in trajectories. 2 or less disables this feature. */
 
     /*******************************************************************************************//**
      *  Loads command arguments from console and parses them.

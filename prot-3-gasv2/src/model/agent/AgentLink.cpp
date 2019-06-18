@@ -500,11 +500,37 @@ int AgentLink::scheduleSend(std::shared_ptr<const Activity> a, std::string aid, 
     new_transfer.finished = false;
     new_transfer.started  = false;
     new_transfer.id       = m_tx_count;
-    new_transfer.msg      = std::make_shared<Activity>(*a); /* Copies the activity. */
-    m_tx_queue[aid].push_back(new_transfer);
-    m_callback_success[m_tx_count] = on_sent;
-    m_callback_failure[m_tx_count] = on_failure;
-    m_tx_count++;
+    new_transfer.msg      = std::make_shared<Activity>(*a); /* Copies the activity (but does not duplicate its internal data). */
+
+    /* Look for this activity in the list of finished transfers with this agent: */
+    bool enqueue = false;
+    bool sent_previously = false;
+    for(auto txt : m_tx_queue[aid]) {
+        if(txt.finished && txt.msg->getAgentId() == a->getAgentId() && txt.msg->getId() == a->getId()) {
+            /* This activity was already shared with this agent: */
+            sent_previously = true;
+            if(a->getLastUpdateTime() > txt.msg->getLastUpdateTime()) {
+                /* Can be re-sent: */
+                enqueue = true;
+            }
+            break;
+        } else if(!txt.finished && txt.msg->getAgentId() == a->getAgentId() && txt.msg->getId() == a->getId()) {
+            /* This activity is being shared now. This should not happen. */
+            Log::warn << "Agent " << m_agent->getId() << " is trying to enqueue a message for " << aid << " that is already in its queue:  ["
+                << txt.msg->getAgentId() << ":" << txt.msg->getId() << "].\n";
+            sent_previously = true;
+        }
+    }
+    if(!sent_previously) {
+        enqueue = true;
+    }
+
+    if(enqueue) {
+        m_tx_queue[aid].push_back(new_transfer);
+        m_callback_success[m_tx_count] = on_sent;
+        m_callback_failure[m_tx_count] = on_failure;
+        m_tx_count++;
+    }
     return 0;
 }
 

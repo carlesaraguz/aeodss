@@ -12,6 +12,7 @@
 #define AGENT_HPP
 
 #include "prot.hpp"
+#include "hashers.hpp"
 #include "TimeStep.hpp"
 #include "HasView.hpp"
 

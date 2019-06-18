@@ -31,11 +31,11 @@ public:
 
     virtual std::vector<sf::Vector2i> getVisibleCells(const std::vector<std::vector<sf::Vector3f> >& lut,
         double dist, sf::Vector3f position, bool world_cells, double t = -1.0) const = 0;
-
     virtual std::vector<sf::Vector2i> getVisibleCells(double dist, sf::Vector2f position, bool world_cells) const = 0;
-
     virtual std::vector<sf::Vector2i> getVisibleCells(const std::vector<std::vector<sf::Vector3f> >& lut,
         bool world_cells = false) const = 0;
+    virtual std::vector<sf::Vector2i> getVisibleCellsFromTo(const std::vector<std::vector<sf::Vector3f> >& lut,
+        double ap, sf::Vector3f p0, sf::Vector3f p1, double t0, double t1, bool world_cells = false) const = 0;
 
     virtual std::vector<sf::Vector2f> getFootprint(void) const = 0;
     virtual float getResourceRate(std::string rname) const = 0;
