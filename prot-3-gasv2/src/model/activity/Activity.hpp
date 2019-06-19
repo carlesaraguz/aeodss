@@ -343,19 +343,19 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const Activity& act);
 
 private:
-    std::string m_agent_id;
-    int m_id;
-    bool m_confirmed;
-    bool m_discarded;
-    bool m_ready;
-    bool m_active;
-    float m_confidence;
-    float m_confidence_baseline;
-    float m_aperture;
-    double m_last_update;
-    double m_creation_time;
-    bool m_has_been_sent;
-    bool m_sending;
+    std::string m_agent_id;         /* 1 bytes. */
+    int m_id;                       /* 4 bytes. */
+    bool m_confirmed;               /* 1 bytes. */
+    bool m_discarded;               /* 0 bytes. */
+    bool m_ready;                   /* 0 bytes. */
+    bool m_active;                  /* 0 bytes. */
+    float m_confidence;             /* 4 bytes. */
+    float m_confidence_baseline;    /* 0 bytes. */
+    float m_aperture;               /* 4 bytes. */
+    double m_last_update;           /* 4 bytes. */
+    double m_creation_time;         /* 4 bytes. */
+    bool m_has_been_sent;           /* 0 bytes. */
+    bool m_sending;                 /* 0 bytes. */
 
     /* Spatio-temporal information: */
     std::shared_ptr<SegmentView> m_self_view;

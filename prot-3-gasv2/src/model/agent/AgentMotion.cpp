@@ -85,6 +85,12 @@ AgentMotion::AgentMotion(Agent* aptr, double init_mean_an, OrbitalParams pars)
                 m_orb_params.inc  = (double)Random::getUf(Config::orbp_inc_max,  Config::orbp_inc_min);
                 m_orb_params.argp = (double)Random::getUf(Config::orbp_argp_max, Config::orbp_argp_min);
                 m_orb_params.raan = (double)Random::getUf(Config::orbp_raan_max, Config::orbp_raan_min);
+                if(Config::orbp_raan_inv && Random::getUf() > 0.5f) {
+                    m_orb_params.raan += 180.0;
+                }
+                if(Config::orbp_inc_inv && Random::getUf() > 0.5f) {
+                    m_orb_params.inc += 2.0 * (90.0 - m_orb_params.inc);
+                }
             }
             if(m_orb_params.mean_motion == 0.0) {
                 m_orb_params.mean_motion = std::sqrt(Config::earth_mu / std::pow(m_orb_params.sma, 3)); /* In radians/sec. */

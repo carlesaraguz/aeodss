@@ -91,6 +91,7 @@ void AgentLink::doConnect(std::string aid)
     }
     float r = m_other_agents[aid]->getLink()->getRange();
     m_link_ranges[aid] = std::min(r, m_range);
+    m_reconnect_time[aid] = VirtualTime::now() + (Config::time_step * 10.0);
     m_connected[aid] = true;
     m_connected_callback(aid);
     m_self_view.setLink(aid, AgentLinkView::State::CONNECTED, m_other_agents[aid]->getMotion().getPosition());
@@ -178,6 +179,12 @@ void AgentLink::update(void)
         std::string id = a.second->getId();
         bool has_los = hasLineOfSight(a.second);
         bool is_in_range = isInRange(a.second);
+        /*
+        if(has_los && !is_in_range) {
+            Log::err << "Agent " << m_agent->getId() << " is in LOS with " << id
+                << ". ISL range is: " << (a.second->getLink()->distanceFrom(m_position)) / 1e3 << " km.\n";
+        }
+        */
         if(has_los && is_in_range) {
             if(!m_connected[id]) {
                 m_self_view.setLink(id, AgentLinkView::State::LINE_OF_SIGHT, a.second->getMotion().getPosition());
@@ -335,15 +342,41 @@ void AgentLink::disable(void)
     m_enabled = false;
 }
 
+double AgentLink::getTxTime(std::shared_ptr<Activity> msg, float dr) const
+{
+    /* NOTE: m_datarate is in XX bit per second = XX/8 bytes/s. */
+
+    double bytes = Config::activity_size;                       /* In bytes, static part. */
+    bytes += msg->getPositionCount() * (sizeof(float) * 3);     /* In bytes, trajectory part. */
+
+    return VirtualTime::toVirtual(bytes / (dr / 8.0), TimeValueType::SECONDS);
+}
+
 void AgentLink::step(void)
 {
     if(m_enabled) {
         /* Start new transfers: */
         double t = VirtualTime::now();
-        double tx_duration = VirtualTime::toVirtual(Config::activity_size / m_datarate, TimeValueType::SECONDS);
         for(auto& txq : m_tx_queue) {
             bool sending = false;
             if(txq.second.size() > 0) {
+                if(m_connected[txq.first]) {
+                    /* Check if all transfers have finished already: */
+                    bool has_pending = false;
+                    for(auto& txt : txq.second) {
+                        if(!txt.finished) {
+                            has_pending = true;
+                            break;
+                        }
+                    }
+                    if(!has_pending && m_reconnect_time[txq.first] < t) {
+                        if(Config::verbosity) {
+                            Log::dbg << "Agent " << getAgentId() << " is reconnecting to " << txq.first << "\n";
+                        }
+                        m_connected_callback(txq.first);    /* This updates the connection state. */
+                        m_reconnect_time[txq.first] = t + (Config::time_step * 10.0);
+                    }
+                }
                 double next_start = t;
                 bool new_tx = false;
                 std::vector<unsigned int> clean_txt;
@@ -354,13 +387,13 @@ void AgentLink::step(void)
                     if(txt.t_start == -1.0 && !txt.finished) {
                         /* This transfer has not started. Configure its start and end times: */
                         txt.t_start = next_start;
-                        next_start += tx_duration;
+                        next_start += getTxTime(txt.msg, m_datarate);
                         new_tx = true;
                     } else if(txt.t_start != -1.0 && new_tx && !txt.finished) {
                         /* This transfer was configured but has changed because a new one was added before: */
                         if(txt.t_start > t) {
                             txt.t_start = next_start;
-                            next_start += tx_duration;
+                            next_start += getTxTime(txt.msg, m_datarate);
                             Log::warn << "Fixing agent " << getAgentId() << " TX queue for transfer " << txt.id << ".\n";
                         } else {
                             /* The transfer started already. Can't modify it. */
@@ -376,7 +409,7 @@ void AgentLink::step(void)
                     if(txt.t_start <= t && !txt.started) {
                         /* Start the transfer now. */
                         txt.started = true;
-                        txt.t_end   = txt.t_start + tx_duration;
+                        txt.t_end   = txt.t_start + getTxTime(txt.msg, m_datarate);
                         if(!m_other_agents[txq.first]->getLink()->startTransfer(getAgentId(), txt)) {
                             /* Error, could not be started: */
                             txt.t_start  = -1.f;
@@ -438,6 +471,15 @@ void AgentLink::step(void)
                     } else {
                         txtit++;
                     }
+                }
+            } else {
+                /* The queue to this agent is empty: */
+                if(m_reconnect_time[txq.first] < t && m_connected[txq.first]) {
+                    if(Config::verbosity) {
+                        Log::dbg << "Agent " << getAgentId() << " is reconnecting to " << txq.first << "\n";
+                    }
+                    m_connected_callback(txq.first);    /* This updates the connection state. */
+                    m_reconnect_time[txq.first] = t + (Config::time_step * 10.0);
                 }
             }
             if(sending) {

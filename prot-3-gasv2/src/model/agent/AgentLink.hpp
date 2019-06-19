@@ -211,6 +211,7 @@ private:
     std::map<std::string, float> m_link_ranges;                     /**< Constantly updated and changed. */
     std::map<std::string, std::vector<Transfer> > m_tx_queue;       /**< Transfer queue to each connected agent. */
     std::map<std::string, std::vector<Transfer> > m_rx_queue;       /**< Reception queue for each conencted agent. */
+    std::map<std::string, double> m_reconnect_time;                 /**< Values of reconnection for agents whose transfer queue is empty. */
     std::map<int, std::function<void(int)> > m_callback_success;    /**< Callbacks for each transfer (on success). */
     std::map<int, std::function<void(int)> > m_callback_failure;    /**< Callbacks for each transfer (on cancellation). */
     AgentLinkView m_self_view;
@@ -263,6 +264,19 @@ private:
      *  @param  aptr    Pointer to the other agent.
      **********************************************************************************************/
     bool isInRange(const std::shared_ptr<Agent>& aptr);
+
+    /*******************************************************************************************//**
+     *  Estimates the duration of a transfer (best-case scenario). The time is computed as B/D,
+     *  where B is the size of the activity in bytes, and D is the datarate in bytes per second.
+     *  Activity sizes are determined with the number of points in their trajectory plus a fixed
+     *  size defined in the configuration file. Datarate is taken in bits per second (bps) and
+     *  transformed to bytes per second. Time is returned in virtual units (i.e. it can be used
+     *  directly).
+     *  @param  msg     The activity that will be transferred.
+     *  @param  dr      Datarate in bits per second.
+     **********************************************************************************************/
+    double getTxTime(std::shared_ptr<Activity> msg, float dr) const;
+
 };
 
 #include "Agent.hpp"

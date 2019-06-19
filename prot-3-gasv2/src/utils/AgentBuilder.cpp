@@ -158,6 +158,12 @@ void AgentBuilder::randomize(void)
     m_orbital_params.argp   = (double)Random::getUf(Config::orbp_argp_max, Config::orbp_argp_min);
     m_orbital_params.raan   = (double)Random::getUf(Config::orbp_raan_max, Config::orbp_raan_min);
     m_orbital_params.mean_motion = 0.0; /* Will be computed by AgentMotion. */
+    if(Config::orbp_raan_inv && Random::getUf() > 0.5f) {
+        m_orbital_params.raan += 180.0;
+    }
+    if(Config::orbp_inc_inv && Random::getUf() > 0.5f) {
+        m_orbital_params.inc += 2.0 * (90.0 - m_orbital_params.inc);
+    }
     m_mean_anomaly_init     = MathUtils::degToRad(Random::getUf(Config::orbp_init_ma_max, Config::orbp_init_ma_min));
     m_link_range            = Random::getUf(Config::agent_range_min, Config::agent_range_max);
     m_link_datarate         = Random::getUf(Config::agent_datarate_min, Config::agent_datarate_max);

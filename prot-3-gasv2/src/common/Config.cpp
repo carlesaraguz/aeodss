@@ -83,10 +83,12 @@ float           Config::orbp_sma_max = Config::earth_wgs84_a + 900e3f;
 float           Config::orbp_ecc_max = 0.f;
 float           Config::orbp_inc_min = 0.f;
 float           Config::orbp_inc_max = 90.f;
+bool            Config::orbp_inc_inv = false;
 float           Config::orbp_argp_min = 0.f;
 float           Config::orbp_argp_max = 360.f;
 float           Config::orbp_raan_min = 0.f;
 float           Config::orbp_raan_max = 360.f;
+bool            Config::orbp_raan_inv = false;
 float           Config::orbp_init_ma_max = 0.f;
 float           Config::orbp_init_ma_min = 360.f;
 
@@ -441,8 +443,10 @@ void Config::loadCmdArgs(int argc, char** argv)
                                     }
                                     getConfigParam("max_ecc", motion_node, orbp_ecc_max);
                                     getConfigParam("inc", motion_node, orbp_inc_min, orbp_inc_max);
+                                    getConfigParam("inc_inv", motion_node, orbp_inc_inv);
                                     getConfigParam("argp", motion_node, orbp_argp_min, orbp_argp_max);
                                     getConfigParam("raan", motion_node, orbp_raan_min, orbp_raan_max);
+                                    getConfigParam("raan_inv", motion_node, orbp_raan_inv);
                                     getConfigParam("init_ma", motion_node, orbp_init_ma_min, orbp_init_ma_max);
                                     break;
                                 default:

@@ -79,10 +79,12 @@ public:
     static float orbp_ecc_max;                  /**< Max. eccentricity. */
     static float orbp_inc_min;                  /**< Min. inclination (in degrees). */
     static float orbp_inc_max;                  /**< Max. inclination (in degrees). */
+    static bool  orbp_inc_inv;                  /**< Wheter to add 2(90-inc) deg. to some inclinations. */
     static float orbp_argp_min;                 /**< Min. argument of the perigee (in degrees). */
     static float orbp_argp_max;                 /**< Max. argument of the perigee (in degrees). */
     static float orbp_raan_min;                 /**< Min. Right Ascension of the Ascending node (in deg). */
     static float orbp_raan_max;                 /**< Max. Right Ascension of the Ascending node (in deg). */
+    static bool  orbp_raan_inv;                 /**< Wheter to add 180 deg. to some RAANs. */
     static float orbp_init_ma_max;              /**< Max. mean anomaly (in deg). */
     static float orbp_init_ma_min;              /**< Min. mean anomaly (in deg). */
 
