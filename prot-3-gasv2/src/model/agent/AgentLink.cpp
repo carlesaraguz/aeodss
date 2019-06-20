@@ -77,7 +77,20 @@ bool AgentLink::tryConnect(std::shared_ptr<AgentLink> other)
 
 void AgentLink::notifyDisconnect(std::string aid_other)
 {
+    /* We need to complete on-going transfers that might have been left ready in the previous step: */
+    doPartialStep(aid_other);
     doDisconnect(aid_other);
+}
+
+void AgentLink::doPartialStep(std::string aid)
+{
+    double t_now = VirtualTime::now();
+    bool dummy;
+    for(auto& txt : m_tx_queue[aid]) {
+        bool fl = step1b(t_now, aid, txt, dummy);
+        step2(t_now, aid, txt, fl, dummy);
+    }
+    cleanFinishedQueue(m_tx_queue[aid]);
 }
 
 void AgentLink::doConnect(std::string aid)
@@ -100,7 +113,7 @@ void AgentLink::doConnect(std::string aid)
 void AgentLink::doDisconnect(std::string aid)
 {
     if(!m_connected[aid]) {
-        Log::warn << "Agent " << getAgentId() << ", trying to disconnect from " << aid
+        Log::dbg << "Agent " << getAgentId() << ", trying to disconnect from " << aid
             << " but was already disconnected.\n";
         return;
     }
@@ -108,11 +121,11 @@ void AgentLink::doDisconnect(std::string aid)
     /* Cancel scheduled or on-going TX transfers with this agent: */
     for(auto& tx : m_tx_queue.at(aid)) {
         if(!tx.finished && tx.started) {
-            // Log::dbg << "Agent " << getAgentId() << " will cancel the on-going transfer " << tx.id << ".\n";
+            // Log::warn << "Agent " << getAgentId() << " will cancel the on-going transfer " << tx.id << ".\n";
             m_other_agents[aid]->getLink()->cancelTransfer(getAgentId(), tx);  /* Cancel this transfer. */
         } else if(!tx.finished && !tx.started) {
             /* We don't have to do anything. */
-            // Log::dbg << "Agent " << getAgentId() << " had a tranfer scheduled that did not start: " << tx.id << ".\n";
+            // Log::warn << "Agent " << getAgentId() << " had a tranfer scheduled that did not start: " << tx.id << ".\n";
         } else {
             Log::err << "Agent " << getAgentId() << ", while disconnecting from " << aid
                 << " found an error in the TX queue (1).\n";
@@ -168,9 +181,11 @@ void AgentLink::update(void)
         if(Config::verbosity) {
             Log::dbg << "Agent " << getAgentId() << " is going to disconnect from " << aid << ".\n";
         }
-        doDisconnect(aid);
+        /* We need to complete on-going transfers that might have been left ready in the previous step: */
+        doPartialStep(aid);
         /* Notify of disconnection: */
         m_other_agents[aid]->getLink()->notifyDisconnect(getAgentId());
+        doDisconnect(aid);
     }
 
     /*  Find agents that are now in range: */
@@ -334,9 +349,10 @@ void AgentLink::disable(void)
     Log::dbg << "Agent " << getAgentId() << " is going to disconnect from all agents (" << m_link_ranges.size() << " active connections).\n";
     for(auto& a : m_other_agents) {
         if(m_connected[a.first]) {
-            doDisconnect(a.second->getId());
+            doPartialStep(a.second->getId());
             /* Notify of disconnection: */
             m_other_agents[a.second->getId()]->getLink()->notifyDisconnect(getAgentId());
+            doDisconnect(a.second->getId());
         }
     }
     m_enabled = false;
@@ -344,12 +360,116 @@ void AgentLink::disable(void)
 
 double AgentLink::getTxTime(std::shared_ptr<Activity> msg, float dr) const
 {
-    /* NOTE: m_datarate is in XX bit per second = XX/8 bytes/s. */
+    /* NOTE: m_datarate is in bits per second = (1/8) bytes/s. */
 
     double bytes = Config::activity_size;                       /* In bytes, static part. */
     bytes += msg->getPositionCount() * (sizeof(float) * 3);     /* In bytes, trajectory part. */
 
     return VirtualTime::toVirtual(bytes / (dr / 8.0), TimeValueType::SECONDS);
+}
+
+void AgentLink::step1a(double t, std::string /* aid */, Transfer& txt, bool& new_tx, double& next_start)
+{
+    /*  (1a) Start condition: ======================================================
+     *  Prepare start and end times for new transfers.
+     **/
+    if(txt.t_start == -1.0 && !txt.finished) {
+        /* This transfer has not started. Configure its start and end times: */
+        txt.t_start = next_start;
+        next_start += getTxTime(txt.msg, m_datarate);
+        new_tx = true;
+    } else if(txt.t_start != -1.0 && new_tx && !txt.finished) {
+        /* This transfer was configured but has changed because a new one was added before: */
+        if(txt.t_start > t) {
+            txt.t_start = next_start;
+            next_start += getTxTime(txt.msg, m_datarate);
+            Log::warn << "Fixing agent " << getAgentId() << " TX queue for transfer " << txt.id << ".\n";
+        } else {
+            /* The transfer started already. Can't modify it. */
+            Log::err << "Fatal error in agent " << getAgentId() << " TX queue: a new transfer has been added before some started ones.\n";
+            throw std::runtime_error("Unexpected fatal failure in TX queue");
+        }
+    }
+}
+
+bool AgentLink::step1b(double t, std::string aid, Transfer& txt, bool& sending)
+{
+    /*  (1b) Start condition: ======================================================
+     *  Do start those transfers that have to, according to their start time.
+     **/
+    bool start_flag = false;
+    if(txt.t_start <= t && txt.t_start > 0.0 && !txt.started) {
+        /* Start the transfer now. */
+        txt.started = true;
+        txt.t_end   = txt.t_start + getTxTime(txt.msg, m_datarate);
+        if(!m_other_agents[aid]->getLink()->startTransfer(getAgentId(), txt)) {
+            /* Error, could not be started: */
+            txt.t_start  = -1.f;
+            txt.t_end    = -1.f;
+            txt.finished = true;
+            Log::warn << "Agent " << getAgentId() << " failed to start a transfer with " << aid << ".\n";
+        } else {
+            start_flag = true;
+            /*
+            Log::dbg << "Agent " << getAgentId() << " started transfer " << txt.id << " with " << aid << ". ";
+            Log::dbg << "Transfer completes at " << VirtualTime::toString(txt.t_end, true);
+            Log::dbg << " (after " << VirtualTime::toString(getTxTime(txt.msg, m_datarate), false) << ").\n";
+            */
+            sending = true;
+        }
+    }
+    return start_flag;
+}
+
+void AgentLink::step2(double t, std::string aid, Transfer& txt, bool start_flag, bool& sending)
+{
+    /*  (2) End condition: =========================================================================
+     *  Do end those transfers that have to, according to their end time.
+     **/
+    if(txt.t_end <= t && !txt.finished && txt.started) {
+        /*
+        Log::dbg << "Agent " << getAgentId() << " completed transfer " << txt.id << " with " << aid
+            << " after " << (txt.t_end - txt.t_start) * 24.0 * 3600.0 << " sec.\n";
+        */
+        m_callback_success[txt.id](txt.id);
+        m_other_agents[aid]->getLink()->endTransfer(getAgentId(), txt);
+        m_callback_success.erase(m_callback_success.find(txt.id));
+        m_callback_failure.erase(m_callback_failure.find(txt.id));
+        txt.finished = true;
+
+        if(start_flag) {
+            /* This transfer started and ended in the same time step: */
+            double t_total = txt.t_end - txt.t_start;
+            m_energy_consumed += Config::link_tx_energy_rate * (t_total / Config::time_step);
+        } else {
+            /* Compute the remaining energy consumption for this step: */
+            m_energy_consumed += Config::link_tx_energy_rate * ((Config::time_step - (t - txt.t_end)) / Config::time_step);
+        }
+
+    /*  (3) Continue condition: ====================================================================
+     *  Compute energy consumption of transfers that are on-going:
+     **/
+    } else if(txt.t_end > t && !txt.finished && txt.started) {
+        /* The transfer is on-going. */
+        sending = true;
+        if(start_flag) {
+            /* This transfer started in this time step: */
+            m_energy_consumed += Config::link_tx_energy_rate * ((t - txt.t_start) / Config::time_step);
+        } else {
+            m_energy_consumed += Config::link_tx_energy_rate;
+        }
+    }
+}
+
+void AgentLink::cleanFinishedQueue(std::vector<Transfer>& queue)
+{
+    for(auto txtit = queue.begin(); txtit != queue.end(); ) {
+        if(txtit->finished) {
+            txtit = queue.erase(txtit);
+        } else {
+            txtit++;
+        }
+    }
 }
 
 void AgentLink::step(void)
@@ -360,120 +480,21 @@ void AgentLink::step(void)
         for(auto& txq : m_tx_queue) {
             bool sending = false;
             if(txq.second.size() > 0) {
-                if(m_connected[txq.first]) {
-                    /* Check if all transfers have finished already: */
-                    bool has_pending = false;
-                    for(auto& txt : txq.second) {
-                        if(!txt.finished) {
-                            has_pending = true;
-                            break;
-                        }
-                    }
-                    if(!has_pending && m_reconnect_time[txq.first] < t) {
-                        if(Config::verbosity) {
-                            Log::dbg << "Agent " << getAgentId() << " is reconnecting to " << txq.first << "\n";
-                        }
-                        m_connected_callback(txq.first);    /* This updates the connection state. */
-                        m_reconnect_time[txq.first] = t + (Config::time_step * 10.0);
-                    }
-                }
                 double next_start = t;
                 bool new_tx = false;
-                std::vector<unsigned int> clean_txt;
                 for(auto& txt : txq.second) {
-                    /*  (1a) Start condition: ======================================================
-                     *  Prepare start and end times for new transfers.
-                     **/
-                    if(txt.t_start == -1.0 && !txt.finished) {
-                        /* This transfer has not started. Configure its start and end times: */
-                        txt.t_start = next_start;
-                        next_start += getTxTime(txt.msg, m_datarate);
-                        new_tx = true;
-                    } else if(txt.t_start != -1.0 && new_tx && !txt.finished) {
-                        /* This transfer was configured but has changed because a new one was added before: */
-                        if(txt.t_start > t) {
-                            txt.t_start = next_start;
-                            next_start += getTxTime(txt.msg, m_datarate);
-                            Log::warn << "Fixing agent " << getAgentId() << " TX queue for transfer " << txt.id << ".\n";
-                        } else {
-                            /* The transfer started already. Can't modify it. */
-                            Log::err << "Fatal error in agent " << getAgentId() << " TX queue: a new transfer has been added before some started ones.\n";
-                            throw std::runtime_error("Unexpected fatal failure in TX queue");
-                        }
-                    }
-
-                    /*  (1b) Start condition: ======================================================
-                     *  Do start those transfers that have to, according to their start time.
-                     **/
-                    bool start_flag = false;
-                    if(txt.t_start <= t && !txt.started) {
-                        /* Start the transfer now. */
-                        txt.started = true;
-                        txt.t_end   = txt.t_start + getTxTime(txt.msg, m_datarate);
-                        if(!m_other_agents[txq.first]->getLink()->startTransfer(getAgentId(), txt)) {
-                            /* Error, could not be started: */
-                            txt.t_start  = -1.f;
-                            txt.t_end    = -1.f;
-                            txt.finished = true;
-                            Log::warn << "Agent " << getAgentId() << " failed to start a transfer with " << txq.first << ".\n";
-                        } else {
-                            start_flag = true;
-                            /*
-                            Log::warn << "Agent " << getAgentId() << " started transfer " << txt.id << " with " << txq.first << ". ";
-                            Log::warn << "Transfer completes at " << VirtualTime::toString(txt.t_end);
-                            Log::warn << " (after " << Config::activity_size / m_datarate << " sec. = " << VirtualTime::toString(tx_duration, false) << ").\n";
-                            */
-                            sending = true;
-                        }
-                    }
-                    /*  (2) End condition:
-                     *  Do end those transfers that have to, according to their end time.
-                     **/
-                    if(txt.t_end <= t && !txt.finished && txt.started) {
-                        /*
-                        Log::warn << "Agent " << getAgentId() << " completed transfer " << txt.id << " with " << txq.first
-                            << " after " << (txt.t_end - txt.t_start) * 24 * 3600 << " sec.\n";
-                        */
-                        m_callback_success[txt.id](txt.id);
-                        m_other_agents[txq.first]->getLink()->endTransfer(getAgentId(), txt);
-                        m_callback_success.erase(m_callback_success.find(txt.id));
-                        m_callback_failure.erase(m_callback_failure.find(txt.id));
-                        txt.finished = true;
-
-                        if(start_flag) {
-                            /* This transfer started and ended in the same time step: */
-                            double t_total = txt.t_end - txt.t_start;
-                            m_energy_consumed += Config::link_tx_energy_rate * (t_total / Config::time_step);
-                        } else {
-                            /* Compute the remaining energy consumption for this step: */
-                            m_energy_consumed += Config::link_tx_energy_rate * ((Config::time_step - (t - txt.t_end)) / Config::time_step);
-                        }
-
-                    /*  (3) Continue condition:
-                     *  Compute energy consumption of transfers that are on-going:
-                     **/
-                    } else if(txt.t_end > t && !txt.finished && txt.started) {
-                        /* The transfer is on-going. */
-                        sending = true;
-                        if(start_flag) {
-                            /* This transfer started in this time step: */
-                            m_energy_consumed += Config::link_tx_energy_rate * ((t - txt.t_start) / Config::time_step);
-                        } else {
-                            m_energy_consumed += Config::link_tx_energy_rate;
-                        }
-                    }
+                    /* === (1a) Prepare new transfers =========================================== */
+                    step1a(t, txq.first, txt, new_tx, next_start);
+                    /* === (1b) Start transfers ================================================= */
+                    bool fl = step1b(t, txq.first, txt, sending);
+                    /* === (2) End or continue on-going transfers =============================== */
+                    step2(t, txq.first, txt, fl, sending);
                 }
 
-                /* Clean finished transfers: */
-                for(auto txtit = txq.second.begin(); txtit != txq.second.end(); ) {
-                    if(txtit->finished) {
-                        txtit = txq.second.erase(txtit);
-                    } else {
-                        txtit++;
-                    }
-                }
+                /* === Clean finished transfers ================================================= */
+                cleanFinishedQueue(txq.second);
             } else {
-                /* The queue to this agent is empty: */
+                /* The queue to this agent is empty (all have finished): */
                 if(m_reconnect_time[txq.first] < t && m_connected[txq.first]) {
                     if(Config::verbosity) {
                         Log::dbg << "Agent " << getAgentId() << " is reconnecting to " << txq.first << "\n";
@@ -572,6 +593,7 @@ int AgentLink::scheduleSend(std::shared_ptr<const Activity> a, std::string aid, 
         m_callback_success[m_tx_count] = on_sent;
         m_callback_failure[m_tx_count] = on_failure;
         m_tx_count++;
+        // Log::dbg << "Agent " << getAgentId() << " equeued [" << a->getAgentId() << ":" << a->getId() << "] for " << aid << "\n";
     }
     return 0;
 }

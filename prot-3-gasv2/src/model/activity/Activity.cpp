@@ -141,7 +141,7 @@ void Activity::setDiscarded(bool d)
             m_confidence_baseline = 0.f;
         }
         m_last_update = VirtualTime::now();
-        Log::err << "Activity [" << m_agent_id << ":" << m_id << "] has been discarded.\n";
+        Log::dbg << "Activity [" << m_agent_id << ":" << m_id << "] has been discarded.\n";
     } else if(isDiscarded()) {
         Log::warn << "Trying to change fact [" << m_agent_id << ":" << m_id << "] is discarded; setting discarded to \'"
             << std::boolalpha << d << "\'. This call has no effect.\n";

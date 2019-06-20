@@ -201,7 +201,7 @@ void ActivityHandler::purge(bool remove_unsent, std::set<int> skip_list)
                 }
             }
             if(count > 0) {
-                Log::err << "Agent " << m_agent_id << " has pruned " << count << "/" << xcset_ah.size() << " additional activities (***)\n";
+                Log::dbg << "Agent " << m_agent_id << " has pruned " << count << "/" << xcset_ah.size() << " additional activities.\n";
             }
             buildActivityLUT();
         }
@@ -283,7 +283,7 @@ std::vector<std::shared_ptr<Activity> > ActivityHandler::checkOverlaps(std::shar
     for(const auto& bi : beta) {
         if(!bi->isDiscarded()) {
             if(isOverlapping(a, bi)) {
-                Log::err << "Activity [" << a->getAgentId() << ":" << a->getId() << "] overlaps with [" << bi->getAgentId() << ":" << bi->getId() << "]\n";
+                Log::warn << "Activity [" << a->getAgentId() << ":" << a->getId() << "] overlaps with [" << bi->getAgentId() << ":" << bi->getId() << "]\n";
                 retvec.push_back(bi);
             }
         }
@@ -470,18 +470,22 @@ void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, st
             }
             /* All the overlapping activities can safely be discarded locally: */
             if(overlap_vec.size() > 0) {
-                Log::warn << "Agent " << m_agent_id << " will locally discard activities from " << aid << "\n";
+                Log::warn << "Agent " << m_agent_id << " will locally discard activities from " << a->getAgentId() << "\n";
             }
             for(auto& oa : overlap_vec) {
                 oa->setDiscarded(true);
             }
-            // Log::dbg << "Agent " << m_agent_id << " added an new activity from " << a->getAgentId() << ": " << *a << "\n";
+            // if(Config::verbosity) {
+            //     Log::dbg << "Agent " << m_agent_id << " added an new activity from " << a->getAgentId() << ": " << *a << "\n";
+            // }
         } else {
             /* This activity can actually be discarded: */
             if(!a->isFact()) {
                 a->setDiscarded(true);
             }
-            // Log::dbg << "Agent " << m_agent_id << " has added and discarded an activity [" << a->getAgentId() << ":" << a->getId() << "] bacause it is outdated\n";
+            // if(Config::verbosity) {
+            //     Log::dbg << "Agent " << m_agent_id << " has added and discarded an activity [" << a->getAgentId() << ":" << a->getId() << "] because it is outdated\n";
+            // }
         }
     }
 }

@@ -247,6 +247,11 @@ private:
     void endTransfer(std::string aid, const Transfer& data);
 
     /*******************************************************************************************//**
+     *  Cleans a queue by removing all the completed transfers.
+     **********************************************************************************************/
+    void cleanFinishedQueue(std::vector<Transfer>& queue);
+
+    /*******************************************************************************************//**
      *  Compute the distance to an agent located at p.
      *  @param  p   Position to which the distance has to be computed.
      *  @return     The value in the corresponding distance units (i.e. meters or pixels).
@@ -277,6 +282,44 @@ private:
      **********************************************************************************************/
     double getTxTime(std::shared_ptr<Activity> msg, float dr) const;
 
+    /*******************************************************************************************//**
+     *  Performs a partial step: detects newly scheduled transfers and prepares them.
+     *  @param  t           The current virtual time.
+     *  @param  aid         Agent to which txt is being sent to.
+     *  @param  txt         The transfer object to step.
+     *  @param  new_tx      A flag that will be set to true if new transfers have been detected.
+     *                      Else its value will not be changed.
+     *  @param  next_start  Accumulator of time used to concatenate transfers.
+     **********************************************************************************************/
+    void step1a(double t, std::string aid, Transfer& txt, bool& new_tx, double& next_start);
+
+    /*******************************************************************************************//**
+     *  Performs a partial step: starts transfers that have to be started (or had to be started int
+     *  the past).
+     *  @param  t           The current virtual time.
+     *  @param  aid         Agent to which txt is being sent to.
+     *  @param  txt         The transfer object to step.
+     *  @param  sending     A flag that will be set to true if agent is currently transferring data.
+     *  @return             True if the transfer has been started. False otherwise.
+     **********************************************************************************************/
+    bool step1b(double t, std::string aid, Transfer& txt, bool& sending);
+
+    /*******************************************************************************************//**
+     *  Performs a partial step: (1) ends transfers that have to end; and (2) identifies transfers
+     *  that still need to continue.
+     *  @param  t           The current virtual time.
+     *  @param  aid         Agent to which txt is being sent to.
+     *  @param  txt         The transfer object to step.
+     *  @param  start_flag  The value returned by step1 (i.e. true if some transfer was started,
+     *                      false otherwise).
+     *  @param  sending     A flag that will be set to true if agent is currently transferring data.
+     **********************************************************************************************/
+    void step2(double t, std::string aid, Transfer& txt, bool start_flag, bool& sending);
+
+    /*******************************************************************************************//**
+     *  Executes step 1b and 2, and calls cleanFinishedQueue.
+     **********************************************************************************************/
+    void doPartialStep(std::string aid);
 };
 
 #include "Agent.hpp"
