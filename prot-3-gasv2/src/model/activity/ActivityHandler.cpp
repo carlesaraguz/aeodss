@@ -441,8 +441,11 @@ void ActivityHandler::add(std::shared_ptr<Activity> a, std::map<unsigned int, st
     if(beta.find(aid) != beta.end()) {
         if(beta[aid]->getLastUpdateTime() < a->getLastUpdateTime()) {
             beta[aid]->clone(a);
-            if(m_env_model_ptr != nullptr) {
-                m_env_model_ptr->updateActivity(a);     /* Will also clone (in EnvCell::updateCellActivity.) */
+            if(m_env_model_ptr != nullptr && !a->isDiscarded()) {
+                /*  Discarded activities are not necessarily kept in EnvModel (they might have
+                 *  been cleaned).
+                 **/
+                m_env_model_ptr->updateActivity(a); /* Will also be cloned in EnvModel::updateActivity. */
             }
             Log::dbg << "Agent " << m_agent_id << " updated an activity from " << a->getAgentId() << ": " << *a << "\n";
         }

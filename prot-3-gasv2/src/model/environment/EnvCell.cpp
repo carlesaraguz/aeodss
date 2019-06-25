@@ -173,6 +173,21 @@ void EnvCell::getPayoff(double t, float& payoff, float& utility) const
     }
 }
 
+bool EnvCell::findActivity(std::shared_ptr<Activity> act) const
+{
+    return m_activities.find(act) != m_activities.end();
+}
+
+std::shared_ptr<Activity> EnvCell::getActivity(std::string agent_id, int activity_id) const
+{
+    for(auto& a : m_activities) {
+        if(a.first->getAgentId() == agent_id && a.first->getId() == activity_id) {
+            return a.first;
+        }
+    }
+    return nullptr;
+}
+
 std::vector<std::shared_ptr<Activity> > EnvCell::getAllActivities(void) const
 {
     std::vector<std::shared_ptr<Activity> > retval;

@@ -62,6 +62,8 @@ public:
     bool removeCellActivityById(std::string agent_id, unsigned int activity_id);
     bool updateCellActivity(std::shared_ptr<Activity> aptr);
     std::vector<std::shared_ptr<Activity> > getAllActivities(void) const;
+    std::shared_ptr<Activity> getActivity(std::string agent_id, int activity_id) const;
+    bool findActivity(std::shared_ptr<Activity> act) const;
     float computeCellPayoff(double* at0s, double* at1s, int nts);
     void clean(double t);
     std::set<std::pair<std::string, unsigned int> > getCellCrosscheckList(void) const;

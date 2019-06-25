@@ -112,7 +112,6 @@ void EnvModel::computePayoff(std::shared_ptr<Activity> tmp_act, bool display_in_
 void EnvModel::addActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
-    // #pragma omp parallel for
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
         m_cells[c.x][c.y].addCellActivity(act);
@@ -122,7 +121,6 @@ void EnvModel::addActivity(std::shared_ptr<Activity> act)
 void EnvModel::removeActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
-    // #pragma omp parallel for
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
         m_cells[c.x][c.y].removeCellActivity(act);
@@ -132,10 +130,27 @@ void EnvModel::removeActivity(std::shared_ptr<Activity> act)
 void EnvModel::updateActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
-    // #pragma omp parallel for
+    bool updated = false;
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
-        m_cells[c.x][c.y].updateCellActivity(act);
+        auto aptr = m_cells[c.x][c.y].getActivity(act->getAgentId(), act->getId());
+        if(aptr != nullptr) {
+            /*  The environment model has this activity. Update it here, once.
+             *  NOTE: Cells hold a pointer to activities. Therefore, updating the activity once
+             *  suffices (as long as the inner function EnvCell::updateCellActivity only performs an
+             *  Activity::clone operation). Note that the pointer/object stored in EnvCell has been
+             *  added with EnvCell::addCellActivity but may not be the same than `act`. However,
+             *  since activities are added to all cells at once, the pointers are certainly shared
+             *  across cells (and because of this, we can find them and update them once).
+             **/
+            aptr->clone(act);
+            updated = true;
+            break;
+        }
+    }
+    if(!updated) {
+        Log::err << "Unable to update activity [" << act->getAgentId() << ":" << act->getId() << "] in the environment model of "
+            << m_agent->getId() << ". The agent does not remember this activity.\n";
     }
 }
 
