@@ -130,9 +130,10 @@ void ActivityHandler::purge(bool remove_unsent, std::set<int> skip_list)
         for(auto act_it = act_others.second.begin(); act_it != act_others.second.end(); ) {
             if(act_it->second->getEndTime() < t_horizon) {
                 /* We shall remove it: */
+                auto act_ptr = act_it->second;
                 act_it = act_others.second.erase(act_it);
                 if(m_env_model_ptr != nullptr) {
-                    m_env_model_ptr->removeActivity(act_it->second);
+                    m_env_model_ptr->removeActivity(act_ptr);
                 }
                 bflag = true;
                 report_flag = true;
@@ -521,6 +522,22 @@ void ActivityHandler::add(std::shared_ptr<Activity> pa)
         }
         if(count_activities < Config::knowledge_base_size) {
             add(pa, m_activities_others[pa->getAgentId()]);
+        } else {
+#if 0
+            /* Will remove the lower priority one, and add the new one: */
+            std::map<float, unsigned int> list; /* table <priority, ID>. */
+            for(auto& act_old : m_activities_others[pa->getAgentId()]) {
+                list[act_old.second->getPriority(ActivityPriorityModel::BASIC)] = act_old.first;
+            }
+            /* Maps are sorted, so the first element is the one with lower priority: */
+            if(list.begin()->first < pa->getPriority(ActivityPriorityModel::BASIC)) {
+                Log::err << "========================= Will replace ["
+                    << pa->getAgentId() << ":" << list.begin()->second << " == " << list.begin()->first << "] by ["
+                    << pa->getAgentId() << ":" << pa->getId() << " == " << pa->getPriority(ActivityPriorityModel::BASIC) << "]\n";
+                m_activities_others[pa->getAgentId()].erase(list.begin()->second);
+                add(pa, m_activities_others[pa->getAgentId()]);
+            } /*... else: the new activity has lower priority than the worst (this is very unlikely). We do nothing. */
+#endif
         }
     }
     if(m_update_view) {

@@ -121,9 +121,14 @@ void EnvModel::addActivity(std::shared_ptr<Activity> act)
 void EnvModel::removeActivity(std::shared_ptr<Activity> act)
 {
     auto cells = act->getActiveCells();
+    /* We get the pointer once, since it was added for all cells at the same time and should be the same. */
+    std::shared_ptr<Activity> real_aptr;
+    if(cells.size() > 0) {
+        real_aptr = m_cells[cells[0].x][cells[0].y].getActivity(act->getAgentId(), act->getId());
+    }
     for(std::size_t i = 0; i < cells.size(); i++) {
         auto& c = cells[i];
-        m_cells[c.x][c.y].removeCellActivity(act);
+        m_cells[c.x][c.y].removeCellActivity(real_aptr);
     }
 }
 

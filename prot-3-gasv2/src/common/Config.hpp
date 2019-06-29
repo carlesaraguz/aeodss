@@ -39,7 +39,8 @@ public:
     static bool enable_graphics;                /**< Whether to launch the graphical views. */
 
     /* Concurrency settings: */
-    static bool parallel_nested;                /**< Wether to use OMP nested loops or not. */
+    static bool parallel_nested;                /**< Whether to use OMP nested loops or not. */
+    static bool parallel_agent_step;            /**< Whether agent steps will be partially run in parallel. */
     static unsigned int parallel_planners;      /**< Max number of parallel GAs planners. */
 
     /* System goals and payoff model: */

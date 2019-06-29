@@ -155,7 +155,6 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
         return GAScheduler::Solution();
     }
 
-
     if(m_init_individual.getChromosomeLength() <= 6) {
         GASChromosome best_exhaustive(m_population[0]);
         for(auto& sol : m_population) {
@@ -374,7 +373,9 @@ void GAScheduler::setChromosomeInfo(std::vector<double> t0s, std::vector<double>
                         cbaseline.setAllele(a, true);
                     }
                 }
-                m_population.push_back(cbaseline);
+                if(m_population.size() < Config::ga_population_size) {
+                    m_population.push_back(cbaseline);
+                }
             }
             while(m_population.size() < Config::ga_population_size) {
                 m_population.push_back(GASChromosome(l));   /* Randomly initializes the new chromosome. */
@@ -461,7 +462,7 @@ void GAScheduler::setPreviousSolution(unsigned int a_start, unsigned int a_end, 
 float GAScheduler::computeFitness(GASChromosome& c, std::string* dbg_str)
 {
     float po = 0.f;                     /* Payoff. */
-    float r = 0.f;                      /* Normalized and aggregated resource consumption. */
+    // float r = 0.f;                   /* Normalized and aggregated resource consumption. */
     std::map<std::string, float> rk;    /* Single resource capacity consumption (normalized). */
     std::stringstream ss;
 
@@ -520,6 +521,7 @@ float GAScheduler::computeFitness(GASChromosome& c, std::string* dbg_str)
         if(dbg_str != nullptr) {
             *dbg_str = ss.str();
         }
+        #if 0
         /* There hasn't been resource violations, complete the calculation of the metric `r` */
         for(auto rit : rk) {
             r += rit.second / m_max_cost[rit.first];
@@ -530,6 +532,7 @@ float GAScheduler::computeFitness(GASChromosome& c, std::string* dbg_str)
             r = m_small_coeff;
         }
         /**************************************************************************************** */
+        #endif
 
         /* Add additional payoff in case previous solutions have been maintained: *************** */
         for(auto& ps : m_previous_solutions) {

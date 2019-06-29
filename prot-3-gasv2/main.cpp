@@ -282,7 +282,15 @@ void control_loop(void)
                     agent_plan(agents.at(i), i);
                 }
             }
-            std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->step(); });
+            if(Config::parallel_agent_step) {
+                std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->stepSequential(); });
+                #pragma omp parallel for
+                for(unsigned int i = 0; i < agents.size(); i++) {
+                    agents[i]->stepParallel();
+                }
+            } else {
+                std::for_each(agents.begin(), agents.end(), [](const std::shared_ptr<Agent>& a) { a->step(); });
+            }
 
             /*  Step world:
              *  Note that this updates world cells with new revisit times (but does not move them to

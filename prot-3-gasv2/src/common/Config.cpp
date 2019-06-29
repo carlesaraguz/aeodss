@@ -44,6 +44,7 @@ bool            Config::enable_graphics = true;
 
 /* Concurrency settings: */
 bool            Config::parallel_nested = true;
+bool            Config::parallel_agent_step = false;
 unsigned int    Config::parallel_planners = 1;
 
 /* System goals and payoff model: */
@@ -222,6 +223,8 @@ void Config::loadCmdArgs(int argc, char** argv)
             Log::dbg << " -- Config. parameter \'ga_timeout\' is set to: " << ga_timeout << "\n";
             ga_population_size = 500;
             Log::dbg << " -- Config. parameter \'ga_population_size\' is set to: " << ga_population_size << "\n";
+            parallel_agent_step = true;
+            Log::dbg << " -- Config. parameter \'parallel.agent_step\' is set to: true\n";
 
         } else if(opt == "--simple-log") {
             /* Will enter in 'test payoff' mode. */
@@ -328,6 +331,7 @@ void Config::loadCmdArgs(int argc, char** argv)
                         }
                         YAML::Node parallel_node = node_it.second["parallel"];
                         if(parallel_node.IsDefined()) {
+                            getConfigParam("agent_step", parallel_node, parallel_agent_step);
                             getConfigParam("nested", parallel_node, parallel_nested);
                             getConfigParam("planners", parallel_node, parallel_planners);
                             if(parallel_planners == 0) {

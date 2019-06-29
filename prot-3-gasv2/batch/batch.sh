@@ -8,6 +8,7 @@ BATCH_CONF=batch.conf
 MAX_CPUS=$(grep -c ^processor /proc/cpuinfo)
 OMP_CPUS=$(($MAX_CPUS / $WORKERS))
 ERR_COUNT=2
+DO_RANDOM=1
 
 # Read command arguments:
 POSITIONAL=()
@@ -26,6 +27,10 @@ while [[ $# -gt 0 ]]; do
         -f|--file-config)
         BATCH_CONF="$2"
         shift # past argument
+        shift # past value
+        ;;
+        -s|--skip-random)
+        DO_RANDOM=0
         shift # past value
         ;;
         -e|--error-count)
@@ -50,6 +55,7 @@ while [[ $# -gt 0 ]]; do
         echo "-e | --error-count <numerrs>  Allows up to <numerrs> per simulation (and relaunch simulation until exhausted)."
         echo "-l | --limit-cpus <numcpus>   Limits the number of parallel processors to use in each process."
         echo "-m | --max-cpus <numcpus>     Defines a maximum number of CPU's to automatically balance parallel processors."
+        echo "-s | --skip-random            Does not run random tests."
         echo "-h | --help                   Shows this help."
         exit
         shift # past argument
@@ -121,18 +127,18 @@ function job {
     bin=../bin/prot-3   # The binary to execute.
     dirdate=$(date +%Y_%m_%d_%H%M%S)
     dircount=0
-    simulation_name=$(basename $conf_file | sed 's/\.[^.]*$//')
+    simname=$(basename $conf_file | sed 's/\.[^.]*$//')
     resdir="$data_path$dirdate"
-    resdir+="_$simulation_name"
+    resdir+="_$simname"
     resdir+="_$dircount"
-    log_file="job_logs/$simulation_name.log"
+    log_file="job_logs/$simname.log"
     count=0
     while [ ${count} -lt 2 ]; do
         # Loop until the folder name doesn't exist
         while [ -d $resdir ]; do
             dircount=$(($dircount + 1))
             resdir="$data_path$dirdate"
-            resdir+="_$simulation_name"
+            resdir+="_$simname"
             resdir+="_$dircount"
         done
         tstart=$(date +%s)
@@ -165,8 +171,8 @@ function job {
         tspan_str=$(date -u -d @${tspan} +"%T")
         if [[ $exit_value != 0 ]]; then
             completed_date=$(date +"%F %T")
-            printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [C:$count, E:$exit_value]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
-            jbmsg="*$simulation_name* has *\`failed\`* after ${tspan_days}d $tspan_str. (attempt $count)\n"
+            printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [C:$count, E:$exit_value]\n" $simname $tspan_days $memgb | tee -a batch.log
+            jbmsg="*$simname* has *\`failed\`* after ${tspan_days}d $tspan_str. (attempt $count)\n"
             jbmsg+="Memory used: $memgb GB. Exit value: $exit_value."
             job_message "Simulation failed" ":x: ${jbmsg}" "danger"
             count=$(($count + 1))
@@ -177,48 +183,52 @@ function job {
     completed_date=$(date +"%F %T")
     if [ ${count} -ge 2 ]; then
         # Failed!
-        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [aborted]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
-        job_message "Simulation aborted" ":no_entry_sign: *$simulation_name* has been aborted." "warning"
+        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [aborted]\n" $simname $tspan_days $memgb | tee -a batch.log
+        job_message "Simulation aborted" ":no_entry_sign: *$simname* has been aborted." "warning"
     else
         # Succeeded:
-        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $resdir\n" $simulation_name $tspan_days $memgb | tee -a batch.log
+        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $resdir\n" $simname $tspan_days $memgb | tee -a batch.log
         job_message "Simulation finished" \
-            ":heavy_check_mark: *$simulation_name* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
+            ":heavy_check_mark: *$simname* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
     fi
-    # Run the random version:
-    count=0
-    simulation_name+="_rand"
-    log_file="job_logs/$simulation_name.log"
-    randresdir="$data_path$dirdate"
-    randresdir+="_$simulation_name"
-    load_file="$resdir/system.yml"
-    tstart=$(date +%s)
-    OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1 &
-    # sleep 3 &
-    pid_sim=$!
-    job_meminfo $pid_sim &
-    wait $pid_sim
-    exit_value=$?
-    memkb=$(cat job_procinfo/$pid_sim.mem)
-    memgb=$(echo "scale=1; $memkb/1024/1024" | bc -l)
-    cp $log_file $randresdir/ 2>/dev/null
-    tend=$(date +%s)
-    tspan=$(($tend - $tstart))
-    tspan_days=$(($tspan / 86400))
-    tspan=$(($tspan - ($tspan_days * 86400) ))
-    tspan_str=$(date -u -d @${tspan} +"%T")
-    completed_date=$(date +"%F %T")
-    if [ $exit_value != 0 ]; then
-        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simulation_name $tspan_days $memgb | tee -a batch.log
-        jbmsg="*$simulation_name* has *\`failed\`* after ${tspan_days}d $tspan_str.\n"
-        jbmsg+="Memory used: $memgb GB. Exit value: $exit_value."
-        job_message "Simulation failed" ":x: ${jbmsg}" "danger"
-    else
-        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $randresdir\n" $simulation_name $tspan_days $memgb | tee -a batch.log
-        job_message "Simulation finished" ":heavy_check_mark: *$simulation_name* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
+    if [ ${DO_RANDOM} -ge 1 ]; then
+        # Run the random version:
+        count=0
+        simname+="_rand"
+        log_file="job_logs/$simname.log"
+        randresdir="$data_path$dirdate"
+        randresdir+="_$simname"
+        load_file="$resdir/system.yml"
+        tstart=$(date +%s)
+        OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1 &
+        # sleep 3 &
+        pid_sim=$!
+        job_meminfo $pid_sim &
+        wait $pid_sim
+        exit_value=$?
+        memkb=$(cat job_procinfo/$pid_sim.mem)
+        memgb=$(echo "scale=1; $memkb/1024/1024" | bc -l)
+        cp $log_file $randresdir/ 2>/dev/null
+        tend=$(date +%s)
+        tspan=$(($tend - $tstart))
+        tspan_days=$(($tspan / 86400))
+        tspan=$(($tspan - ($tspan_days * 86400) ))
+        tspan_str=$(date -u -d @${tspan} +"%T")
+        completed_date=$(date +"%F %T")
+        if [ $exit_value != 0 ]; then
+            printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simname $tspan_days $memgb | tee -a batch.log
+            jbmsg="*$simname* has *\`failed\`* after ${tspan_days}d $tspan_str.\n"
+            jbmsg+="Memory used: $memgb GB. Exit value: $exit_value."
+            job_message "Simulation failed" ":x: ${jbmsg}" "danger"
+        else
+            printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $randresdir\n" $simname $tspan_days $memgb | tee -a batch.log
+            job_message "Simulation finished" ":heavy_check_mark: *$simname* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
+        fi
     fi
 }
 
+export OMP_CPUS         # Exports the variable so that it can be used within job.
+export DO_RANDOM        # Exports the variable so that it can be used within job.
 export -f job           # Exports the function so that it can be used in xargs.
 export -f job_meminfo   # Exports the function so that it can be used within job.
 export -f job_message   # Exports the function so that it can be used within job.

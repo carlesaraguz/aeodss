@@ -96,10 +96,18 @@ std::vector<AgentBuilder> AgentBuilder::load(std::string src_path)
     std::vector<AgentBuilder> retvec;
     try {
         YAML::Node agent_conf = YAML::LoadFile(src_path);
+        bool do_save = true;
+        if(src_path == Config::data_path + "system.yml") {
+            Log::warn << "Will not save \'system.yml\' file because system configuration source and the output paths are the same:\n";
+            Log::warn << "--- \'" << src_path << "\'\n";
+            do_save = false;
+        }
         for(YAML::const_iterator it = agent_conf.begin(); it != agent_conf.end(); it++) {
-            AgentBuilder ab;
-            ab.load(it->first.as<std::string>(), it->second);
-            retvec.push_back(ab);
+            load(it->first.as<std::string>(), it->second);
+            if(do_save) {
+                save();
+            }
+            retvec.push_back(*this);
         }
     } catch(const std::exception& e) {
         Log::err << "Unable to parse all entries in \'" << src_path << "\' automatically.\n";

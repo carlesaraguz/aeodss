@@ -42,6 +42,8 @@ public:
 
     /* Public member functions: */
     void step(void) override;
+    void stepParallel(void);
+    void stepSequential(void);
     void plan(void);
     void updatePosition(void);
     void showResources(bool d = true);

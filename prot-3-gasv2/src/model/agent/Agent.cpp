@@ -148,10 +148,23 @@ void Agent::updatePosition(void)
 
 void Agent::step(void)
 {
+    stepSequential();
+    stepParallel();
+}
+
+void Agent::stepSequential(void)
+{
     m_activities->update();
     m_link->update();
     m_link->step();
-    listen();
+    /* stepParallel can now be called. */
+}
+
+void Agent::stepParallel(void)
+{
+    /* IMPORTANT NOTE: Needs to have stepSequential before! */
+
+    listen();   /* May call AgentLink::scheduleSend but does not actually start transfers. */
     execute();
     consume();
 
