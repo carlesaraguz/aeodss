@@ -26,6 +26,7 @@ public:
 
     void setAllele(unsigned int a, bool v);
     unsigned int getChromosomeLength(void) const { return m_alleles.size(); }
+    unsigned int getActivityCount(void) const;
     bool isProtected(unsigned int a) const { return m_protected_alleles[a]; }
     bool getAllele(unsigned int a) const { return m_alleles[a]; }
     float getFitness(void) const { return m_fitness; }

@@ -510,7 +510,9 @@ void ActivityHandler::add(std::shared_ptr<Activity> pa)
                 m_env_model_ptr->addActivity(pa);
             }
             m_act_own_lut[pa->getStartTime()] = m_activities_own.size() - 1;
-            Log::dbg << "Agent " << m_agent_id << " added a new activity: " << *pa << "\n";
+            if(Config::verbosity) {
+                Log::dbg << "Agent " << m_agent_id << " added a new activity: " << *pa << "\n";
+            }
         } else {
             Log::err << "Agent " << m_agent_id << " was trying to add an overlapping activity: " << *pa << "\n";
         }

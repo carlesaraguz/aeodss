@@ -350,7 +350,7 @@ private:
     bool m_ready;                   /* 0 bytes. */
     bool m_active;                  /* 0 bytes. */
     float m_confidence;             /* 4 bytes. */
-    float m_confidence_baseline;    /* 0 bytes. */
+    float m_confidence_baseline;    /* 4 bytes. */
     float m_aperture;               /* 4 bytes. */
     double m_last_update;           /* 4 bytes. */
     double m_creation_time;         /* 4 bytes. */

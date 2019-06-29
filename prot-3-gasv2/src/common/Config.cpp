@@ -209,6 +209,8 @@ void Config::loadCmdArgs(int argc, char** argv)
             Log::dbg << "=== Overwritting configuration:\n";
             mode = SandboxMode::RANDOM;
             simulation_name += "_rand";
+            min_payoff = -1.f;
+            Log::dbg << " -- Config. parameter \'min_payoff\' is set to: " << min_payoff << " (ignores threshold).\n";
             agent_range_min = 1.f;
             Log::dbg << " -- Config. parameter \'agent_range_min\' is set to: " << agent_range_min << "\n";
             agent_range_max = 1.f;

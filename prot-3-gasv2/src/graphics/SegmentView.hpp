@@ -27,6 +27,7 @@ public:
     void setOwnership(bool mine);
     void setActive(bool active);
     void setDone(bool done);
+    void setDiscarded(void);
     bool isActive(void) const { return m_active; }
     bool isOwned(void) const { return m_owned; }
 
@@ -36,6 +37,7 @@ private:
     bool m_done;
     bool m_active;
     bool m_owned;
+    bool m_discarded;
     std::vector<ThickLine> m_lines;
     sf::CircleShape m_circle_start;
     sf::CircleShape m_circle_end;

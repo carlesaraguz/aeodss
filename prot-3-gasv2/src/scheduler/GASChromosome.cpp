@@ -42,6 +42,20 @@ GASChromosome::GASChromosome(const GASChromosome& other, bool randomize)
     }
 }
 
+unsigned int GASChromosome::getActivityCount(void) const
+{
+    unsigned int retval = 0;
+    bool prev = false;
+    for(const auto& a : m_alleles) {
+        if(a && !prev) {
+            retval++;
+        }
+        prev = a;
+    }
+    return retval;
+}
+
+
 void GASChromosome::crossover(GASChromosome p1, GASChromosome p2, GASChromosome& c1, GASChromosome& c2)
 {
     if(p1.m_alleles.size() != p2.m_alleles.size() || p2.m_alleles.size() != c1.m_alleles.size() || c1.m_alleles.size() != c2.m_alleles.size()) {

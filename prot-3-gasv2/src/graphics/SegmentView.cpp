@@ -24,6 +24,7 @@ SegmentView::SegmentView(std::vector<sf::Vector2f> ps, std::string str)
     , m_owned(true)
     , m_done(false)
     , m_error(false)
+    , m_discarded(false)
 {
     if(m_positions.size() < 2) {
         Log::err << "Segment view error: can't define a segment with less than two positions.\n";
@@ -89,10 +90,17 @@ void SegmentView::decorate(void)
     /* Color: */
     if(m_owned && m_active) {
         c = sf::Color(94, 238, 255);    /* Bright blue. */
-    } else if(m_owned && !m_active) {
+    } else if(m_owned && !m_active && !m_discarded) {
         c = sf::Color::White;
-    } else {
+    } else if(m_owned && !m_active && m_discarded) {
+        c = sf::Color::Red;
+    } else if(!m_owned && !m_discarded) {
         c = sf::Color(127, 127, 127);   /* Gray. */
+    } else if(!m_owned && m_discarded) {
+        c = sf::Color(127, 0, 0);       /* Dark red. */
+    } else {
+        c = sf::Color::Green;
+        Log::err << "Unexpected segment state.\n";
     }
 
     if(m_circle_start.getFillColor() != c) {
@@ -133,6 +141,15 @@ void SegmentView::setDone(bool done)
     if(!m_done && done) {
         setActive(false);
         m_done = true;
+        decorate();
+    }
+}
+
+void SegmentView::setDiscarded(void)
+{
+    if(!m_discarded) {
+        setActive(false);
+        m_discarded = true;
         decorate();
     }
 }

@@ -71,6 +71,26 @@ void ActivityHandlerView::update(void)
                 }
             }
             break;
+        case ActivityDisplayType::NOT_DISCARDED:
+            for(auto& act : *m_act_own_ptr) {
+                if(!act->isDiscarded()) {
+                    segv_ptr = act->getView(m_agent_id);
+                    if(segv_ptr != nullptr) {
+                        segs.push_back(segv_ptr);
+                    }
+                }
+            }
+            for(auto& actmap : *m_act_others_ptr) {
+                for(auto& act : actmap.second) {
+                    if(!act.second->isDiscarded()) {
+                        segv_ptr = act.second->getView(m_agent_id);
+                        if(segv_ptr != nullptr) {
+                            segs.push_back(segv_ptr);
+                        }
+                    }
+                }
+            }
+            break;
         case ActivityDisplayType::BY_AGENT:
             for(auto& f_elem : m_filter) {
                 if(f_elem.first == m_agent_id) {

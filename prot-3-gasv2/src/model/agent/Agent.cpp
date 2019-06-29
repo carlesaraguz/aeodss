@@ -253,7 +253,7 @@ void Agent::plan(void)
         if(act_gens.size() == 0 || acts.size() == 0) {
             m_activities->update();
             m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
-            Log::dbg << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
+            Log::warn << "[" << m_id << "] No activities generated. Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
             return;
         }
 
@@ -337,6 +337,7 @@ void Agent::plan(void)
         }
 
         /* Store the result (existing activities are not part of the result): */
+        std::string activity_list_dbg_str;
         for(auto& setimes : result) {
             double new_ts = std::get<0>(setimes);
             double new_te = std::get<1>(setimes);
@@ -345,11 +346,18 @@ void Agent::plan(void)
                 auto new_act = createActivity(new_ts, new_te);
                 new_act->setConfidenceBaseline(new_bc);
                 m_activities->add(new_act);
+                if(!Config::verbosity) {
+                    activity_list_dbg_str += " " + std::to_string(new_act->getId()) + ",";
+                }
             } else {
                 Log::warn << "[" << m_id << "] Was trying to create an activity where "
                     << "tstart(" << VirtualTime::toString(new_ts) << ") >= "
                     << "tend(" << VirtualTime::toString(new_te) << ") (2). Skipping.\n";
             }
+        }
+        if(result.size() > 0 && !Config::verbosity) {
+            activity_list_dbg_str[activity_list_dbg_str.length() - 1] = '.';
+            Log::dbg << "Added new activities, with IDs:" << activity_list_dbg_str << "\n";
         }
 
         m_activities->update();

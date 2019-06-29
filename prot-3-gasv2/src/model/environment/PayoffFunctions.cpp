@@ -171,7 +171,11 @@ void PayoffFunctions::bindPayoffFunctions(void)
         } else {
             if(t_horizon == -1.0 && t_diff == -1.0 && t_horizon_overlap != -1.0) {
                 t_horizon = t_horizon_overlap;
-                t_diff = Config::goal_target * 1e3;  /* Very high RT --> po0=1. */
+                if(Config::payoff_model == PayoffModel::CONSTANT_SLOPE || Config::payoff_model == PayoffModel::QUADRATIC) {
+                    t_diff = Config::duration;           /* Very high RT. */
+                } else {
+                    t_diff = Config::goal_target * 1e3;  /* Very high RT --> po0=1. */
+                }
             }
             /*  Select and sort activities by their potential payoff (for this cell):
              *  The selected activities may contribute to _improving_ the revisit time, because they
@@ -359,7 +363,11 @@ void PayoffFunctions::bindPayoffFunctions(void)
         } else {
             if(t_horizon == -1.0 && t_diff == -1.0 && t_horizon_overlap != -1.0) {
                 t_horizon = t_horizon_overlap;
-                t_diff = Config::goal_target * 1e3;  /* Very high RT --> po0=1. */
+                if(Config::payoff_model == PayoffModel::CONSTANT_SLOPE || Config::payoff_model == PayoffModel::QUADRATIC) {
+                    t_diff = Config::duration;           /* Very high RT. */
+                } else {
+                    t_diff = Config::goal_target * 1e3;  /* Very high RT --> po0=1. */
+                }
             }
             /*  Select and sort activities by their potential payoff (for this cell):
              *  The selected activities may contribute to _improving_ the revisit time, because they

@@ -52,7 +52,7 @@ bool GAScheduler::iterate(unsigned int& g, GASChromosome best)
         Log::dbg << "GA Scheduler reached the maximum amount of generations, stopping now.\n";
     } else if(m_best.isValid() && (m_generation_timeout >= Config::ga_timeout)) {
         do_continue = false;
-        Log::dbg << "GA Scheduler timed out after " << g << " generations, stopping now. " << Config::ga_timeout << "\n";
+        Log::dbg << "GA Scheduler timed out after " << g << " generations, stopping now.\n";
         /*  NOTE:
          *  Previous version checked improvement rate and decided to complete the heuristic process
          *  by assessing that figure. The code is left commented below for future reference:
@@ -163,7 +163,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
             }
         }
         if(best_exhaustive.isValid()) {
-            Log::dbg << "GA Scheduler completed after exhaustive search. Solution:\n";
+            Log::dbg << "GA Scheduler completed after exhaustive search.\n";
             return generateSolution(best_exhaustive, adis);
         } else {
             Log::warn << "GA Scheduler completed after exhaustive search, but could not find a solution.\n";
@@ -218,7 +218,7 @@ GAScheduler::Solution GAScheduler::schedule(std::vector<std::shared_ptr<Activity
     m_dbg_str = "DEBUG MESSAGE ========================== Previous solutions: " + std::to_string(m_previous_solutions.size()) + "\n";
     if(best.isValid()) {
         computeFitness(best, &m_dbg_str);
-        Log::dbg << "GA Scheduler completed after " << g << " iterations. Solution:\n";
+        Log::dbg << "GA Scheduler completed after " << g << " iterations.\n";
         return generateSolution(best, adis);
     } else {
         Log::warn << "GA Scheduler completed after " << g << " iterations, but could not find a solution.\n";
@@ -238,6 +238,8 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vecto
      *  creating them again:
      **/
     c.protect({});  /* Unprotects all the alleles in this chromosome. */
+    int dbg_prevsol_kept = 0;
+    int dbg_prevsol_discarded = 0;
     for(auto& ps : m_previous_solutions) {
         /* Check wether this solution is kept: */
         bool sol_kept = true;
@@ -252,14 +254,25 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vecto
             for(unsigned int psa = ps.a_start; psa < ps.a_end + 1; psa++) {
                 c.setAllele(psa, false);
             }
-            Log::dbg << c << " -- " << ps.activity->getId() << " : Is kept [" << ps.a_start << "," << ps.a_end << "]\n";
+            dbg_prevsol_kept++;
+            if(Config::verbosity) {
+                Log::dbg << c << " -- " << ps.activity->getId() << " : Is kept [" << ps.a_start << "," << ps.a_end << "]\n";
+            }
         } else {
             /* Does not modify the alleles and adds this activity to the discarded list. */
             adis.push_back(ps.activity);
-            Log::dbg << c << " -- " << ps.activity->getId() << " : Is discarded [" << ps.a_start << "," << ps.a_end << "]\n";
+            dbg_prevsol_discarded++;
+            if(Config::verbosity) {
+                Log::dbg << c << " -- " << ps.activity->getId() << " : Is discarded [" << ps.a_start << "," << ps.a_end << "]\n";
+            }
         }
     }
-    Log::dbg << c << "\n";
+    if(Config::verbosity) {
+        Log::dbg << c << "\n";
+    } else {
+        Log::dbg << "GA Scheduler solution kept " << dbg_prevsol_kept << " and discarded " << dbg_prevsol_discarded << " previous activities.\n";
+        Log::dbg << "GA Scheduler solution has " << c.getActivityCount() << " new activities.\n";
+    }
 
     /* Now the chromosome only has alleles set for strictly NEW tasks: */
     double t0 = -1.0, t1 = -1.0;
@@ -284,9 +297,11 @@ GAScheduler::Solution GAScheduler::generateSolution(GASChromosome& c, std::vecto
             /* Record the activity: */
             bc /= (float)bc_count;
             retvec.push_back(std::make_tuple(t0, t1, bc));
-            Log::dbg << " # Activity " << (retvec.size() - 1) << ": ["
-                << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
-                << "). B.conf: " << bc << "\n";
+            if(Config::verbosity) {
+                Log::dbg << " # New activity " << (retvec.size() - 1) << ": ["
+                    << VirtualTime::toString(t0) << ", " << VirtualTime::toString(t1)
+                    << "). B.conf: " << bc << "\n";
+            }
             bflag = false;
         }
     }

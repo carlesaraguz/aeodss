@@ -20,6 +20,7 @@ enum class ActivityDisplayType {
     ALL,
     OWNED,
     CONFIRMED,
+    NOT_DISCARDED,
     BY_AGENT,
     SET
 };

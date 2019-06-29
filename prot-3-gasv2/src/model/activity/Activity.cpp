@@ -142,6 +142,9 @@ void Activity::setDiscarded(bool d)
         }
         m_last_update = VirtualTime::now();
         Log::dbg << "Activity [" << m_agent_id << ":" << m_id << "] has been discarded.\n";
+        if(m_self_view != nullptr) {
+            m_self_view->setDiscarded();
+        }
     } else if(isDiscarded()) {
         Log::warn << "Trying to change fact [" << m_agent_id << ":" << m_id << "] is discarded; setting discarded to \'"
             << std::boolalpha << d << "\'. This call has no effect.\n";
@@ -371,12 +374,11 @@ std::shared_ptr<SegmentView> Activity::getView(std::string owner)
             vec_pos.push_back(AgentMotion::getProjection2D(p.second, p.first));
         }
         m_self_view = std::make_shared<SegmentView>(vec_pos, m_agent_id + ":" + std::to_string(m_id));
-        if(m_agent_id == owner) {
-            m_self_view->setOwnership(true);
-        } else {
-            m_self_view->setOwnership(false);
-        }
+        m_self_view->setOwnership(m_agent_id == owner);
         m_self_view->setActive(m_active);
+        if(isDiscarded()) {
+            m_self_view->setDiscarded();
+        }
     }
     return m_self_view;
 }
