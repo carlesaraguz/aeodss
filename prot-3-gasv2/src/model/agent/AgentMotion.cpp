@@ -481,6 +481,8 @@ void AgentMotion::debug(void) const
         Log::dbg << "    Arg. of perigee = " << m_orb_params.argp << " degrees.\n";
         Log::dbg << "    RAAN            = " << m_orb_params.raan << " degrees.\n";
         Log::dbg << "    Mean motion     = " << m_orb_params.mean_motion << " radians per second.\n";
+        double orb_period = 2.0 * Config::pi / (m_orb_params.mean_motion); /* seconds. */
+        Log::dbg << "    Orbital period  = " << orb_period / 60.0 << " minutes.\n";
         Log::dbg << "  Orbital state (current):\n";
         Log::dbg << "    Prop. states = " << m_orbital_state.size() << ".\n";
         if(m_orbital_state.size() > 0) {
