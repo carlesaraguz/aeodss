@@ -459,7 +459,7 @@ void testModePayoff(void)
     Log::dbg << "-- Entering test mode: PAYOFF...\n";
     constexpr float min_payoff = 1e-6;
     constexpr float min_display_payoff = 1e-2;
-    const int max_iter = 100000;
+    int max_iter = 100000;
     Log::dbg << "-- Stopping when payoff delta < " << min_payoff << ", or iterations > " << max_iter << ".\n";
     Log::dbg << "-- Displaying points for delta min = " << min_display_payoff << ".\n";
     switch(Config::payoff_model) {
@@ -477,6 +477,17 @@ void testModePayoff(void)
             Log::dbg << "-- Payoff model: CONSTANT_SLOPE.\n";
             Log::dbg << "-- Gmin  = " << Config::goal_min << ".\n";
             Log::dbg << "-- Slope = " << Config::payoff_slope << ".\n";
+            Log::dbg << "-- Max. payoff   = " << Config::max_payoff << ".\n";
+            Log::dbg << "-- Sched. window = " << Config::agent_planning_window << " = "
+                << VirtualTime::toString(Config::agent_planning_window * Config::time_step, false) << ".\n";
+            Log::dbg << "-- Interl. wind. = " << Config::agent_replanning_window << " = "
+                << VirtualTime::toString(Config::agent_replanning_window * Config::time_step, false) << ".\n";
+            if(Config::goal_min > Config::time_step) {
+                max_iter = (int)((Config::duration + Config::goal_min) / Config::time_step);
+            } else {
+                max_iter = (int)(Config::duration / Config::time_step);
+            }
+            Log::dbg << "-- Stopping at " << max_iter << " iterations.\n";
             break;
         case PayoffModel::QUADRATIC:
             Log::dbg << "-- Payoff model: QUADRATIC.\n";

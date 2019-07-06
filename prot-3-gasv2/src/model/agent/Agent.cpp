@@ -25,7 +25,7 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_current_activity(nullptr)
     , m_display_resources(false)
     , m_link_energy_available(false)
-    , m_replan_horizon(VirtualTime::now())
+    , m_replan_horizon(VirtualTime::now() + ((Config::agent_replanning_window * Random::getUf(0.f, 0.25f)) * Config::time_step))
 {
     if(Config::motion_model == AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n";
@@ -57,7 +57,7 @@ Agent::Agent(AgentBuilder* ab)
     , m_current_activity(nullptr)
     , m_display_resources(false)
     , m_link_energy_available(false)
-    , m_replan_horizon(VirtualTime::now())
+    , m_replan_horizon(VirtualTime::now() + ((Config::agent_replanning_window * Random::getUf(0.f, 0.25f)) * Config::time_step))
 {
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
@@ -90,7 +90,7 @@ Agent::Agent(std::string id)
     , m_current_activity(nullptr)
     , m_display_resources(false)
     , m_link_energy_available(false)
-    , m_replan_horizon(VirtualTime::now())
+    , m_replan_horizon(VirtualTime::now() + ((Config::agent_replanning_window * Random::getUf(0.f, 0.25f)) * Config::time_step))
 {
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
