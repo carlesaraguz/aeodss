@@ -9,6 +9,7 @@ MAX_CPUS=$(grep -c ^processor /proc/cpuinfo)
 OMP_CPUS=$(($MAX_CPUS / $WORKERS))
 ERR_COUNT=2
 DO_RANDOM=1
+SKIP_ACTUAL=0
 
 # Read command arguments:
 POSITIONAL=()
@@ -31,6 +32,11 @@ while [[ $# -gt 0 ]]; do
         ;;
         -s|--skip-random)
         DO_RANDOM=0
+        shift # past value
+        ;;
+        -r|--only-random)
+        DO_RANDOM=1
+        SKIP_ACTUAL=1
         shift # past value
         ;;
         -e|--error-count)
@@ -56,6 +62,7 @@ while [[ $# -gt 0 ]]; do
         echo "-l | --limit-cpus <numcpus>   Limits the number of parallel processors to use in each process."
         echo "-m | --max-cpus <numcpus>     Defines a maximum number of CPU's to automatically balance parallel processors."
         echo "-s | --skip-random            Does not run random tests."
+        echo "-r | --only-random            Only runs random tests. This mode requires load files for all cases."
         echo "-h | --help                   Shows this help."
         exit
         shift # past argument
@@ -69,12 +76,21 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 sleep 1
-echo -e "\nRunning batch simulations with $WORKERS workers. Concurrent threads per job: $OMP_CPUS."
-echo "Reading batch configuration from '$BATCH_CONF'."
-echo "Errors allowed after aborting case: '$ERR_COUNT'."
+echo -e "\n-- Running batch simulations with $WORKERS workers. Concurrent threads per job: $OMP_CPUS."
+echo "-- Reading batch configuration from '$BATCH_CONF'."
+echo "-- Errors allowed after aborting case: '$ERR_COUNT'."
+
+if [ ${SKIP_ACTUAL} -eq 0 ]; then
+    DO_RANDOM=1
+    echo "-- Skipping normal simulations and only performing random cases."
+fi
+
+if [ ${DO_RANDOM} -eq 0 ]; then
+    echo "-- Skipping random simulations."
+fi
 
 if [ ! -f "$BATCH_CONF" ]; then
-    echo "Error: unable to find configuration file."
+    echo "-- Error: unable to find configuration file."
     exit
 fi
 
@@ -94,14 +110,14 @@ function job_meminfo {
     done
 }
 
-function job_message {
+function slack_message {
     # $1 -> Title and fallback message.
     # $2 -> Text.
     # $3 -> Color.
     if [ -f slack_webhook.url ]; then
         webhook_url=$(cat slack_webhook.url)
         timestamp=$(date +%s)
-        curl -X POST -H 'Content-type: application/json' --data '{"attachments": [
+        curl -s -X POST -H 'Content-type: application/json' --data '{"attachments": [
             {
                 "fallback": "'"$1"'",
                 "text": "'"$2"'",
@@ -109,7 +125,7 @@ function job_message {
                 "ts": '"$timestamp"',
                 "mrkdwn_in": ["text"]
             }
-        ]}' ${webhook_url}
+        ]}' ${webhook_url} 2>&1 > /dev/null
     fi
 }
 
@@ -133,7 +149,7 @@ function job {
     resdir+="_$dircount"
     log_file="job_logs/$simname.log"
     count=0
-    while [ ${count} -lt 2 ]; do
+    while [ ${count} -lt 2 ] && [ ${SKIP_ACTUAL} -eq 0 ]; do
         # Loop until the folder name doesn't exist
         while [ -d $resdir ]; do
             dircount=$(($dircount + 1))
@@ -174,22 +190,24 @@ function job {
             printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [C:$count, E:$exit_value]\n" $simname $tspan_days $memgb | tee -a batch.log
             jbmsg="*$simname* has *\`failed\`* after ${tspan_days}d $tspan_str. (attempt $count)\n"
             jbmsg+="Memory used: $memgb GB. Exit value: $exit_value."
-            job_message "Simulation failed" ":x: ${jbmsg}" "danger"
+            slack_message "Simulation failed" ":x: ${jbmsg}" "danger"
             count=$(($count + 1))
         else
             break
         fi
     done
-    completed_date=$(date +"%F %T")
-    if [ ${count} -ge 2 ]; then
-        # Failed!
-        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [aborted]\n" $simname $tspan_days $memgb | tee -a batch.log
-        job_message "Simulation aborted" ":no_entry_sign: *$simname* has been aborted." "warning"
-    else
-        # Succeeded:
-        printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $resdir\n" $simname $tspan_days $memgb | tee -a batch.log
-        job_message "Simulation finished" \
-            ":heavy_check_mark: *$simname* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
+    if [ ${SKIP_ACTUAL} -eq 0 ]; then
+        completed_date=$(date +"%F %T")
+        if [ ${count} -ge 2 ]; then
+            # Failed!
+            printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $resdir [aborted]\n" $simname $tspan_days $memgb | tee -a batch.log
+            slack_message "Simulation aborted" ":no_entry_sign: *$simname* has been aborted." "warning"
+        else
+            # Succeeded:
+            printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $resdir\n" $simname $tspan_days $memgb | tee -a batch.log
+            slack_message "Simulation finished" \
+                ":heavy_check_mark: *$simname* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
+        fi
     fi
     if [ ${DO_RANDOM} -ge 1 ]; then
         # Run the random version:
@@ -198,7 +216,16 @@ function job {
         log_file="job_logs/$simname.log"
         randresdir="$data_path$dirdate"
         randresdir+="_$simname"
-        load_file="$resdir/system.yml"
+
+        if [ ${SKIP_ACTUAL} -ge 1 ] && [ ! -f "$load_file" ]; then
+            completed_date=$(date +"%F %T")
+            printf "$completed_date %20s -- (0d 00:00:00,  0.0 GB) [ FAIL ] : $randresdir [aborted]\n" $simname | tee -a batch.log
+            slack_message "Random simulation aborted" ":no_entry_sign: *$simname* has been aborted. Unable to locate load configuration `$load_file`." "warning"
+            return
+        elif [ ${SKIP_ACTUAL} -eq 0 ]; then
+            load_file="$resdir/system.yml" # Loads from the 'actual' simulation.
+        fi
+
         tstart=$(date +%s)
         OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1 &
         # sleep 3 &
@@ -219,19 +246,20 @@ function job {
             printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ FAIL ] : $randresdir [aborted, E:$exit_value]\n" $simname $tspan_days $memgb | tee -a batch.log
             jbmsg="*$simname* has *\`failed\`* after ${tspan_days}d $tspan_str.\n"
             jbmsg+="Memory used: $memgb GB. Exit value: $exit_value."
-            job_message "Simulation failed" ":x: ${jbmsg}" "danger"
+            slack_message "Simulation failed" ":x: ${jbmsg}" "danger"
         else
             printf "$completed_date %20s -- (%dd $tspan_str, %4.1f GB) [ OK-$count ] : $randresdir\n" $simname $tspan_days $memgb | tee -a batch.log
-            job_message "Simulation finished" ":heavy_check_mark: *$simname* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
+            slack_message "Simulation finished" ":heavy_check_mark: *$simname* has finished after ${tspan_days}d $tspan_str (used $memgb GB)." "good"
         fi
     fi
 }
 
 export OMP_CPUS         # Exports the variable so that it can be used within job.
 export DO_RANDOM        # Exports the variable so that it can be used within job.
+export SKIP_ACTUAL      # Exports the variable so that it can be used within job.
 export -f job           # Exports the function so that it can be used in xargs.
 export -f job_meminfo   # Exports the function so that it can be used within job.
-export -f job_message   # Exports the function so that it can be used within job.
+export -f slack_message   # Exports the function so that it can be used within job.
 
 # NOTE: `xargs` has been used here to parallelize calls to the function job. This is the meaning of
 # its arguments:
