@@ -185,11 +185,14 @@ void ReportGenerator::setReportColumnValue(std::string col_name, int value)
     setReportColumnValue(col_name, ss.str());
 }
 
-void ReportGenerator::outputReport(bool flush_now)
+void ReportGenerator::outputReport(bool flush_now, double t_now)
 {
     if(m_initialized) {
         if(m_enabled && m_report_file.is_open()) {
-            m_report_file << std::fixed << std::setprecision(6) << VirtualTime::now() - Config::start_epoch << ",";
+            if(t_now < 0.0) {
+                t_now = VirtualTime::now();
+            }
+            m_report_file << std::fixed << std::setprecision(6) << t_now - Config::start_epoch << ",";
             for(auto c = m_column_values.begin(); c != m_column_values.end(); c++) {
                 m_report_file << *c;
                 if(std::next(c) != m_column_values.end()) {

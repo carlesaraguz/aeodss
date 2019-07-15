@@ -178,6 +178,7 @@ private:
     unsigned int m_activity_count;
     float m_aperture;
     std::shared_ptr<EnvModel> m_env_model_ptr;
+    double m_report_output_time;
 
     /*******************************************************************************************//**
     *  Re-builds an internal Look-Up-Table.

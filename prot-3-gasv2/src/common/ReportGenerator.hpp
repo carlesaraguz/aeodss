@@ -31,7 +31,7 @@ public:
     void setReportColumnValue(std::string col_name, double value);
     void setReportColumnValue(unsigned int col_idx, int value);
     void setReportColumnValue(std::string col_name, int value);
-    void outputReport(bool flush_now = true);
+    void outputReport(bool flush_now = true, double t_now = -1.0);
     void outputReportHeader(void);
     void enableReport(void);
     void enableReport(std::string name);

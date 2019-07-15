@@ -38,6 +38,13 @@ void ActivityHandler::setAgentId(std::string aid)
     addReportColumn("undecided_others");    /* 5 */
     enableReport();
     outputReportHeader();
+    setReportColumnValue(0, 0);
+    setReportColumnValue(1, 0);
+    setReportColumnValue(2, 0);
+    setReportColumnValue(3, 0);
+    setReportColumnValue(4, 0);
+    setReportColumnValue(5, 0);
+    m_report_output_time = VirtualTime::now();
 }
 
 void ActivityHandler::report(void)
@@ -73,13 +80,25 @@ void ActivityHandler::report(void)
             }
         }
     }
-    setReportColumnValue(0, count_facts_own);
-    setReportColumnValue(1, count_facts_others);
-    setReportColumnValue(2, count_confirmed_own);
-    setReportColumnValue(3, count_confirmed_others);
-    setReportColumnValue(4, count_undecided_own);
-    setReportColumnValue(5, count_undecided_others);
-    outputReport(false);
+    if(m_report_output_time == VirtualTime::now()) {
+        /* Update columns but do not output: */
+        setReportColumnValue(0, count_facts_own);
+        setReportColumnValue(1, count_facts_others);
+        setReportColumnValue(2, count_confirmed_own);
+        setReportColumnValue(3, count_confirmed_others);
+        setReportColumnValue(4, count_undecided_own);
+        setReportColumnValue(5, count_undecided_others);
+    } else {
+        /* Output previous and update columns: */
+        outputReport(false, m_report_output_time);
+        m_report_output_time = VirtualTime::now();
+        setReportColumnValue(0, count_facts_own);
+        setReportColumnValue(1, count_facts_others);
+        setReportColumnValue(2, count_confirmed_own);
+        setReportColumnValue(3, count_confirmed_others);
+        setReportColumnValue(4, count_undecided_own);
+        setReportColumnValue(5, count_undecided_others);
+    }
 }
 
 void ActivityHandler::discard(std::shared_ptr<Activity> pa)
