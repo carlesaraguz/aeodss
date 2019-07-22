@@ -10,6 +10,10 @@ OMP_CPUS=$(($MAX_CPUS / $WORKERS))
 ERR_COUNT=2
 DO_RANDOM=1
 SKIP_ACTUAL=0
+MEM_LIMIT=100
+MEM_KB_LIMIT=$(grep "MemTotal" /proc/meminfo | awk '{print $2}')
+MEM_GB_INFO=$(echo "scale=1; $MEM_KB_LIMIT/1024/1024" | bc -l)
+DRY_RUN=no
 
 # Read command arguments:
 POSITIONAL=()
@@ -30,6 +34,14 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         shift # past value
         ;;
+        -m|--memory-limit)
+        MEM_KB_LIMIT=$(grep "MemTotal" /proc/meminfo | awk '{print $2}')
+        MEM_LIMIT="$2"
+        MEM_KB_LIMIT=$(($MEM_LIMIT * $MEM_KB_LIMIT / 100))
+        MEM_GB_INFO=$(echo "scale=1; $MEM_KB_LIMIT/1024/1024" | bc -l)
+        shift # past argument
+        shift # past value
+        ;;
         -s|--skip-random)
         DO_RANDOM=0
         shift # past value
@@ -44,25 +56,31 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         shift # past value
         ;;
-        -l|--limit-cpus)
+        -c|--cpus-limit)
         OMP_CPUS="$2"
         shift # past argument
         shift # past value
         ;;
-        -m|--max-cpus)
+        -M|--max-cpus)
         MAX_CPUS="$2"
         OMP_CPUS=$(($MAX_CPUS / $WORKERS))
         shift # past argument
         shift # past value
         ;;
+        -d|--dry-run)
+        DRY_RUN=yes
+        shift # past argument
+        ;;
         -h|--help)
         echo "-j | --jobs <numjobs>         Starts batch processing with <numjobs> concurrent processes."
         echo "-f | --file-config <filepath> Loads batch-configuration file from <filepath>."
         echo "-e | --error-count <numerrs>  Allows up to <numerrs> per simulation (and relaunch simulation until exhausted)."
-        echo "-l | --limit-cpus <numcpus>   Limits the number of parallel processors to use in each process."
-        echo "-m | --max-cpus <numcpus>     Defines a maximum number of CPU's to automatically balance parallel processors."
+        echo "-m | --memory-limit <%total>  Limits the amount of memory assigned to this shell (in % of total). Uses `ulimit -Sv`. Default is 100."
+        echo "-c | --cpus-limit <numcpus>   Limits the number of parallel processors to use in each process."
+        echo "-M | --max-cpus <numcpus>     Defines a maximum number of CPU's to automatically balance parallel processors."
         echo "-s | --skip-random            Does not run random tests."
         echo "-r | --only-random            Only runs random tests. This mode requires load files for all cases."
+        echo "-d | --dry-run                Shows configuration of this script and exits without executing simulations."
         echo "-h | --help                   Shows this help."
         exit
         shift # past argument
@@ -78,7 +96,8 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 sleep 1
 echo -e "\n-- Running batch simulations with $WORKERS workers. Concurrent threads per job: $OMP_CPUS."
 echo "-- Reading batch configuration from '$BATCH_CONF'."
-echo "-- Errors allowed after aborting case: '$ERR_COUNT'."
+echo "-- Errors allowed after aborting case: $ERR_COUNT."
+echo "-- Soft memory limit (virtual) per process: $MEM_KB_LIMIT kB, $MEM_GB_INFO GB ($MEM_LIMIT% of total)."
 
 if [ ${SKIP_ACTUAL} -eq 0 ]; then
     DO_RANDOM=1
@@ -91,6 +110,27 @@ fi
 
 if [ ! -f "$BATCH_CONF" ]; then
     echo "-- Error: unable to find configuration file."
+    exit
+fi
+
+if [ ${DRY_RUN} == "yes" ]; then
+    echo "-- Showing all configuration and exiting:"
+    echo "--   Number of workers: $WORKERS"
+    echo "--   Batch config. file: $BATCH_CONF"
+    echo "--   Total CPUs: $MAX_CPUS"
+    echo "--   CPUs/job: $OMP_CPUS"
+    echo "--   Allowed errors: $ERR_COUNT"
+    echo "--   Does random [0=no, 1=yes]: $DO_RANDOM"
+    echo "--   Skip normal [0=no, 1=yes]: $SKIP_ACTUAL"
+    echo "--   Memory limit: $MEM_LIMIT%"
+    echo "--   Memory limit (kB): $MEM_KB_LIMIT"
+    echo "--   Memory limit (GB): $MEM_GB_INFO"
+    if [ -f slack_webhook.url ]; then
+        echo "--   slack_webhook.url file found: yes"
+    else
+        echo "--   slack_webhook.url file found: no (disabled)"
+    fi
+    echo "--   Dry run: $DRY_RUN"
     exit
 fi
 
@@ -158,7 +198,7 @@ function job {
             resdir+="_$dircount"
         done
         tstart=$(date +%s)
-
+        ulimit -Sv $MEM_KB_LIMIT
         if [ -f "$load_file" ]; then
             OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file -d $resdir/ > $log_file 2>&1 &
             # sleep 3 &
@@ -226,6 +266,7 @@ function job {
             load_file="$resdir/system.yml" # Loads from the 'actual' simulation.
         fi
 
+        ulimit -Sv $MEM_KB_LIMIT
         tstart=$(date +%s)
         OMP_NUM_THREADS=$OMP_CPUS $bin --simple-log -g0 -f ../batch/$conf_file -l $load_file --random -d $randresdir/ > $log_file 2>&1 &
         # sleep 3 &
@@ -254,6 +295,7 @@ function job {
     fi
 }
 
+export MEM_KB_LIMIT     # Exports the variable so that it can be used within job.
 export OMP_CPUS         # Exports the variable so that it can be used within job.
 export DO_RANDOM        # Exports the variable so that it can be used within job.
 export SKIP_ACTUAL      # Exports the variable so that it can be used within job.
