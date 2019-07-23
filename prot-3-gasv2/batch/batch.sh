@@ -99,7 +99,7 @@ echo "-- Reading batch configuration from '$BATCH_CONF'."
 echo "-- Errors allowed after aborting case: $ERR_COUNT."
 echo "-- Soft memory limit (virtual) per process: $MEM_KB_LIMIT kB, $MEM_GB_INFO GB ($MEM_LIMIT% of total)."
 
-if [ ${SKIP_ACTUAL} -eq 0 ]; then
+if [ ${SKIP_ACTUAL} -eq 1 ]; then
     DO_RANDOM=1
     echo "-- Skipping normal simulations and only performing random cases."
 fi
