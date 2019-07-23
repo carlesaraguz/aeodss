@@ -91,15 +91,15 @@ public:
 
     /* Resource consumptions and capacities: */
     /* -- Energy: */
-    static float agent_energy_generation_rate;
-    static float instrument_energy_min;
-    static float instrument_energy_max;
-    static float link_tx_energy_rate;
-    static float link_rx_energy_rate;
-    static float link_reserved_capacity;
+    static double agent_energy_generation_rate;
+    static double instrument_energy_min;
+    static double instrument_energy_max;
+    static double link_tx_energy_rate;
+    static double link_rx_energy_rate;
+    static double link_reserved_capacity;
     /* -- Storage: */
-    static float instrument_storage_min;
-    static float instrument_storage_max;
+    static double instrument_storage_min;
+    static double instrument_storage_max;
 
     /* Format and colors: */
     static sf::Font fnt_monospace;

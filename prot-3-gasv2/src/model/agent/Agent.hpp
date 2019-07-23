@@ -34,8 +34,6 @@ class AgentBuilder;
 class Agent : public TimeStep, public HasView, public ReportGenerator
 {
 public:
-    std::string m_dbg_str;  /* DEBUG TODO REMOVE */
-
     Agent(std::string id);
     Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel);
     Agent(AgentBuilder* ab);
@@ -68,7 +66,6 @@ public:
     bool operator!=(const Agent& ra);
 
 private:
-    bool m_print_resources;
     /* Model parameters and components: */
     BasicInstrument m_payload;
     AgentMotion m_motion;
@@ -81,6 +78,8 @@ private:
     /* State and resources: */
     std::shared_ptr<EnvModel> m_environment;
     std::map<std::string, std::shared_ptr<Resource> > m_resources;
+    Activity* m_add_resource_rate;
+    Activity* m_remove_resource_rate;
 
     /* Other: */
     AgentView m_self_view;

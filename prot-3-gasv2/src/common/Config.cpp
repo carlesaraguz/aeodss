@@ -95,16 +95,16 @@ float           Config::orbp_init_ma_min = 360.f;
 
 /* Resource consumptions and capacities: */
 /* -- Energy: */
-float Config::agent_energy_generation_rate = -764.f;
-float Config::instrument_energy_min = 900.f;
-float Config::instrument_energy_max = 1200.f;
-float Config::link_tx_energy_rate = 0.005f;
-float Config::link_rx_energy_rate = 0.0005f;
-float Config::link_reserved_capacity = 0.1f;
+double Config::agent_energy_generation_rate = -764.0;
+double Config::instrument_energy_min = 900.0;
+double Config::instrument_energy_max = 1200.0;
+double Config::link_tx_energy_rate = 0.005;
+double Config::link_rx_energy_rate = 0.0005;
+double Config::link_reserved_capacity = 0.1;
 
 /* -- Storage: */
-float Config::instrument_storage_min = 0.01f;
-float Config::instrument_storage_max = 0.01f;
+double Config::instrument_storage_min = 0.01;
+double Config::instrument_storage_max = 0.01;
 
 /* Format and colors: */
 unsigned int    Config::fnt_size = 24;

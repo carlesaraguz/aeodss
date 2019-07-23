@@ -22,6 +22,10 @@ GASChromosome::GASChromosome(unsigned int sz, bool randomize, float threshold)
         for(unsigned int i = 0; i < sz; i++) {
             m_alleles[i] = (Random::getUf() > threshold);
         }
+    } else {
+        for(unsigned int i = 0; i < sz; i++) {
+            m_alleles[i] = false;
+        }
     }
 }
 

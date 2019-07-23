@@ -13,14 +13,14 @@
 
 CREATE_LOGGER(DepletableResource)
 
-DepletableResource::DepletableResource(Agent* aptr, std::string name, float max_a, float max_b, float c_init_a, float c_init_b)
+DepletableResource::DepletableResource(Agent* aptr, std::string name, double max_a, double max_b, double c_init_a, double c_init_b)
     : DepletableResource(aptr, name, Random::getUf(max_a, max_b), Random::getUf(c_init_a, c_init_b))
 { }
 
-DepletableResource::DepletableResource(Agent* aptr, std::string name, float c)
+DepletableResource::DepletableResource(Agent* aptr, std::string name, double c)
     : DepletableResource(aptr, name, c, (c / 2.f))
 { }
-DepletableResource::DepletableResource(Agent* aptr, std::string name, float c, float c_init)
+DepletableResource::DepletableResource(Agent* aptr, std::string name, double c, double c_init)
     : m_max_capacity(c)
     , m_capacity(c_init)
     , m_name(name)
@@ -29,7 +29,7 @@ DepletableResource::DepletableResource(Agent* aptr, std::string name, float c, f
     , m_reserved_capacity(0.f)
 { }
 
-void DepletableResource::setMaxCapacity(float c)
+void DepletableResource::setMaxCapacity(double c)
 {
     if(c < m_capacity) {
         Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Changing maximum capacity failed.\n";
@@ -38,9 +38,9 @@ void DepletableResource::setMaxCapacity(float c)
     m_max_capacity = c;
 }
 
-bool DepletableResource::tryApplyOnce(float c) const
+bool DepletableResource::tryApplyOnce(double c) const
 {
-    float acc = 0.f;
+    double acc = 0.f;
     for(auto& r : m_rates) {
         acc += r.second;
     }
@@ -48,22 +48,22 @@ bool DepletableResource::tryApplyOnce(float c) const
     return acc <= m_max_capacity - m_reserved_capacity;
 }
 
-void DepletableResource::applyOnce(float c)
+void DepletableResource::applyOnce(double c)
 {
     m_instantaneous += c;
 }
 
-bool DepletableResource::applyFor(float c, double t)
+bool DepletableResource::applyFor(double c, double t, bool /* verbose */)
 {
     if(t <= 0) {
         return true;
     }
 
-    float acc = c + m_instantaneous;
+    double acc = c + m_instantaneous;
     for(auto& r : m_rates) {
         acc += r.second;
     }
-    if(m_max_capacity - acc - m_instantaneous > m_reserved_capacity) {
+    if(m_max_capacity - acc - m_instantaneous >= m_reserved_capacity) {
         m_capacity = m_max_capacity - acc - m_instantaneous;
         return true;
     } else {
@@ -72,7 +72,7 @@ bool DepletableResource::applyFor(float c, double t)
     }
 }
 
-void DepletableResource::addRate(float dc, Activity* ptr)
+void DepletableResource::addRate(double dc, Activity* ptr)
 {
     std::string rate_id;
     if(ptr == nullptr) {
@@ -105,7 +105,7 @@ void DepletableResource::removeRate(Activity* ptr)
 
 void DepletableResource::step(void)
 {
-    float acc = 0.f;
+    double acc = 0.f;
     for(auto& r : m_rates) {
         acc += r.second;    /* These "rates" will only be positive for depletable resources. */
     }

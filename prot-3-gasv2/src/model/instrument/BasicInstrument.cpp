@@ -555,7 +555,7 @@ std::vector<sf::Vector2f> BasicInstrument::getFootprint(void) const
     return footprint;
 }
 
-float BasicInstrument::getResourceRate(std::string rname) const
+double BasicInstrument::getResourceRate(std::string rname) const
 {
     if(rname == "energy") {
         return m_energy_rate;
@@ -566,9 +566,9 @@ float BasicInstrument::getResourceRate(std::string rname) const
     }
 }
 
-std::map<std::string, float> BasicInstrument::getResourceRates(void) const
+std::map<std::string, double> BasicInstrument::getResourceRates(void) const
 {
-    std::map<std::string, float> rmap;
+    std::map<std::string, double> rmap;
     rmap["energy"] = m_energy_rate;
     // rmap["storage"] = m_storage_rate;
     return rmap;

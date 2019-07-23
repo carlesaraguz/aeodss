@@ -21,17 +21,17 @@ class Resource : public TimeStep
 public:
     virtual ~Resource(void) = default;
 
-    virtual float getCapacity(void) const = 0;
-    virtual float getMaxCapacity(void) const = 0;
-    virtual float getReservedCapacity(void) const = 0;
-    virtual void setMaxCapacity(float c) = 0;
-    virtual void setReservedCapacity(float c) = 0;
-    virtual void applyOnce(float c) = 0;
-    virtual bool applyFor(float c, double t) = 0;
+    virtual double getCapacity(void) const = 0;
+    virtual double getMaxCapacity(void) const = 0;
+    virtual double getReservedCapacity(void) const = 0;
+    virtual void setMaxCapacity(double c) = 0;
+    virtual void setReservedCapacity(double c) = 0;
+    virtual void applyOnce(double c) = 0;
+    virtual bool applyFor(double c, double t, bool verbose = false) = 0;
     virtual bool isFull(void) const = 0;
     virtual bool isEmpty(void) const = 0;
-    virtual bool tryApplyOnce(float c) const = 0;
-    virtual void addRate(float dc, Activity* ptr) = 0;
+    virtual bool tryApplyOnce(double c) const = 0;
+    virtual void addRate(double dc, Activity* ptr) = 0;
     virtual void removeRate(Activity* ptr) = 0;
     virtual void setName(std::string name) = 0;
     virtual std::string getName(void) const = 0;

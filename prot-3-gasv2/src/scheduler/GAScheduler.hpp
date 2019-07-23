@@ -20,10 +20,25 @@
 #include "GASOperators.hpp"
 #include "Activity.hpp"
 
+enum class GASchedErr {
+    FOUND_SOLUTION,                 /**< Result is OK and solution was found. */
+    PREVIOUS_SCHEDULE_INVALID,      /**< A solution is found but the given previous schedule is no longer valid (see NOTE below). */
+    FAILED,                         /**< An error occured and the process was halted. Solution is not valid. */
+    NO_SOLUTION                     /**< Could not find a valid solution, but process terminated correctly. */
+};
+
+/*  NOTE:
+ *  The scheduler propagates resource capacities for every potential activity on a one-by-one basis.
+ *  Issues may be found if the actual evolution of the resource (afterwards, when the solution is
+ *  actually executed) is not performed with the same steps (i.e. because in floating point F+F+F is
+ *  not `exactly` equal to F*3). This could potentially cause problems when previous solutions are
+ *  provided (in some cases): a fraction of a valid solution may no longer be valid because resource
+ *  states are not `exactly` the same than the propagated ones.
+ **/
+
 class GAScheduler
 {
 public:
-    std::string m_dbg_str;     /* DEBUG TODO REMOVE WHEN DONE. */
 
     /*******************************************************************************************//**
      *  (1) double: start time of a new task.
@@ -47,9 +62,11 @@ public:
      *  the solution, are not discarded in this routine. They are added to adis and are a return
      *  value that should be used by the agent.
      *  @param  adis    List of discarded activities.
-     *  @return         Start and end times of scheduled activities and baseline confidence.
+     *  @param  result  The solution to the scheduling problem.
+     *  @param  debug   Whether to show additional messages only intended for debugging purposes.
+     *  @return         An error code indicating what to expect from the result.
      **********************************************************************************************/
-    Solution schedule(std::vector<std::shared_ptr<Activity> >& adis);
+    GASchedErr schedule(std::vector<std::shared_ptr<Activity> >& adis, Solution& result, bool debug = false);
 
     /*******************************************************************************************//**
      *  Spawn population. Creates individuals (i.e. GASChromosome's) based on predefined activities/
@@ -58,7 +75,7 @@ public:
      *  @param  t1s     End times for each activity/task/allele.
      *  @param  cs      Resources consumed by this activity (rates at each step).
      **********************************************************************************************/
-    void setChromosomeInfo(std::vector<double> t0s, std::vector<double> t1s, const std::map<std::string, float>& cs);
+    void setChromosomeInfo(std::vector<double> t0s, std::vector<double> t1s, const std::map<std::string, double>& cs);
 
     /*******************************************************************************************//**
      *  Prepares activity/choromosome information. Computes aggregated payoff for a given activity,
@@ -107,12 +124,12 @@ private:
     const float m_small_coeff = 1e-4f;          /**< Ensure small. */
 
     float m_max_payoff;                         /**< The maximum payoff possible (i.e. payoff of a chromosome that enables all alleles). */
-    std::map<std::string, float> m_max_cost;    /**< The total cost for each resource (i.e. cost of a chromosome that enables all alleles). */
+    std::map<std::string, double> m_max_cost;   /**< The total cost for each resource (i.e. cost of a chromosome that enables all alleles). */
     GASChromosome m_best;                       /**< A copy of the best chromosome for comparison purposes. */
     unsigned int m_generation_timeout;          /**< Counts number of generations where best has not changed. */
     std::vector<std::pair<unsigned int, float> > m_iteration_profile;   /**< Runtime information about the scheduling heuristic. */
     std::vector<GASChromosome> m_population;    /**< Chromosomes/individuals. */
-    std::map<std::string, float> m_costs;       /**< Resource consumptions. */
+    std::map<std::string, double> m_costs;      /**< Resource consumptions. */
     std::vector<GASInfo> m_individual_info;     /**< Info about chromosomes and their alleles. */
     std::vector<GASPrevSolution> m_previous_solutions;  /* Infor about previous solutions that have been encoded in the chromosome. */
     double m_tstart;                            /**< Scheduling window start time. */
@@ -125,10 +142,11 @@ private:
      *  activities) and divides by normalized resource states. Ensures that resource capacities are
      *  not exceeded but does not discard solutions where this happens. Instead, their payof is
      *  largely scaled down with a big constant.
-     *  @param  c   The chromosome to compute the fitness of. Its fitness attribute will be set.
-     *  @return     The chromosome fitness (which is also stored internally).
+     *  @param  c       The chromosome to compute the fitness of. Its fitness attribute will be set.
+     *  @param  verbose Whether to output debug messages while computing fitness.
+     *  @return         The chromosome fitness (which is also stored internally).
      **********************************************************************************************/
-    float computeFitness(GASChromosome& c, std::string* dbg_str = nullptr);
+    float computeFitness(GASChromosome& c, bool verbose = false);
 
     /*******************************************************************************************//**
      *  Select a parent from the mating pool. Parent selection is based on either of the following

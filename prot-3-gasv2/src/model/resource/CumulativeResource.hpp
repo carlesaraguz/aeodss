@@ -21,21 +21,21 @@ class Agent;
 class CumulativeResource : public Resource
 {
 public:
-    CumulativeResource(Agent* aptr, std::string name, float max_a, float max_b, float c_init_a, float c_init_b);
-    CumulativeResource(Agent* aptr, std::string name, float c, float c_init);
-    CumulativeResource(Agent* aptr, std::string name, float c);
+    CumulativeResource(Agent* aptr, std::string name, double max_a, double max_b, double c_init_a, double c_init_b);
+    CumulativeResource(Agent* aptr, std::string name, double c, double c_init);
+    CumulativeResource(Agent* aptr, std::string name, double c);
 
-    float getCapacity(void) const override { return m_capacity; }
-    float getMaxCapacity(void) const override { return m_max_capacity; }
-    float getReservedCapacity(void) const override { return m_reserved_capacity; }
-    void setMaxCapacity(float c) override;
-    void setReservedCapacity(float c) override;
-    void applyOnce(float c) override;
-    bool applyFor(float c, double t);
+    double getCapacity(void) const override { return m_capacity; }
+    double getMaxCapacity(void) const override { return m_max_capacity; }
+    double getReservedCapacity(void) const override { return m_reserved_capacity; }
+    void setMaxCapacity(double c) override;
+    void setReservedCapacity(double c) override;
+    void applyOnce(double c) override;
+    bool applyFor(double c, double t, bool verbose = false);
     bool isFull(void) const override { return m_capacity == m_max_capacity; }
     bool isEmpty(void) const override { return m_capacity == 0.f; }
-    bool tryApplyOnce(float c) const override;
-    void addRate(float dc, Activity* ptr) override;
+    bool tryApplyOnce(double c) const override;
+    void addRate(double dc, Activity* ptr) override;
     void removeRate(Activity* ptr) override;
     void setName(std::string name) override { m_name = name; }
     std::string getName(void) const override { return m_name; }
@@ -45,14 +45,14 @@ public:
     void step(void) override;
 
 private:
-    float m_capacity;
-    float m_max_capacity;
-    float m_reserved_capacity;
+    double m_capacity;
+    double m_max_capacity;
+    double m_reserved_capacity;
     Agent* m_agent;
     std::string m_name;
-    float m_instantaneous;
+    double m_instantaneous;
 
-    std::map<std::string, float> m_rates;
+    std::map<std::string, double> m_rates;
 };
 
 #endif /* CUMULATIVE_RESOURCE_HPP */

@@ -166,14 +166,14 @@ public:
      *  Returns the consumption rate for the resource named `rname`.
      *  @param  rname   Name of the resource.
      **********************************************************************************************/
-    float getResourceRate(std::string rname) const override;
+    double getResourceRate(std::string rname) const override;
 
     /*******************************************************************************************//**
      *  Gets the list of consumption rates for this instrument.
      *  @return     A map of resource rates identified with a string key that corresponds to the
      *              resources name.
      **********************************************************************************************/
-    std::map<std::string, float> getResourceRates(void) const;
+    std::map<std::string, double> getResourceRates(void) const;
 
     /*******************************************************************************************//**
      *  Compute the swath for a nadir-looking instrument located at `p` with the given aperture.
@@ -220,8 +220,8 @@ private:
     EnvModelInfo m_env_info;    /**< Information about the environment model size. */
     float m_swath;              /**< Instrument swath, in pixels (2D) or meters (3D). */
     float m_aperture;           /**< Aperture of the instrument in degrees. */
-    float m_energy_rate;        /**< Energy per time unit consumed when the instrument is enabled. */
-    float m_storage_rate;       /**< Storage per time unit consumed when the instrument is enabled. */
+    double m_energy_rate;       /**< Energy per time unit consumed when the instrument is enabled. */
+    double m_storage_rate;      /**< Storage per time unit consumed when the instrument is enabled. */
     sf::Vector3f m_position;    /**< Current position of the instrument. */
     bool m_enabled;             /**< Whether the instrument is enabled (true) or not (false). */
 

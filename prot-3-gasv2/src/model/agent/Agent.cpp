@@ -26,6 +26,8 @@ Agent::Agent(std::string id, sf::Vector2f init_pos, sf::Vector2f init_vel)
     , m_display_resources(false)
     , m_link_energy_available(false)
     , m_replan_horizon(VirtualTime::now() + ((Config::agent_replanning_window * Random::getUf(0.f, 0.25f)) * Config::time_step))
+    , m_add_resource_rate(nullptr)
+    , m_remove_resource_rate(nullptr)
 {
     if(Config::motion_model == AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (2-d, linear motion).\n";
@@ -58,6 +60,8 @@ Agent::Agent(AgentBuilder* ab)
     , m_display_resources(false)
     , m_link_energy_available(false)
     , m_replan_horizon(VirtualTime::now() + ((Config::agent_replanning_window * Random::getUf(0.f, 0.25f)) * Config::time_step))
+    , m_add_resource_rate(nullptr)
+    , m_remove_resource_rate(nullptr)
 {
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
@@ -91,6 +95,8 @@ Agent::Agent(std::string id)
     , m_display_resources(false)
     , m_link_energy_available(false)
     , m_replan_horizon(VirtualTime::now() + ((Config::agent_replanning_window * Random::getUf(0.f, 0.25f)) * Config::time_step))
+    , m_add_resource_rate(nullptr)
+    , m_remove_resource_rate(nullptr)
 {
     if(Config::motion_model != AgentMotionType::ORBITAL) {
         Log::err << "Constructing agent objects with wrong arguments (3-d, orbital motion).\n";
@@ -131,10 +137,10 @@ void Agent::updateAgentReport(void)
 
 void Agent::initializeResources(void)
 {
-    auto energy = std::make_shared<CumulativeResource>(this, "energy", 10.f, Config::link_reserved_capacity);
+    auto energy = std::make_shared<CumulativeResource>(this, "energy", 10.0, Config::link_reserved_capacity);
     m_resources["energy"] = std::static_pointer_cast<Resource>(energy);
     m_resources["energy"]->addRate(Config::agent_energy_generation_rate, nullptr);  /* Constant generation of energy. */
-    // auto storage = std::make_shared<CumulativeResource>(this, "storage", 10.f, 10.f);
+    // auto storage = std::make_shared<CumulativeResource>(this, "storage", 10.0, 10.0);
     // m_resources["storage"] = std::static_pointer_cast<Resource>(storage);
 }
 
@@ -162,7 +168,7 @@ void Agent::stepSequential(void)
 
 void Agent::stepParallel(void)
 {
-    /* IMPORTANT NOTE: Needs to have stepSequential before! */
+    /* IMPORTANT NOTE: Must have called stepSequential before! */
 
     listen();   /* May call AgentLink::scheduleSend but does not actually start transfers. */
     execute();
@@ -173,7 +179,7 @@ void Agent::stepParallel(void)
         std::stringstream ss;
         ss << m_id << ":\n";
         for(auto& r : m_resources) {
-            ss << std::fixed << std::setprecision(0) << 100.f * r.second->getCapacity() / r.second->getMaxCapacity() << "\n";
+            ss << std::fixed << std::setprecision(0) << 100.0 * r.second->getCapacity() / r.second->getMaxCapacity() << "\n";
         }
         m_self_view.setText(ss.str());
     } else {
@@ -191,23 +197,7 @@ void Agent::plan(void)
 {
     /* Schedule activities: */
     double tv_now = VirtualTime::now();
-    /*  NOTE IMPORTANT / TODO / DEBUG: =============================================================
-     *  The following section has been coded to prevent "resource" depletion. There must be a bug
-     *  somewhere in the implementation of CumulativeResource because the solutions scheduled by the
-     *  GAScheduler have been shown to deplete resources (although they are valid when the planning
-     *  algorithm is run). This simply forces the planner to only be triggered if there are 25% of
-     *  resources available but does not preclude the solutions from using the whole capacity.
-     */
-    bool resources_ok = true;
-    /*
-    for(auto& r : m_resources) {
-        if((r.second->getCapacity() / r.second->getMaxCapacity()) < 0.25f) {
-            resources_ok = false;
-            break;
-        }
-    }
-    */
-    if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr && !m_activities->isCapturing() && resources_ok) {
+    if((m_replan_horizon - tv_now <= 0.0) && m_current_activity == nullptr && !m_activities->isCapturing()) {
         /*  Ensures that old activities are removed from the agent's knowledge base:
          *  The following call also removes activities that have not been shared with other agents.
          **/
@@ -300,69 +290,87 @@ void Agent::plan(void)
          *        recompose the baseline confidence if two activities are merged.
          *    (3) The start and end alleles that correspond to existing activities (being re-scheduled).
          **/
-        std::shared_ptr<Activity> pending_aptr(nullptr);
+        std::shared_ptr<Activity> aptr_i(nullptr);
+        std::shared_ptr<Activity> aptr_prev(nullptr);
+        unsigned int allele_start = 0, allele_end = 0;
         for(unsigned int i = 0; i < act_gens.size(); i++) {
             /* Compute baseline confidence: */
             float bc = std::accumulate(act_gens[i].c_utility.begin(), act_gens[i].c_utility.end(), 0.f);
             bc /= act_gens[i].c_utility.size();
             scheduler.setAggregatedPayoff(i, act_gens[i].c_coord, act_gens[i].c_payoffs, bc);
 
-            if(act_gens[i].prev_act != nullptr && pending_aptr == nullptr) {
-                j = i;
-                pending_aptr = act_gens[i].prev_act;
-                if(i < act_gens.size() - 1) {
-                    if(act_gens[i].prev_act != act_gens[i + 1].prev_act && act_gens[i + 1].prev_act != nullptr) {
-                        scheduler.setPreviousSolution(j, i, pending_aptr);
-                        pending_aptr = nullptr;
-                    }
-                }
-            } else if(((act_gens[i].prev_act != nullptr && pending_aptr != act_gens[i].prev_act) ||
-                (act_gens[i].prev_act == nullptr && pending_aptr != nullptr) ||
-                (i == act_gens.size() - 1)) &&
-                (pending_aptr != nullptr)
-            ) {
-                scheduler.setPreviousSolution(j, i - 1, pending_aptr);
-                pending_aptr = act_gens[i].prev_act;
+            /* Configure previous activities: */
+            aptr_i = act_gens[i].prev_act;
+            if(aptr_prev == nullptr && aptr_i != nullptr) {
+                /* Store start allele: */
+                allele_start = i;
+            } else if(aptr_prev != nullptr && aptr_prev != aptr_i && aptr_i != nullptr) {
+                /* Finish previous and start new: */
+                allele_end = i - 1;
+                scheduler.setPreviousSolution(allele_start, allele_end, aptr_prev);
+                allele_start = i;
+            } else if(aptr_i == nullptr && aptr_prev != nullptr) {
+                /* Finish previous only: */
+                allele_end = i - 1;
+                scheduler.setPreviousSolution(allele_start, allele_end, aptr_prev);
             }
+            /* Check for last one: */
+            if(i == act_gens.size() - 1 && allele_start == i) {
+                /* Finish the last one: */
+                allele_end = i;
+                scheduler.setPreviousSolution(allele_start, allele_end, aptr_i);
+            }
+            aptr_prev = aptr_i;
         }
 
         /* Run the scheduler: */
         std::vector<std::shared_ptr<Activity> > adis;
-        auto result = scheduler.schedule(adis);
-        m_dbg_str = scheduler.m_dbg_str;
+        GAScheduler::Solution result;
+        auto gas_error_code = scheduler.schedule(adis, result);
 
-        /* Discard activities: */
-        for(auto& act_dis : adis) {
-            m_activities->discard(act_dis);
-        }
+        if(gas_error_code != GASchedErr::FOUND_SOLUTION) {
+            /* Could not find a valid solution, or there was an error: */
+            m_replan_horizon = tv_now + Config::agent_planning_window * Config::time_step;
+            Log::warn << "[" << m_id << "] Interleaved scheduling temporaly disabled. Next planning will be triggered after "
+                << VirtualTime::toString(m_replan_horizon) << ".\n";
 
-        /* Store the result (existing activities are not part of the result): */
-        std::string activity_list_dbg_str;
-        for(auto& setimes : result) {
-            double new_ts = std::get<0>(setimes);
-            double new_te = std::get<1>(setimes);
-            float new_bc  = std::get<2>(setimes);
-            if(new_ts < new_te) {
-                auto new_act = createActivity(new_ts, new_te);
-                new_act->setConfidenceBaseline(new_bc);
-                m_activities->add(new_act);
-                if(!Config::verbosity) {
-                    activity_list_dbg_str += " " + std::to_string(new_act->getId()) + ",";
-                }
-            } else {
-                Log::warn << "[" << m_id << "] Was trying to create an activity where "
+        } else {
+            /* A solution has been found without issues. */
+            /* (1) Discard activities: */
+            for(auto& act_dis : adis) {
+                m_activities->discard(act_dis);
+            }
+
+            /* (2) Store the result (existing activities are not part of the result, only new ones): */
+            std::string activity_list_dbg_str;
+            for(auto& setimes : result) {
+                double new_ts = std::get<0>(setimes);
+                double new_te = std::get<1>(setimes);
+                float new_bc  = std::get<2>(setimes);
+                if(new_ts < new_te) {
+                    auto new_act = createActivity(new_ts, new_te);
+                    new_act->setConfidenceBaseline(new_bc);
+                    m_activities->add(new_act);
+                    if(!Config::verbosity) {
+                        activity_list_dbg_str += " " + std::to_string(new_act->getId()) + ",";
+                    }
+                } else {
+                    Log::warn << "[" << m_id << "] Was trying to create an activity where "
                     << "tstart(" << VirtualTime::toString(new_ts) << ") >= "
                     << "tend(" << VirtualTime::toString(new_te) << ") (2). Skipping.\n";
+                }
             }
-        }
-        if(result.size() > 0 && !Config::verbosity) {
-            activity_list_dbg_str[activity_list_dbg_str.length() - 1] = '.';
-            Log::dbg << "Added new activities, with IDs:" << activity_list_dbg_str << "\n";
+            if(result.size() > 0 && !Config::verbosity) {
+                activity_list_dbg_str[activity_list_dbg_str.length() - 1] = '.';
+                Log::dbg << "Added new activities, with IDs:" << activity_list_dbg_str << "\n";
+            }
+
+            /* (3) Update knowledge base and configure new planning horizon: */
+            m_activities->update();
+            m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
+            Log::dbg << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
         }
 
-        m_activities->update();
-        m_replan_horizon = tv_now + Config::agent_replanning_window * Config::time_step;
-        Log::dbg << "[" << m_id << "] Next planning will be triggered after " << VirtualTime::toString(m_replan_horizon) << ".\n";
     }
 }
 
@@ -432,11 +440,8 @@ void Agent::execute(void)
             Log::dbg << "Agent " << m_id << " is ending activity " << m_current_activity->getId()
                 << ", T = [" << VirtualTime::toString(m_current_activity->getStartTime())
                 << ", " << VirtualTime::toString(m_current_activity->getEndTime()) << ").\n";
-            m_print_resources = true;
             m_payload.disable();
-            for(auto& r : m_resources) {
-                r.second->removeRate(m_current_activity.get());
-            }
+            m_remove_resource_rate = m_current_activity.get();
             m_current_activity = nullptr;
             if(m_link_energy_available && !m_link->isEnabled() && !Config::link_allow_during_capture) {
                 /* Can be re-enabled now: */
@@ -454,11 +459,8 @@ void Agent::execute(void)
             /* Must disable link at this point. */
             m_link->disable();
         }
-        m_print_resources = true;
+        m_add_resource_rate = m_current_activity.get();
         m_payload.enable();
-        for(auto& r : m_resources) {
-            r.second->addRate(m_payload.getResourceRate(r.first), m_current_activity.get());
-        }
     }
 }
 
@@ -478,23 +480,35 @@ void Agent::consume(void)
         m_link_energy_available = false;
     }
 
-    /* Update resources: */
+    /* Remove resource rates (if flagged): */
+    if(m_remove_resource_rate != nullptr) {
+        for(auto& r : m_resources) {
+            r.second->removeRate(m_remove_resource_rate);
+            // Log::dbg << "################## Resource rate \'" << r.first << "\' removed. ";
+            // Log::dbg << "Capacity at end time [" << VirtualTime::toString(VirtualTime::now()) << "] is ";
+            // Log::dbg << std::fixed << std::setprecision(12) << r.second->getCapacity() << std::defaultfloat << "\n";
+        }
+        m_remove_resource_rate = nullptr;
+    }
+
+    /* Update/step resources: */
     for(auto& r : m_resources) {
-        // if(m_print_resources) {
-        //     Log::warn << "[" << m_id << "] Is consuming t = " << VirtualTime::toString(VirtualTime::now())
-        //         << ". R{\'" << r.first << "\'} " << r.second->getCapacity() << " ... ";
-        // }
         try {
             r.second->step();
-            // if(m_print_resources) {
-            //     Log::warn << r.second->getCapacity() << "\n";
-            // }
-
         } catch(const std::runtime_error& e) {
             Log::err << "Resource violation exception catched. Will continue for debugging purposes.\n";
         }
     }
-    m_print_resources = false;
+    /* Add resource rates (if flagged): */
+    if(m_add_resource_rate != nullptr) {
+        for(auto& r : m_resources) {
+            r.second->addRate(m_payload.getResourceRate(r.first), m_add_resource_rate);
+            // Log::dbg << "~~~~~~~~~~~~~~~~~~ Resource rate \'" << r.first << "\' added. ";
+            // Log::dbg << "Capacity at start time [" << VirtualTime::toString(VirtualTime::now()) << "] is ";
+            // Log::dbg << std::fixed << std::setprecision(12) << r.second->getCapacity() << std::defaultfloat << "\n";
+        }
+        m_add_resource_rate = nullptr;
+    }
 }
 
 void Agent::showResources(bool d)

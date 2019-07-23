@@ -13,15 +13,15 @@
 
 CREATE_LOGGER(CumulativeResource)
 
-CumulativeResource::CumulativeResource(Agent* aptr, std::string name, float max_a, float max_b, float c_init_a, float c_init_b)
+CumulativeResource::CumulativeResource(Agent* aptr, std::string name, double max_a, double max_b, double c_init_a, double c_init_b)
     : CumulativeResource(aptr, name, Random::getUf(max_a, max_b), Random::getUf(c_init_a, c_init_b))
 { }
 
-CumulativeResource::CumulativeResource(Agent* aptr, std::string name, float c)
+CumulativeResource::CumulativeResource(Agent* aptr, std::string name, double c)
     : CumulativeResource(aptr, name, c, (c / 2.f))
 { }
 
-CumulativeResource::CumulativeResource(Agent* aptr, std::string name, float c, float c_init)
+CumulativeResource::CumulativeResource(Agent* aptr, std::string name, double c, double c_init)
     : m_max_capacity(c)
     , m_capacity(c_init)
     , m_name(name)
@@ -30,7 +30,7 @@ CumulativeResource::CumulativeResource(Agent* aptr, std::string name, float c, f
     , m_reserved_capacity(0.f)
 { }
 
-void CumulativeResource::setMaxCapacity(float c)
+void CumulativeResource::setMaxCapacity(double c)
 {
     if(c < m_capacity) {
         Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Changing maximum \'" << m_name << "\' capacity to " << c << " failed.\n";
@@ -39,7 +39,7 @@ void CumulativeResource::setMaxCapacity(float c)
     m_max_capacity = c;
 }
 
-void CumulativeResource::setReservedCapacity(float c)
+void CumulativeResource::setReservedCapacity(double c)
 {
     if(c > m_capacity) {
         Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Changing reserved \'" << m_name << "\' capacity to " << c << " failed.\n";
@@ -48,9 +48,9 @@ void CumulativeResource::setReservedCapacity(float c)
     m_reserved_capacity = c;
 }
 
-bool CumulativeResource::tryApplyOnce(float c) const
+bool CumulativeResource::tryApplyOnce(double c) const
 {
-    float acc = 0.f;
+    double acc = 0.f;
     for(auto& r : m_rates) {
         acc += r.second;
     }
@@ -58,33 +58,36 @@ bool CumulativeResource::tryApplyOnce(float c) const
     return acc + c <= m_max_capacity - m_reserved_capacity;
 }
 
-void CumulativeResource::applyOnce(float c)
+void CumulativeResource::applyOnce(double c)
 {
     m_instantaneous += c;
 }
 
-bool CumulativeResource::applyFor(float c, double t)
+bool CumulativeResource::applyFor(double c, double t, bool verbose)
 {
     if(t <= 0) {
         return true;
     }
-    float acc = c + m_instantaneous;
+    double acc = c + m_instantaneous;
     for(auto& r : m_rates) {
         acc += r.second;
     }
     m_capacity -= acc * t;
-    if(m_capacity > m_reserved_capacity) {
+    if(m_capacity >= m_reserved_capacity) {
         if(m_capacity > m_max_capacity) {
             m_capacity = m_max_capacity;
         }
         return true;
     } else {
+        if(verbose) {
+            Log::err << "Full depletion applying c = " << c << " for t = " << t << ". Resulting capacity would be " << m_capacity << "\n";
+        }
         m_capacity = m_reserved_capacity;
         return false;
     }
 }
 
-void CumulativeResource::addRate(float dc, Activity* ptr)
+void CumulativeResource::addRate(double dc, Activity* ptr)
 {
     std::string rate_id;
     if(ptr == nullptr) {
@@ -113,11 +116,13 @@ void CumulativeResource::removeRate(Activity* ptr)
 
 void CumulativeResource::step(void)
 {
-    float acc = 0.f;
+    double acc = 0.f;
     for(auto& r : m_rates) {
         acc += r.second * Config::time_step;
     }
     acc += m_instantaneous * Config::time_step;
+    // Log::dbg << "================== Resource capacity at " << VirtualTime::toString(VirtualTime::now()) << " is "
+    //     << std::fixed << std::setprecision(12) << m_capacity << "\n";
     if(acc > m_capacity - m_reserved_capacity) {
         Log::err << "[Agent " << m_agent->getId() << ":" << m_name << "] Trying to consume ["
             << m_capacity << "-]" << acc << " would result in negative capacity.\n";

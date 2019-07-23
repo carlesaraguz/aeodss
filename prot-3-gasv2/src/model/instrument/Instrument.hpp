@@ -38,8 +38,8 @@ public:
         double ap, sf::Vector3f p0, sf::Vector3f p1, double t0, double t1, bool world_cells = false) const = 0;
 
     virtual std::vector<sf::Vector2f> getFootprint(void) const = 0;
-    virtual float getResourceRate(std::string rname) const = 0;
-    virtual std::map<std::string, float> getResourceRates(void) const = 0;
+    virtual double getResourceRate(std::string rname) const = 0;
+    virtual std::map<std::string, double> getResourceRates(void) const = 0;
 };
 
 #endif /* INSTRUMENT_HPP */
