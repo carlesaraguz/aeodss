@@ -83,7 +83,7 @@ agent:
         generations: 10000          # Max. number of iterations in the search.
         timeout: 1000               # Timeout (in iterations) as # of iterations without improvement.
         payoff_aggregation: avg     # Aggregation of payoff in tasks [min, max, avg, sum].
-        payoff_k: 12                # P.o. multiplier for previously scheduled activities.
+        payoff_k: 2                 # P.o. multiplier for previously scheduled activities.
         confidence_th: 0            # Min. confidence to apply payoff multiplier.
         min_improvement_rate: 0.01  # Minimum improvement rate.
         population_size: 100        # Number of individuals in the population.
