@@ -17,6 +17,7 @@
 #include "EnvModel.hpp"
 #include "Instrument.hpp"
 #include "Random.hpp"
+#include "Utils.hpp"
 #include "MathUtils.hpp"
 
 /***********************************************************************************************//**

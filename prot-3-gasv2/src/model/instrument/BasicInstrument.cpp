@@ -149,6 +149,7 @@ void BasicInstrument::applyToDistance3D(
      *  roughly 190 KiB (per Agent), whereas a 1800x900 model takes roughly 18.5 MiB.
      **/
     auto p_ecef = CoordinateSystemUtils::fromECIToECEF(p, t);
+    Utils::safeXY(ox, oy, lut);
     auto o_ecef = lut.at(ox).at(oy);
     int span_hor, span_ver, xx, yy, its = 0;
     if(world_cells) {
@@ -160,6 +161,7 @@ void BasicInstrument::applyToDistance3D(
     }
     bool at_r = false;
     auto check_cell = [&](int xit, int yit, bool verbose = false) {
+        Utils::safeXY(xit, yit, lut);
         auto s_ecef = lut.at(xit).at(yit);
         /*  ===== Original method: =================================================================
          *  Computes distance from p to s and compares with slant range. This methods yielded errors

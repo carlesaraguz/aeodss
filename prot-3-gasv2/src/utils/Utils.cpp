@@ -10,6 +10,8 @@
 
 #include "Utils.hpp"
 
+CREATE_LOGGER(Utils)
+
 std::chrono::time_point<std::chrono::steady_clock> Utils::m_time_point;
 
 void Utils::tic(void)
@@ -71,3 +73,27 @@ void Utils::split(const std::string &s, char delim, Out result) {
         *(result++) = item;
     }
 }
+
+void Utils::logErrProxy(std::string msg)
+{
+    Log::err << msg;
+}
+
+
+#ifdef __GNUG__
+std::string Utils::typeDemangle(const char *name)
+{
+    int status;
+    char * ptr = abi::__cxa_demangle(name, nullptr, nullptr, &status);
+    if(ptr != nullptr && status == 0) {
+        return std::string(ptr);
+    } else {
+        return "Unknown";
+    }
+}
+#else
+std::string Utils::typeDemangle(const char *name)
+{
+    return "Unknown";
+}
+#endif

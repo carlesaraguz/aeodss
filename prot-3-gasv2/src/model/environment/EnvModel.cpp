@@ -218,6 +218,7 @@ ActivityGen EnvModel::createActivityGen(double t0, double t1, std::shared_ptr<Ac
     float po, ut;
     for(auto& vsc : vcells) {
         /* COMBAK: Check that asking for payoff between t0 and t1 is correct: */
+        Utils::safeXY(vsc.x, vsc.y, m_cells);
         m_cells.at(vsc.x).at(vsc.y).getPayoff(((t0 + t1) / 2.f), po, ut);
         vec_payoffs.push_back(po);
         vec_utility.push_back(ut);
