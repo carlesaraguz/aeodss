@@ -6,8 +6,8 @@
     raan: 227.8124
     memo: 0.001109377991395569
     ma_init: 0.838455129943668
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -19,8 +19,8 @@
     raan: 227.9056
     memo: 0.001110059010870272
     ma_init: 0.6959745393237569
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -32,8 +32,8 @@
     raan: 227.5193
     memo: 0.00110930872218644
     ma_init: 0.9013375488330198
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -45,8 +45,8 @@
     raan: 228.2356
     memo: 0.001109806433365908
     ma_init: 5.603541430608573
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -58,8 +58,8 @@
     raan: 228.2718
     memo: 0.001109360154130614
     ma_init: 6.016394926978144
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -71,8 +71,8 @@
     raan: 228.162
     memo: 0.001109298285117513
     ma_init: 3.073433931492104
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -84,8 +84,8 @@
     raan: 228.2333
     memo: 0.001109312545911942
     ma_init: 1.630181652155976
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -97,8 +97,8 @@
     raan: 228.2356
     memo: 0.001109948829689034
     ma_init: 5.383477527343722
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -110,8 +110,8 @@
     raan: 228.2811
     memo: 0.001109319848660421
     ma_init: 1.076228695984106
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -123,8 +123,8 @@
     raan: 230.0034
     memo: 0.001109273507987119
     ma_init: 1.075378592650914
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -136,8 +136,8 @@
     raan: 231.0266
     memo: 0.001110415449282319
     ma_init: 0.9800586917790568
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -149,8 +149,8 @@
     raan: 229.9134
     memo: 0.001109510102638858
     ma_init: 4.338692390352804
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -162,8 +162,8 @@
     raan: 230.0833
     memo: 0.001109912986443962
     ma_init: 2.962482516961977
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -175,8 +175,8 @@
     raan: 230.127
     memo: 0.001109846762107157
     ma_init: 2.416236453875442
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -188,8 +188,8 @@
     raan: 230.0866
     memo: 0.001109287034288822
     ma_init: 4.242777943354575
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -201,8 +201,8 @@
     raan: 229.9498
     memo: 0.001109290539491736
     ma_init: 2.209706802441438
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -214,8 +214,8 @@
     raan: 229.9633
     memo: 0.001109290514039018
     ma_init: 1.351586200522
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -227,8 +227,8 @@
     raan: 230.2244
     memo: 0.00110930497336465
     ma_init: 3.726425743133063
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -240,8 +240,8 @@
     raan: 230.1058
     memo: 0.001109311296547086
     ma_init: 1.281534219473109
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -253,8 +253,8 @@
     raan: 230.4006
     memo: 0.001109894777569321
     ma_init: 0.3936750088854097
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -266,8 +266,8 @@
     raan: 230.4947
     memo: 0.001109898111875412
     ma_init: 3.703293857677309
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -279,8 +279,8 @@
     raan: 230.6642
     memo: 0.001109708892004557
     ma_init: 6.035832384777883
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -292,8 +292,8 @@
     raan: 230.0584
     memo: 0.001109285656205933
     ma_init: 2.808107657340422
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -305,8 +305,8 @@
     raan: 230.2502
     memo: 0.001109275188593745
     ma_init: 2.914499439129152
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -318,8 +318,8 @@
     raan: 230.0551
     memo: 0.001109279106130695
     ma_init: 5.465775353197792
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -331,8 +331,8 @@
     raan: 229.8662
     memo: 0.001109289181771023
     ma_init: 4.137781632974331
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -344,8 +344,8 @@
     raan: 229.8655
     memo: 0.001109299738831335
     ma_init: 6.013945916061637
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -357,8 +357,8 @@
     raan: 230.1147
     memo: 0.001109585904469933
     ma_init: 1.373801621906949
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -370,8 +370,8 @@
     raan: 229.8725
     memo: 0.001109278252373802
     ma_init: 5.019579528103172
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -383,8 +383,8 @@
     raan: 229.973
     memo: 0.001109314674486409
     ma_init: 0.0781287111113329
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -396,8 +396,8 @@
     raan: 230.4361
     memo: 0.001110045770366234
     ma_init: 4.343820226945923
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -409,8 +409,8 @@
     raan: 230.1197
     memo: 0.001109296843039218
     ma_init: 2.69141590883337
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -422,8 +422,8 @@
     raan: 230.4158
     memo: 0.001110025894702156
     ma_init: 3.799368041778052
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -435,8 +435,8 @@
     raan: 230.4635
     memo: 0.001110074772647858
     ma_init: 2.013132269045279
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -448,8 +448,8 @@
     raan: 229.9961
     memo: 0.001109288999238671
     ma_init: 3.499427643166662
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -461,8 +461,8 @@
     raan: 230.1782
     memo: 0.001109538303523467
     ma_init: 0.3052156688111509
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -474,8 +474,8 @@
     raan: 229.9942
     memo: 0.001109284756634148
     ma_init: 0.4423284224599655
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -487,8 +487,8 @@
     raan: 230.0168
     memo: 0.001109295179885885
     ma_init: 0.4609869127481474
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -500,8 +500,8 @@
     raan: 229.8844
     memo: 0.001109289217404828
     ma_init: 2.627793756617741
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -513,8 +513,8 @@
     raan: 230.0738
     memo: 0.001109575273960348
     ma_init: 3.399908803846259
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -526,8 +526,8 @@
     raan: 229.9781
     memo: 0.001109275099872841
     ma_init: 0.1011573834587765
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -539,8 +539,8 @@
     raan: 230.1477
     memo: 0.001109287057559879
     ma_init: 4.581120082357387
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -552,8 +552,8 @@
     raan: 230.4667
     memo: 0.001109363212092907
     ma_init: 0.4585272582071767
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -565,8 +565,8 @@
     raan: 230.0795
     memo: 0.001109303973436433
     ma_init: 2.84625465846328
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -578,8 +578,8 @@
     raan: 230.3681
     memo: 0.001110008156339192
     ma_init: 4.551734458373069
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -591,8 +591,8 @@
     raan: 229.9646
     memo: 0.001109303859990032
     ma_init: 3.228457368632633
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -604,8 +604,8 @@
     raan: 230.4811
     memo: 0.001110084569762726
     ma_init: 3.789660852331309
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -617,8 +617,8 @@
     raan: 230.2428
     memo: 0.00110934183108235
     ma_init: 0.5453440354099541
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -630,8 +630,8 @@
     raan: 230.3291
     memo: 0.001109291697954027
     ma_init: 4.733025881881893
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -643,8 +643,8 @@
     raan: 229.8938
     memo: 0.001109287594248624
     ma_init: 3.173465351573867
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -656,8 +656,8 @@
     raan: 230.1659
     memo: 0.001109287077922053
     ma_init: 2.835238497619116
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -669,8 +669,8 @@
     raan: 229.8758
     memo: 0.001109295282423979
     ma_init: 1.192097242547248
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -682,8 +682,8 @@
     raan: 230.0304
     memo: 0.001109294424303763
     ma_init: 0.6966480977210026
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -695,8 +695,8 @@
     raan: 229.9877
     memo: 0.001109280263138545
     ma_init: 4.147314102200433
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -708,8 +708,8 @@
     raan: 229.9843
     memo: 0.001109284406841077
     ma_init: 0.4464199782092777
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -721,8 +721,8 @@
     raan: 229.7441
     memo: 0.001109263315264287
     ma_init: 1.816014182765755
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -734,8 +734,8 @@
     raan: 230.0491
     memo: 0.001109288938879368
     ma_init: 2.733035727389982
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -747,8 +747,8 @@
     raan: 230.0267
     memo: 0.00110936285284597
     ma_init: 3.794005245360253
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -760,8 +760,8 @@
     raan: 230.6342
     memo: 0.001110138029924935
     ma_init: 4.153381123762202
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -773,8 +773,8 @@
     raan: 230.2209
     memo: 0.001109756783839232
     ma_init: 5.714644319397649
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -786,8 +786,8 @@
     raan: 230.0013
     memo: 0.001109326861975132
     ma_init: 6.244056755760838
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -799,8 +799,8 @@
     raan: 229.9551
     memo: 0.001109290958370757
     ma_init: 1.525200092897997
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -812,8 +812,8 @@
     raan: 230.823
     memo: 0.001110334264564942
     ma_init: 5.292358331263046
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -825,8 +825,8 @@
     raan: 230.2573
     memo: 0.00110930750990983
     ma_init: 3.224070684271339
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -838,8 +838,8 @@
     raan: 230.0486
     memo: 0.001109296114364256
     ma_init: 4.256618158977979
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -851,8 +851,8 @@
     raan: 230.0878
     memo: 0.001109645204212932
     ma_init: 1.665502763277644
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -864,8 +864,8 @@
     raan: 230.6565
     memo: 0.001110034629347842
     ma_init: 4.972252782348299
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -877,8 +877,8 @@
     raan: 230.3271
     memo: 0.0011096270098827
     ma_init: 3.082357971587442
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -890,8 +890,8 @@
     raan: 230.1139
     memo: 0.001109296931760122
     ma_init: 5.513360307507817
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -903,8 +903,8 @@
     raan: 229.9615
     memo: 0.001109294333401198
     ma_init: 4.067749183679403
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -916,8 +916,8 @@
     raan: 230.1179
     memo: 0.001109292716789978
     ma_init: 3.197987851307843
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -929,8 +929,8 @@
     raan: 230.4266
     memo: 0.00110973202270769
     ma_init: 2.532773134313246
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -942,8 +942,8 @@
     raan: 45.682
     memo: 0.00111925828792836
     ma_init: 1.311503067207163
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -955,8 +955,8 @@
     raan: 45.9528
     memo: 0.001119345420582384
     ma_init: 4.179072154265903
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -968,8 +968,8 @@
     raan: 45.8696
     memo: 0.00111924816647314
     ma_init: 1.026264868982302
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -981,8 +981,8 @@
     raan: 45.8487
     memo: 0.001119801593652875
     ma_init: 3.233214312202826
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -994,8 +994,8 @@
     raan: 46.0372
     memo: 0.001119702962915183
     ma_init: 5.531354086254872
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1007,8 +1007,8 @@
     raan: 45.9842
     memo: 0.001119254088229847
     ma_init: 4.012716416803215
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1020,8 +1020,8 @@
     raan: 45.9697
     memo: 0.001119252165458788
     ma_init: 3.279146574843566
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1033,8 +1033,8 @@
     raan: 46.4491
     memo: 0.001120409691816988
     ma_init: 3.710409936792935
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1046,8 +1046,8 @@
     raan: 46.0147
     memo: 0.001119258663174149
     ma_init: 0.1134850492652575
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1059,8 +1059,8 @@
     raan: 45.9913
     memo: 0.001119266013919182
     ma_init: 4.440070826672532
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1072,8 +1072,8 @@
     raan: 46.1244
     memo: 0.001119255663389497
     ma_init: 4.198470027662538
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1085,8 +1085,8 @@
     raan: 46.0018
     memo: 0.001119377753533998
     ma_init: 3.106587275455695
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1098,8 +1098,8 @@
     raan: 45.9853
     memo: 0.001119240273221598
     ma_init: 0.5197083917780034
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1111,8 +1111,8 @@
     raan: 45.7313
     memo: 0.001119250767013725
     ma_init: 0.4182014565627128
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1124,8 +1124,8 @@
     raan: 45.7575
     memo: 0.001119234208202447
     ma_init: 2.63040909729925
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1137,8 +1137,8 @@
     raan: 46.0093
     memo: 0.001119237812307352
     ma_init: 4.654745879429711
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1150,8 +1150,8 @@
     raan: 45.9931
     memo: 0.001119237469786486
     ma_init: 4.454933002574435
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1163,8 +1163,8 @@
     raan: 43.9033
     memo: 0.001116869316154815
     ma_init: 0.6523571087513815
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1176,8 +1176,8 @@
     raan: 46.1021
     memo: 0.001119216359301963
     ma_init: 2.55309508521615
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1189,8 +1189,8 @@
     raan: 46.0822
     memo: 0.001119825516299156
     ma_init: 1.645152376292238
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1202,8 +1202,8 @@
     raan: 46.0331
     memo: 0.001119243089019457
     ma_init: 1.295693108670655
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1215,8 +1215,8 @@
     raan: 45.7726
     memo: 0.001119420132309898
     ma_init: 2.588862240000594
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1228,8 +1228,8 @@
     raan: 46.7206
     memo: 0.001120999850905273
     ma_init: 5.773949023423697
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1241,8 +1241,8 @@
     raan: 43.8122
     memo: 0.001116851020740931
     ma_init: 2.366636755892053
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1254,8 +1254,8 @@
     raan: 46.0476
     memo: 0.001119901467937659
     ma_init: 2.710937258334859
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1267,8 +1267,8 @@
     raan: 46.163
     memo: 0.001119646454971768
     ma_init: 2.496034310900328
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1280,8 +1280,8 @@
     raan: 45.7668
     memo: 0.001119225190667978
     ma_init: 2.508934847162955
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1293,8 +1293,8 @@
     raan: 46.0594
     memo: 0.001119514715338166
     ma_init: 2.303769735844362
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1306,8 +1306,8 @@
     raan: 46.0484
     memo: 0.001119225359383139
     ma_init: 2.40216076656592
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1319,8 +1319,8 @@
     raan: 45.9267
     memo: 0.001119223176267133
     ma_init: 0.2239962730125384
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1332,8 +1332,8 @@
     raan: 46.1676
     memo: 0.001119800922428334
     ma_init: 4.48266489792708
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1345,8 +1345,8 @@
     raan: 45.8637
     memo: 0.00111923969071796
     ma_init: 4.786020084119592
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1358,8 +1358,8 @@
     raan: 46.1161
     memo: 0.001119250023067131
     ma_init: 3.909546116474068
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1371,8 +1371,8 @@
     raan: 46.2593
     memo: 0.001120115279497674
     ma_init: 4.729282506572169
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1384,8 +1384,8 @@
     raan: 46.1019
     memo: 0.001119647910867252
     ma_init: 0.5507869766241171
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1397,8 +1397,8 @@
     raan: 46.2097
     memo: 0.001119258411555849
     ma_init: 2.351329920525913
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1410,8 +1410,8 @@
     raan: 46.11
     memo: 0.001119225833530919
     ma_init: 2.378134201216383
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1423,8 +1423,8 @@
     raan: 45.9655
     memo: 0.001119254756545507
     ma_init: 0.326065780152696
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1436,8 +1436,8 @@
     raan: 271.6441
     memo: 0.001105641543263566
     ma_init: 6.016589301803016
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1449,8 +1449,8 @@
     raan: 273.3366
     memo: 0.001105520397778523
     ma_init: 3.957022908500207
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1462,8 +1462,8 @@
     raan: 272.5918
     memo: 0.001105523061587294
     ma_init: 1.284420475126225
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1475,8 +1475,8 @@
     raan: 230.3775
     memo: 0.001107421220595239
     ma_init: 5.231048029789996
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1488,8 +1488,8 @@
     raan: 230.3635
     memo: 0.001107351685223399
     ma_init: 1.544998739053518
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1501,8 +1501,8 @@
     raan: 230.4929
     memo: 0.001107787005245431
     ma_init: 5.236358387863611
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01
@@ -1514,8 +1514,8 @@
     raan: 230.1899
     memo: 0.00110734153758824
     ma_init: 1.313632321733003
-    link_range: 1e+08
-    link_datarate: 1
+    link_range: 500e3
+    link_datarate: 9600
     inst_ap: 13
     inst_energy: 320
     inst_storage: 0.01

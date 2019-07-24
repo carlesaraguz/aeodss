@@ -45,10 +45,10 @@ agent:
         storage: 0.01           # Storage consumption rate [min, max] or single value.
     # Agent communication parameters:
     link:
-        range: 3000e3           # Distance units (world pixels or meters), [min, max] or single value.
-        datarate: 200e3         # In bits per second.
-        energy_tx: 0.0002       # Energy consumption rate (transmission).
-        energy_rx: 0.000002     # Energy consumption rate (reception).
+        range: 500e3            # Distance units (world pixels or meters), [min, max] or single value.
+        datarate: 9600          # In bits per second.
+        energy_tx: 0.0391       # Energy consumption rate (transmission).
+        energy_rx: 0.0004       # Energy consumption rate (reception).
         reserved_capacity: 2.5  # The reserved capacity (energy) for links.
         allow_during_capture: true # Whether to enable link while payload is enabled.
     # Agent motion model:
