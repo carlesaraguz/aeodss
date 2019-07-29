@@ -211,9 +211,9 @@ void Config::loadCmdArgs(int argc, char** argv)
             simulation_name += "_rand";
             min_payoff = -1.f;
             Log::dbg << " -- Config. parameter \'min_payoff\' is set to: " << min_payoff << " (ignores threshold).\n";
-            agent_range_min = 1.f;
+            agent_range_min = 0.01f;
             Log::dbg << " -- Config. parameter \'agent_range_min\' is set to: " << agent_range_min << "\n";
-            agent_range_max = 1.f;
+            agent_range_max = 0.01f;
             Log::dbg << " -- Config. parameter \'agent_range_max\' is set to: " << agent_range_max << "\n";
             agent_replanning_window = agent_planning_window + 1;
             Log::dbg << " -- Config. parameter \'replanning_window\' is set to: " << agent_replanning_window << "\n";
@@ -225,7 +225,7 @@ void Config::loadCmdArgs(int argc, char** argv)
             Log::dbg << " -- Config. parameter \'ga_timeout\' is set to: " << ga_timeout << "\n";
             ga_population_size = 500;
             Log::dbg << " -- Config. parameter \'ga_population_size\' is set to: " << ga_population_size << "\n";
-            parallel_agent_step = true;
+            // parallel_agent_step = true;
             Log::dbg << " -- Config. parameter \'parallel.agent_step\' is set to: true\n";
 
         } else if(opt == "--simple-log") {
